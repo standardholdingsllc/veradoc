@@ -114,14 +114,13 @@ export default function HomePage() {
         <SectionContainer className="grid min-h-[calc(84svh-5rem)] items-center gap-12 py-14 md:grid-cols-[1.04fr_0.72fr] md:py-20">
           <div className="max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent">
-              Evidencia notarial para arrendamientos
+              Arrendamientos remotos en Perú
             </p>
             <h1 className="mt-5 max-w-4xl font-serif text-4xl font-semibold leading-[1.03] text-primary md:text-6xl">
-              Certifique contratos de alquiler con presencia, orden y respaldo.
+              {HOMEPAGE.heroTitle}
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-muted">
-              VeraDoc.pe convierte firmas remotas, identidad y documentos en un
-              expediente claro para revisión notarial en Perú.
+              {HOMEPAGE.heroSubtitle}
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <Link href="/demo" className={buttonLinkClass("primary")}>
@@ -139,10 +138,10 @@ export default function HomePage() {
           <aside className="paper-panel hidden rounded-md p-5 md:block md:p-7">
             <div className="border-b border-border/70 pb-5">
               <p className="font-serif text-2xl font-semibold text-primary">
-                Informe de Evidencia Notarial
+                Cada parte firma donde esté
               </p>
               <p className="mt-2 text-sm leading-6 text-muted">
-                Un paquete legible para agentes, firmantes y notarios.
+                El contrato avanza sin reunir a todos en una misma oficina.
               </p>
             </div>
             <div className="grid gap-3 py-5">
@@ -255,7 +254,7 @@ export default function HomePage() {
             <Link href="/demo" className={buttonLinkClass("primary")}>
               {HOMEPAGE.ctaDemo}
             </Link>
-            <Link href="/contacto" className={buttonLinkClass("outline")}>
+            <Link href="/como-funciona" className={buttonLinkClass("outline")}>
               {HOMEPAGE.ctaFinal}
             </Link>
           </div>
@@ -265,17 +264,17 @@ export default function HomePage() {
             {
               icon: FileText,
               title: "Documento",
-              detail: "Versiones bloqueadas y hashes verificables.",
+              detail: "Contrato final sin alteraciones, disponible para consulta.",
             },
             {
               icon: Archive,
-              title: "Auditoría",
-              detail: "Acciones, tiempos y actores en un solo expediente.",
+              title: "Acceso",
+              detail: "Arrendador, arrendatario, agente y notario pueden verlo.",
             },
             {
               icon: Scale,
               title: "Notaría",
-              detail: "Revisión enfocada en evidencia, no en reconstruir hechos.",
+              detail: "Revisión sin coordinar una reunión conjunta.",
             },
           ].map((item) => (
             <article key={item.title} className="border-t border-border pt-5">

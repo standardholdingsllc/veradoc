@@ -10,11 +10,11 @@
 export const META = {
   siteName: "VeraDoc.pe",
   title:
-    "VeraDoc.pe — Certificación de arrendamiento con revisión notarial",
+    "VeraDoc.pe — Firma remota de arrendamientos con revisión notarial",
   description:
-    "Flujos de certificación de arrendamiento remoto para el sector inmobiliario peruano. Paquetes de evidencia notarial estructurados para revisión y certificación.",
+    "Flujos remotos para que arrendadores y arrendatarios completen contratos de alquiler desde su propio dispositivo y el notario revise sin coordinar una cita conjunta.",
   ogDescription:
-    "Flujos de certificación de arrendamiento remoto para el sector inmobiliario peruano.",
+    "Firma remota de arrendamientos con expediente organizado para revisión notarial.",
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -23,14 +23,12 @@ export const META = {
 export const NAV = {
   inicio: "Inicio",
   comoFunciona: "Cómo funciona",
-  seguridad: "Seguridad",
+  seguridad: "Evidencia",
   posicionamientoLegal: "Posicionamiento legal",
   precios: "Precios",
-  contacto: "Contacto",
   verDemostracion: "Ver demostración",
   modoDemo: "Modo demostración — datos simulados",
   explorarDemostracion: "Explorar demostración",
-  contactenos: "Contáctenos",
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -39,10 +37,9 @@ export const NAV = {
 export const PAGE_TITLES = {
   inicio: "Inicio",
   comoFunciona: "Cómo funciona",
-  seguridad: "Seguridad y evidencia",
+  seguridad: "Evidencia para revisión",
   posicionamientoLegal: "Posicionamiento legal",
   precios: "Precios",
-  contacto: "Contacto",
   demo: "Explorar demostración",
   agenteDashboard: "Panel del agente inmobiliario",
   nuevoPaquete: "Crear paquete de arrendamiento",
@@ -644,14 +641,14 @@ export const ERRORS = {
 // ---------------------------------------------------------------------------
 export const HOMEPAGE = {
   heroTitle:
-    "Flujos de certificación de arrendamiento remoto para el sector inmobiliario peruano",
+    "Firma de arrendamientos sin coordinar a todos en una notaría",
   heroSubtitle:
-    "VeraDoc ayuda a profesionales inmobiliarios a crear paquetes estructurados de arrendamiento, recopilar evidencia de firmantes, validar firmas digitales, y presentar un expediente completo de revisión a un notario participante.",
+    "VeraDoc permite que arrendador y arrendatario completen identidad, revisión y firma desde su propio dispositivo. El notario participante recibe un expediente organizado para revisar y tomar su decisión sin reunir a todos durante horario de oficina.",
   ctaDemo: "Ver demostración",
   ctaComoFunciona: "Cómo funciona",
   posicionamiento:
-    "VeraDoc organiza la evidencia y el flujo de trabajo. El notario participante mantiene la responsabilidad de revisar el expediente y decidir si la certificación es apropiada.",
-  ctaFinal: "Contáctenos",
+    "VeraDoc organiza el flujo remoto y el expediente de soporte. El notario participante mantiene la responsabilidad de revisar el expediente y decidir si la certificación es apropiada.",
+  ctaFinal: "Ver flujo remoto",
 } as const;
 
 export const HOMEPAGE_TRUST = {
@@ -666,31 +663,31 @@ export const HOMEPAGE_TRUST = {
   arrendatariosDesc:
     "Complete su firma de forma segura desde cualquier dispositivo",
   notariosDesc:
-    "Revise expedientes completos con evidencia estructurada",
+    "Revise expedientes organizados sin coordinar una cita presencial conjunta",
 } as const;
 
 export const HOMEPAGE_PROBLEM = {
-  titulo: "El problema",
+  titulo: "La fricción real es coordinar a todos",
   fragmentacion:
-    "Fragmentación de firmas y documentos dispersos entre múltiples canales",
+    "Arrendador, arrendatario, agente y notaría suelen depender de una misma ventana de disponibilidad",
   identidad:
-    "Evidencia de identidad dispersa sin trazabilidad unificada",
+    "La firma presencial obliga a reorganizar agendas, traslados y horarios laborales",
   confianza:
-    "Problemas de confianza notarial con procesos de firma remota",
-  duplicados: "Riesgo de arrendamiento duplicado sin alertas centralizadas",
+    "Cuando las partes están en distintos lugares, cerrar un contrato puede demorarse por logística, no por falta de acuerdo",
+  duplicados: "Dificultad para mantener una versión final sin alteraciones",
   recuperacion:
-    "Dificultad de recuperación y acceso a documentos certificados",
+    "Dificultad de recuperación y acceso al contrato final certificado",
 } as const;
 
 export const HOMEPAGE_SOLUTION = {
-  titulo: "La solución",
-  paqueteControlado: "Paquete de arrendamiento controlado",
-  verificacionFirmantes: "Verificación documentada de firmantes",
-  evidenciaFirma: "Evidencia de firma digital validada",
-  informeNotarial: "Informe de evidencia notarial estructurado",
-  panelNotarial: "Panel de revisión notarial basado en evidencia",
+  titulo: "Un proceso remoto para cada parte",
+  paqueteControlado: "El agente prepara el contrato y envía enlaces individuales",
+  verificacionFirmantes: "Arrendador y arrendatario completan identidad desde su dispositivo",
+  evidenciaFirma: "Cada parte revisa y firma sin coincidir en la misma cita",
+  informeNotarial: "El notario recibe el expediente para revisión y decisión",
+  panelNotarial: "Panel de revisión notarial basado en expediente",
   almacenamiento:
-    "Almacenamiento certificado y registro de arrendamientos",
+    "Contrato final almacenado y visible para todas las partes",
 } as const;
 
 export const HOMEPAGE_WORKFLOW = {
@@ -705,7 +702,7 @@ export const HOMEPAGE_WORKFLOW = {
 } as const;
 
 export const HOMEPAGE_EVIDENCE = {
-  titulo: "Paquete de evidencia",
+  titulo: "Expediente para revisión notarial",
   identidad: "Evidencia de identidad",
   consentimiento: "Registros de consentimiento",
   otp: "Verificación WhatsApp",
@@ -721,7 +718,7 @@ export const HOMEPAGE_EVIDENCE = {
 export const COMO_FUNCIONA = {
   titulo: "Cómo funciona",
   subtitulo:
-    "Un flujo estructurado de principio a fin para la certificación de arrendamientos",
+    "Un flujo remoto para que cada parte avance desde su propio dispositivo y el notario revise sin una cita conjunta",
   quienActua: "Quién actúa",
   queSucede: "Qué sucede",
   evidenciaCreada: "Evidencia creada",
@@ -729,12 +726,12 @@ export const COMO_FUNCIONA = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// Marketing pages — Seguridad
+// Marketing pages — Evidencia
 // ---------------------------------------------------------------------------
 export const SEGURIDAD = {
-  titulo: "Seguridad y evidencia",
+  titulo: "Evidencia para revisión",
   subtitulo:
-    "Controles de integridad y trazabilidad para cada etapa del proceso",
+    "El expediente organiza identidad, consentimiento, firmas y actividad para que el notario pueda revisar sin reconstruir el proceso manualmente",
   versionesDocumento: "Control de versiones del documento",
   cadenaHashes: "Cadena de hashes del documento",
   validacionCertificados: "Validación de certificados digitales",
@@ -763,21 +760,11 @@ export const LEGAL = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// Marketing pages — Precios & Contacto (placeholders)
+// Marketing pages — Precios
 // ---------------------------------------------------------------------------
 export const PRECIOS = {
   titulo: "Precios",
-  subtitulo: "Información de precios disponible próximamente",
-  contactarVentas: "Contáctenos para más información",
-} as const;
-
-export const CONTACTO = {
-  titulo: "Contacto",
-  subtitulo: "Estamos disponibles para responder sus consultas",
-  nombre: "Nombre",
-  mensaje: "Mensaje",
-  enviar: "Enviar mensaje",
-  placeholder: "Formulario de contacto disponible próximamente",
+  subtitulo: "La propuesta de VeraDoc es conveniencia remota, no competir por precio",
 } as const;
 
 // ---------------------------------------------------------------------------

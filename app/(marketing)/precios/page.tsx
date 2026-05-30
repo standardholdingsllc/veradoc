@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { META, NAV, PAGE_TITLES, PRECIOS } from "@/lib/i18n/labels";
+import { HOMEPAGE, META, PAGE_TITLES, PRECIOS } from "@/lib/i18n/labels";
 
 export const metadata: Metadata = {
   title: `${PAGE_TITLES.precios} — ${META.siteName}`,
@@ -15,14 +15,17 @@ export default function PreciosPage() {
           {PRECIOS.titulo}
         </h1>
         <p className="mt-6 text-base leading-relaxed text-muted">
-          Próximamente — Contáctenos para información sobre precios.
+          VeraDoc no se posiciona como una alternativa de menor costo al proceso
+          notarial tradicional. La propuesta es conveniencia: permitir que cada
+          parte complete el flujo remoto desde su propio dispositivo y que el
+          notario revise el expediente sin coordinar una cita conjunta.
         </p>
         <p className="mt-4">
           <Link
-            href="/contacto"
+            href="/demo"
             className="text-sm font-medium text-secondary underline-offset-4 hover:underline"
           >
-            {NAV.contactenos}
+            {HOMEPAGE.ctaDemo}
           </Link>
         </p>
       </header>

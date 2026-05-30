@@ -12,10 +12,9 @@ import { cn } from "@/lib/utils";
 const MARKETING_LINKS = [
   { href: "/", label: NAV.inicio },
   { href: "/como-funciona", label: NAV.comoFunciona },
-  { href: "/seguridad", label: NAV.seguridad },
+  { href: "/evidencia", label: NAV.seguridad },
   { href: "/posicionamiento-legal", label: NAV.posicionamientoLegal },
   { href: "/precios", label: NAV.precios },
-  { href: "/contacto", label: NAV.contacto },
 ] as const;
 
 export function TopNav() {

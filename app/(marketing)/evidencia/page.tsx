@@ -21,41 +21,41 @@ const SECURITY_CONCEPTS = [
     icon: FileStack,
     title: SEGURIDAD.versionesDocumento,
     description:
-      "Cada documento mantiene un historial de versiones con hashes registrados en cada etapa: carga inicial, post-firmas y certificación final. Las modificaciones quedan detectables.",
+      "El expediente conserva las versiones relevantes del contrato para que la revisión notarial parta de una secuencia clara.",
   },
   {
     icon: Hash,
     title: SEGURIDAD.cadenaHashes,
     description:
-      "Se calculan hashes SHA-256 del documento en puntos clave del flujo. Cualquier alteración posterior produce un hash distinto, evidenciando cambios no autorizados.",
+      "Los hashes ayudan a confirmar que el documento revisado corresponde a la versión presentada en el flujo.",
   },
   {
     icon: ShieldCheck,
     title: SEGURIDAD.validacionCertificados,
     description:
-      "Las firmas digitales se validan contra la cadena de certificados del emisor, verificando vigencia, revocación e integridad del documento firmado.",
+      "La validación de firma se organiza dentro del expediente para que el notario pueda evaluarla junto con el resto de soporte.",
   },
   {
     icon: ScrollText,
     title: SEGURIDAD.registroAuditoria,
     description:
-      "Cada acción relevante — creación, envío, firma, revisión, certificación — queda registrada con actor, timestamp y estado resultante.",
+      "Cada acción relevante queda ordenada con actor, momento y estado resultante para reducir reconstrucción manual.",
   },
   {
     icon: Fingerprint,
     title: SEGURIDAD.capturaConsentimiento,
     description:
-      "El consentimiento informado se captura con registro de aceptación, dispositivo y momento exacto, vinculado al firmante correspondiente.",
+      "El consentimiento se presenta vinculado al firmante correspondiente, junto con el momento de aceptación.",
   },
   {
     icon: Monitor,
     title: SEGURIDAD.registroSesion,
     description:
-      "Las sesiones de firma registran dispositivo, dirección IP aproximada y secuencia de pasos completados para trazabilidad completa.",
+      "La sesión muestra dispositivo y secuencia de pasos completados para contextualizar la firma remota.",
   },
 ] as const;
 
-export default function SeguridadPage() {
+export default function EvidenciaPage() {
   return (
     <div className="mx-auto w-full max-w-[1200px] px-4 py-12">
       <header className="max-w-2xl">

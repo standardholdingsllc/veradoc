@@ -29,11 +29,13 @@ export const metadata: Metadata = {
   description: COMO_FUNCIONA.subtitulo,
 };
 
+type WorkflowRole = UserRole | "system" | "signers";
+
 interface WorkflowStep {
   step: number;
   title: string;
   description: string;
-  role: UserRole | "system";
+  role: WorkflowRole;
   evidence: string[];
   icon: React.ComponentType<{ className?: string }>;
 }
@@ -70,17 +72,17 @@ const STEPS: WorkflowStep[] = [
     step: 4,
     title: "El agente envía enlaces de firma",
     description:
-      "Distribuye enlaces seguros personalizados a cada firmante por correo o WhatsApp.",
+      "Distribuye enlaces personalizados para que cada parte continúe desde su propio dispositivo, sin coordinar una cita conjunta.",
     role: "realtor",
     evidence: ["Enlaces seguros", "Registro de envío", "Tokens de acceso"],
     icon: Send,
   },
   {
     step: 5,
-    title: "Los firmantes verifican identidad y firman",
+    title: "Arrendador y arrendatario verifican identidad y firman",
     description:
-      "Arrendador y arrendatario completan verificación WhatsApp, consentimiento, identidad y firma digital.",
-    role: "landlord",
+      "Ambas partes completan verificación WhatsApp, consentimiento, identidad y firma digital desde donde estén.",
+    role: "signers",
     evidence: [
       "Verificación OTP",
       "DNI y selfie",
@@ -115,7 +117,7 @@ const STEPS: WorkflowStep[] = [
     step: 8,
     title: "El notario revisa la evidencia",
     description:
-      "Examina identidad, firmas, cadena de certificados, timestamps y verificación de registro.",
+      "Examina identidad, firmas, cadena de certificados, timestamps y el expediente presentado.",
     role: "notary",
     evidence: [
       "Lista de verificación completada",
@@ -152,14 +154,14 @@ const STEPS: WorkflowStep[] = [
   },
   {
     step: 11,
-    title: "El registro se actualiza",
+    title: "El contrato final queda disponible",
     description:
-      "Se registra el arrendamiento certificado y se habilitan alertas de duplicados para futuros paquetes.",
+      "La versión final no alterada del contrato se almacena de forma segura y permanece visible para las partes.",
     role: "system",
     evidence: [
-      "Entrada en registro de arrendamientos",
-      "Estado registral",
-      "Indicador de vigencia",
+      "Contrato final almacenado",
+      "Acceso para todas las partes",
+      "Registro de disponibilidad",
     ],
     icon: Building2,
   },
@@ -167,6 +169,7 @@ const STEPS: WorkflowStep[] = [
 
 function roleLabel(role: WorkflowStep["role"]): string {
   if (role === "system") return "VeraDoc";
+  if (role === "signers") return "Arrendador y arrendatario";
   return ROLES[role];
 }
 
