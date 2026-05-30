@@ -33,7 +33,7 @@ const SECURITY_CONCEPTS = [
     icon: ShieldCheck,
     title: SEGURIDAD.validacionCertificados,
     description:
-      "La validación de firma se organiza dentro del expediente para que el notario pueda evaluarla junto con el resto de soporte.",
+      "La firma digital conforme a IOFE y su validación se organizan dentro del expediente para que el notario participante pueda evaluarlas junto con el resto del soporte.",
   },
   {
     icon: ScrollText,

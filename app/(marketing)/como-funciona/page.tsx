@@ -45,9 +45,9 @@ const STEPS: WorkflowStep[] = [
     step: 1,
     title: "El agente inmobiliario crea un paquete de arrendamiento",
     description:
-      "Inicia un nuevo paquete controlado con datos básicos del inmueble y los participantes del contrato.",
+      "Inicia un nuevo paquete controlado con datos básicos del inmueble, los participantes del contrato y el notario participante asignado al flujo VeraDoc.",
     role: "realtor",
-    evidence: ["Metadatos del paquete", "Código de paquete", "Registro de creación"],
+    evidence: ["Metadatos del paquete", "Código de paquete", "Notario participante asignado"],
     icon: Package,
   },
   {
@@ -63,7 +63,7 @@ const STEPS: WorkflowStep[] = [
     step: 3,
     title: "El agente paga la tarifa VeraDoc",
     description:
-      "Confirma el pago del servicio para activar el paquete y habilitar el envío a firmantes.",
+      "Confirma el pago del servicio para activar el paquete, habilitar el envío a firmantes y dejar listo el expediente para el notario participante.",
     role: "realtor",
     evidence: ["Registro de pago", "Factura", "Estado de paquete actualizado"],
     icon: CreditCard,
@@ -81,13 +81,13 @@ const STEPS: WorkflowStep[] = [
     step: 5,
     title: "Arrendador y arrendatario verifican identidad y firman",
     description:
-      "Ambas partes completan verificación WhatsApp, consentimiento, identidad y firma digital desde donde estén.",
+      "Ambas partes completan verificación WhatsApp, consentimiento, identidad y firma digital conforme a IOFE desde donde estén.",
     role: "signers",
     evidence: [
       "Verificación OTP",
       "DNI y selfie",
       "Consentimiento",
-      "Firma digital IOFE",
+      "Firma digital conforme a IOFE",
     ],
     icon: Users,
   },
@@ -108,7 +108,7 @@ const STEPS: WorkflowStep[] = [
     step: 7,
     title: "El agente envía el paquete al notario",
     description:
-      "Transfiere el expediente completo al notario participante para iniciar la revisión formal.",
+      "Transfiere el expediente completo al notario participante de VeraDoc para iniciar la revisión formal. Las partes no tienen que salir a buscar uno por su cuenta.",
     role: "realtor",
     evidence: ["Registro de envío notarial", "Estado: listo para notario"],
     icon: Link2,
@@ -117,7 +117,7 @@ const STEPS: WorkflowStep[] = [
     step: 8,
     title: "El notario revisa la evidencia",
     description:
-      "Examina identidad, firmas, cadena de certificados, timestamps y el expediente presentado.",
+      "Examina identidad, firma digital conforme a IOFE, cadena de certificados, timestamps y el expediente presentado.",
     role: "notary",
     evidence: [
       "Lista de verificación completada",

@@ -12,9 +12,9 @@ export const META = {
   title:
     "VeraDoc.pe — Firma remota de arrendamientos con revisión notarial",
   description:
-    "Flujos remotos para que arrendadores y arrendatarios completen contratos de alquiler desde su propio dispositivo y el notario revise sin coordinar una cita conjunta.",
+    "Flujos remotos con firma digital conforme a IOFE para que arrendadores y arrendatarios completen contratos desde su propio dispositivo y un notario participante revise sin coordinar una cita conjunta.",
   ogDescription:
-    "Firma remota de arrendamientos con expediente organizado para revisión notarial.",
+    "Firma remota de arrendamientos con firma IOFE y expediente organizado para revisión notarial.",
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -643,11 +643,11 @@ export const HOMEPAGE = {
   heroTitle:
     "Firma de arrendamientos sin coordinar a todos en una notaría",
   heroSubtitle:
-    "VeraDoc permite que arrendador y arrendatario completen identidad, revisión y firma desde su propio dispositivo. El notario participante recibe un expediente organizado para revisar y tomar su decisión sin reunir a todos durante horario de oficina.",
+    "VeraDoc permite que arrendador y arrendatario completen identidad, revisión y firma digital conforme a IOFE desde su propio dispositivo. Un notario participante de la red VeraDoc recibe el expediente organizado para revisar y tomar su decisión sin reunir a todos durante horario de oficina.",
   ctaDemo: "Ver demostración",
   ctaComoFunciona: "Cómo funciona",
   posicionamiento:
-    "VeraDoc organiza el flujo remoto y el expediente de soporte. El notario participante mantiene la responsabilidad de revisar el expediente y decidir si la certificación es apropiada.",
+    "VeraDoc organiza el flujo remoto, la firma digital conforme a IOFE y el expediente de soporte. El notario participante mantiene la responsabilidad de revisar el expediente y decidir si la certificación es apropiada.",
   ctaFinal: "Ver flujo remoto",
 } as const;
 
@@ -657,13 +657,13 @@ export const HOMEPAGE_TRUST = {
   paraArrendatarios: "Para arrendatarios",
   paraNotarios: "Para notarios",
   agentesDesc:
-    "Cree paquetes estructurados y gestione firmantes de principio a fin",
+    "Cree paquetes estructurados y active un flujo remoto con notario participante",
   arrendadoresDesc:
-    "Verifique su identidad y firme con evidencia documentada",
+    "Verifique su identidad y firme conforme a IOFE desde su dispositivo",
   arrendatariosDesc:
-    "Complete su firma de forma segura desde cualquier dispositivo",
+    "Complete su firma conforme a IOFE desde cualquier dispositivo",
   notariosDesc:
-    "Revise expedientes organizados sin coordinar una cita presencial conjunta",
+    "Revise expedientes organizados como notario participante de VeraDoc",
 } as const;
 
 export const HOMEPAGE_PROBLEM = {
@@ -681,10 +681,10 @@ export const HOMEPAGE_PROBLEM = {
 
 export const HOMEPAGE_SOLUTION = {
   titulo: "Un proceso remoto para cada parte",
-  paqueteControlado: "El agente prepara el contrato y envía enlaces individuales",
+  paqueteControlado: "El agente prepara el contrato y activa el flujo con un notario participante",
   verificacionFirmantes: "Arrendador y arrendatario completan identidad desde su dispositivo",
-  evidenciaFirma: "Cada parte revisa y firma sin coincidir en la misma cita",
-  informeNotarial: "El notario recibe el expediente para revisión y decisión",
+  evidenciaFirma: "Cada parte revisa y firma con firma digital conforme a IOFE",
+  informeNotarial: "El notario participante recibe el expediente para revisión y decisión",
   panelNotarial: "Panel de revisión notarial basado en expediente",
   almacenamiento:
     "Contrato final almacenado y visible para todas las partes",
@@ -706,7 +706,7 @@ export const HOMEPAGE_EVIDENCE = {
   identidad: "Evidencia de identidad",
   consentimiento: "Registros de consentimiento",
   otp: "Verificación WhatsApp",
-  firma: "Validación de firma digital",
+  firma: "Firma digital conforme a IOFE",
   hashes: "Cadena de hashes del documento",
   auditoria: "Registros de sesión y auditoría",
   registro: "Verificación de registro",
@@ -718,7 +718,7 @@ export const HOMEPAGE_EVIDENCE = {
 export const COMO_FUNCIONA = {
   titulo: "Cómo funciona",
   subtitulo:
-    "Un flujo remoto para que cada parte avance desde su propio dispositivo y el notario revise sin una cita conjunta",
+    "Un flujo remoto con firma digital conforme a IOFE para que cada parte avance desde su propio dispositivo y un notario participante revise sin una cita conjunta",
   quienActua: "Quién actúa",
   queSucede: "Qué sucede",
   evidenciaCreada: "Evidencia creada",
@@ -731,7 +731,7 @@ export const COMO_FUNCIONA = {
 export const SEGURIDAD = {
   titulo: "Evidencia para revisión",
   subtitulo:
-    "El expediente organiza identidad, consentimiento, firmas y actividad para que el notario pueda revisar sin reconstruir el proceso manualmente",
+    "El expediente organiza identidad, consentimiento, firma digital conforme a IOFE y actividad para que el notario participante pueda revisar sin reconstruir el proceso manualmente",
   versionesDocumento: "Control de versiones del documento",
   cadenaHashes: "Cadena de hashes del documento",
   validacionCertificados: "Validación de certificados digitales",
@@ -764,7 +764,7 @@ export const LEGAL = {
 // ---------------------------------------------------------------------------
 export const PRECIOS = {
   titulo: "Precios",
-  subtitulo: "La propuesta de VeraDoc es conveniencia remota, no competir por precio",
+  subtitulo: "La propuesta de VeraDoc es conveniencia remota con firma conforme a IOFE, no competir por precio",
 } as const;
 
 // ---------------------------------------------------------------------------

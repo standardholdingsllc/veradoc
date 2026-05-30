@@ -77,7 +77,7 @@ const CORE_FLOW = [
 const EVIDENCE = [
   "DNI y selfie",
   "Consentimiento",
-  "Firma digital",
+  "Firma digital conforme a IOFE",
   "Hash SHA-256",
   "Timestamp",
   "Registro de auditoría",
@@ -141,7 +141,7 @@ export default function HomePage() {
                 Cada parte firma donde esté
               </p>
               <p className="mt-2 text-sm leading-6 text-muted">
-                El contrato avanza sin reunir a todos en una misma oficina.
+                El contrato avanza con firma digital conforme a IOFE, sin reunir a todos en una misma oficina.
               </p>
             </div>
             <div className="grid gap-3 py-5">
@@ -268,13 +268,13 @@ export default function HomePage() {
             },
             {
               icon: Archive,
-              title: "Acceso",
-              detail: "Arrendador, arrendatario, agente y notario pueden verlo.",
+              title: "Notaría",
+              detail: "VeraDoc trabaja con notarios participantes; las partes no tienen que salir a buscar uno.",
             },
             {
               icon: Scale,
-              title: "Notaría",
-              detail: "Revisión sin coordinar una reunión conjunta.",
+              title: "Firma remota",
+              detail: "Arrendador y arrendatario firman desde donde estén con firma digital conforme a IOFE.",
             },
           ].map((item) => (
             <article key={item.title} className="border-t border-border pt-5">

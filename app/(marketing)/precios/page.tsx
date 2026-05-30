@@ -17,8 +17,9 @@ export default function PreciosPage() {
         <p className="mt-6 text-base leading-relaxed text-muted">
           VeraDoc no se posiciona como una alternativa de menor costo al proceso
           notarial tradicional. La propuesta es conveniencia: permitir que cada
-          parte complete el flujo remoto desde su propio dispositivo y que el
-          notario revise el expediente sin coordinar una cita conjunta.
+          parte complete el flujo remoto con firma digital conforme a IOFE desde
+          su propio dispositivo y que un notario participante revise el
+          expediente sin coordinar una cita conjunta.
         </p>
         <p className="mt-4">
           <Link
