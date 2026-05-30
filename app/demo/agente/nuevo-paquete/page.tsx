@@ -383,7 +383,7 @@ export default function NuevoPaquetePage() {
           <ArrowLeft className="size-4" />
           {ACTIONS.volverAlPanel}
         </Link>
-        <h1 className="text-xl font-semibold tracking-tight text-primary">
+        <h1 className="text-xl font-semibold text-primary">
           {PAGE_TITLES.nuevoPaquete}
         </h1>
       </header>

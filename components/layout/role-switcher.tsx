@@ -69,8 +69,8 @@ export function RoleSwitcher() {
         aria-label={`${ACTIONS.seleccionarRol}: ${currentLabel}`}
         onClick={() => setOpen((value) => !value)}
         className={cn(
-          "inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-primary",
-          "hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+          "inline-flex items-center gap-2 border border-border bg-background px-3 py-2 text-sm font-medium text-primary",
+          "hover:border-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
         )}
       >
         <span>{currentLabel}</span>
@@ -85,7 +85,7 @@ export function RoleSwitcher() {
           id={listboxId}
           role="listbox"
           aria-label={ACTIONS.seleccionarRol}
-          className="absolute right-0 z-50 mt-1 min-w-[220px] rounded-md border border-border bg-background py-1 shadow-sm"
+          className="absolute right-0 z-50 mt-1 min-w-[220px] border-y border-border bg-background py-1"
         >
           {ROLES_ORDER.map((role) => (
             <li key={role} role="option" aria-selected={role === currentRole}>
@@ -93,8 +93,8 @@ export function RoleSwitcher() {
                 type="button"
                 onClick={() => handleSelect(role)}
                 className={cn(
-                  "flex w-full flex-col items-start px-3 py-2 text-left text-sm transition-colors hover:bg-surface",
-                  role === currentRole && "bg-surface font-medium",
+                  "flex w-full flex-col items-start border-l-2 px-3 py-2 text-left text-sm transition-colors hover:border-secondary",
+                  role === currentRole ? "border-secondary font-medium" : "border-transparent",
                 )}
               >
                 <span className="text-primary">{ROLES[role]}</span>

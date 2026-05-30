@@ -72,7 +72,7 @@ export default function RegistroPage() {
   return (
     <div className="mx-auto w-full max-w-[1200px] px-4 py-8 md:px-8">
       <header className="mb-6">
-        <h1 className="text-xl font-semibold tracking-tight text-primary">
+        <h1 className="text-xl font-semibold text-primary">
           {REGISTRY.titulo}
         </h1>
         <p className="mt-2 text-sm text-muted">{REGISTRY.explicacion}</p>

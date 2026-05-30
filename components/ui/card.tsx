@@ -1,5 +1,16 @@
 import { cn } from "@/lib/utils";
 
+function stripCardShellClasses(className?: string) {
+  return className
+    ?.split(/\s+/)
+    .filter(Boolean)
+    .filter(
+      (token) =>
+        !/^(rounded|border|bg-|shadow|ring-|overflow-hidden)/.test(token),
+    )
+    .join(" ");
+}
+
 export function Card({
   className,
   ...props
@@ -7,8 +18,8 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-md border border-border bg-background text-foreground",
-        className,
+        "text-foreground",
+        stripCardShellClasses(className),
       )}
       {...props}
     />
@@ -21,7 +32,7 @@ export function CardHeader({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("flex flex-col gap-1.5 px-6 pt-6", className)}
+      className={cn("flex flex-col gap-1.5", className)}
       {...props}
     />
   );
@@ -33,7 +44,7 @@ export function CardTitle({
 }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h3
-      className={cn("text-base font-semibold leading-none tracking-tight", className)}
+      className={cn("text-base font-semibold leading-none", className)}
       {...props}
     />
   );
@@ -52,7 +63,7 @@ export function CardContent({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("px-6 py-4", className)} {...props} />;
+  return <div className={cn("py-4", className)} {...props} />;
 }
 
 export function CardFooter({
@@ -61,7 +72,7 @@ export function CardFooter({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("flex items-center px-6 pb-6 pt-0", className)}
+      className={cn("flex items-center pt-0", className)}
       {...props}
     />
   );

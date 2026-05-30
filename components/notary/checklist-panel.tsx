@@ -48,7 +48,7 @@ export function ChecklistPanel({
 
   return (
     <div className={cn("space-y-4", className)}>
-      <div className="rounded-md border border-border bg-surface/50 p-4">
+      <div className="border-t border-border pt-4">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-sm font-medium text-primary">
             {checkedCount} de {TOTAL_ITEMS} completados
@@ -71,12 +71,12 @@ export function ChecklistPanel({
               disabled={!interactive}
               onClick={() => handleToggle(item.itemKey)}
               className={cn(
-                "flex w-full items-start gap-3 rounded-md border px-3 py-2.5 text-left transition-colors",
+                "flex w-full items-start gap-3 border-l-2 px-3 py-2.5 text-left transition-colors",
                 item.checked
-                  ? "border-success/30 bg-success/5"
-                  : "border-border bg-background",
+                  ? "border-success"
+                  : "border-transparent",
                 interactive
-                  ? "cursor-pointer hover:border-secondary/40 hover:bg-surface/50"
+                  ? "cursor-pointer hover:border-secondary"
                   : "cursor-default opacity-80",
               )}
             >

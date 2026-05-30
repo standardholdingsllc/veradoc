@@ -164,7 +164,7 @@ export default function PaqueteDetallePage() {
             <p className="text-xs uppercase tracking-wide text-muted">
               {PAGE_TITLES.detallePaquete}
             </p>
-            <h1 className="font-mono text-2xl font-semibold tracking-tight text-primary">
+            <h1 className="font-mono text-2xl font-semibold text-primary">
               {currentPacket.packetCode}
             </h1>
             <div className="flex flex-wrap items-center gap-3 text-xs text-muted">

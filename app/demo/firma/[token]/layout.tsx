@@ -13,7 +13,7 @@ export default function SignerFlowLayout({
       <header className="px-6 pt-6">
         <Link
           href="/"
-          className="inline-block text-base font-bold tracking-tight text-primary"
+          className="inline-block text-base font-bold text-primary"
           aria-label={META.siteName}
         >
           VeraDoc

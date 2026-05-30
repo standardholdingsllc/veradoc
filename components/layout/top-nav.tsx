@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
@@ -30,15 +31,21 @@ export function TopNav() {
   }, [mobileOpen]);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background">
+    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-[1200px] items-center justify-between gap-4 px-4">
         <Link
           href="/"
-          className="shrink-0 text-lg font-bold tracking-tight text-primary"
+          className="flex shrink-0 items-center"
           aria-label={`${META.siteName} — ${NAV.inicio}`}
         >
-          VeraDoc
-          <span className="text-accent">.pe</span>
+          <Image
+            src="/brand/veradoc-logo-full-transparent.svg"
+            alt="VeraDoc.pe"
+            width={150}
+            height={50}
+            priority
+            className="h-10 w-auto"
+          />
         </Link>
 
         <nav
@@ -68,7 +75,7 @@ export function TopNav() {
           ) : (
             <Link
               href="/demo"
-              className="inline-flex h-8 items-center justify-center rounded-md border border-primary bg-primary px-3 text-xs font-medium text-white transition-colors hover:bg-primary/90"
+              className="inline-flex h-8 items-center justify-center border border-primary bg-primary px-3 text-xs font-medium text-white transition-colors hover:bg-primary/90"
             >
               {NAV.verDemostracion}
             </Link>
@@ -77,7 +84,7 @@ export function TopNav() {
 
         <button
           type="button"
-          className="inline-flex items-center justify-center rounded-md p-2 text-primary md:hidden"
+          className="inline-flex items-center justify-center p-2 text-primary md:hidden"
           aria-expanded={mobileOpen}
           aria-controls="mobile-nav"
           aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
@@ -104,10 +111,10 @@ export function TopNav() {
                 aria-current={pathname === link.href ? "page" : undefined}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  "rounded-md px-3 py-2.5 text-sm transition-colors",
+                  "border-l-2 px-3 py-2.5 text-sm transition-colors",
                   pathname === link.href
-                    ? "bg-surface font-medium text-primary"
-                    : "text-muted hover:bg-surface hover:text-primary",
+                    ? "border-secondary font-medium text-primary"
+                    : "border-transparent text-muted hover:border-border hover:text-primary",
                 )}
               >
                 {link.label}
@@ -119,7 +126,7 @@ export function TopNav() {
               ) : (
                 <Link
                   href="/demo"
-                  className="inline-flex h-10 w-full items-center justify-center rounded-md border border-primary bg-primary px-4 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+                  className="inline-flex h-10 w-full items-center justify-center border border-primary bg-primary px-4 text-sm font-medium text-white transition-colors hover:bg-primary/90"
                 >
                   {NAV.verDemostracion}
                 </Link>

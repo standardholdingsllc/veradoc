@@ -59,7 +59,7 @@ export default function SeguridadPage() {
   return (
     <div className="mx-auto w-full max-w-[1200px] px-4 py-12">
       <header className="max-w-2xl">
-        <h1 className="text-3xl font-semibold tracking-tight text-primary">
+        <h1 className="text-3xl font-semibold text-primary">
           {SEGURIDAD.titulo}
         </h1>
         <p className="mt-4 text-base leading-relaxed text-muted">
@@ -67,7 +67,7 @@ export default function SeguridadPage() {
         </p>
       </header>
 
-      <div className="mt-12 grid gap-4 sm:grid-cols-2">
+      <div className="mt-12 grid gap-x-10 gap-y-8 sm:grid-cols-2">
         {SECURITY_CONCEPTS.map((concept) => (
           <Card key={concept.title}>
             <CardHeader>
@@ -86,7 +86,7 @@ export default function SeguridadPage() {
         ))}
       </div>
 
-      <div className="mt-12 rounded-md border border-border bg-surface px-6 py-5">
+      <div className="mt-12 border-l-2 border-secondary py-1 pl-6">
         <div className="flex gap-3">
           <Clock className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
           <p className="text-sm leading-relaxed text-muted">

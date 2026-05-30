@@ -139,7 +139,7 @@ export default function AgenteDashboardPage() {
     <div className="mx-auto w-full max-w-[1200px] px-4 py-8 md:px-8">
       <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-primary">
+          <h1 className="text-xl font-semibold text-primary">
             {PAGE_TITLES.agenteDashboard}
           </h1>
           <p className="mt-1 text-sm text-muted">

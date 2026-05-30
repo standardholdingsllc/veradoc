@@ -139,7 +139,7 @@ export default function NotarioDashboardPage() {
           <Scale className="size-5 text-secondary" aria-hidden="true" />
         </div>
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-primary">
+          <h1 className="text-xl font-semibold text-primary">
             {PAGE_TITLES.notarioDashboard}
           </h1>
           <p className="mt-1 text-sm text-muted">

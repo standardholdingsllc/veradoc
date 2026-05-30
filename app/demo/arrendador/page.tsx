@@ -71,7 +71,7 @@ export default function ArrendadorDashboardPage() {
   return (
     <div className="mx-auto w-full max-w-[900px] px-4 py-8 md:px-8">
       <header className="mb-8">
-        <h1 className="text-xl font-semibold tracking-tight text-primary">
+        <h1 className="text-xl font-semibold text-primary">
           {PAGE_TITLES.arrendadorDashboard}
         </h1>
         {currentUser ? (

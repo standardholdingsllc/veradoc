@@ -57,7 +57,7 @@ export default function DemoPage() {
   return (
     <div className="mx-auto w-full max-w-[1200px] px-4 py-12 md:py-16">
       <header className="max-w-2xl">
-        <h1 className="text-3xl font-semibold tracking-tight text-primary">
+        <h1 className="text-3xl font-semibold text-primary">
           Modo demostración
         </h1>
         <p className="mt-4 text-base leading-relaxed text-muted">

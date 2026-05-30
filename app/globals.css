@@ -3,15 +3,15 @@
 @theme inline {
   --color-background: #ffffff;
   --color-foreground: #0f172a;
-  --color-surface: #f1f5f9;
-  --color-primary: #0f172a;
-  --color-secondary: #0f766e;
-  --color-accent: #9a3412;
+  --color-surface: #f5fafc;
+  --color-primary: #00427e;
+  --color-secondary: #8cd0df;
+  --color-accent: #f1460b;
   --color-success: #15803d;
-  --color-warning: #b45309;
-  --color-error: #b91c1c;
-  --color-muted: #475569;
-  --color-border: #cbd5e1;
+  --color-warning: #b4494a;
+  --color-error: #b4494a;
+  --color-muted: #4b5055;
+  --color-border: #c7dce6;
   --font-sans: var(--font-inter);
   --font-mono: var(--font-mono);
 }
@@ -19,4 +19,9 @@
 body {
   background: var(--color-background);
   color: var(--color-foreground);
+}
+
+::selection {
+  background: color-mix(in oklab, var(--color-secondary) 45%, white);
+  color: var(--color-primary);
 }

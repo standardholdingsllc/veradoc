@@ -70,7 +70,7 @@ export function SignatureValidationPanel({
 
         return (
           <Card key={signer.id}>
-            <CardHeader className="border-b border-border bg-surface/30 pb-3">
+            <CardHeader className="border-b border-border pb-3">
               <CardTitle className="text-sm">
                 {signer.fullName}
                 <span className="ml-2 font-normal text-muted">· {roleLabel}</span>
@@ -113,8 +113,8 @@ export function SignatureValidationPanel({
                 </p>
               </div>
 
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-md border border-border bg-surface/40 p-3">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="border-t border-border pt-3">
                   <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted">
                     {EVIDENCE_DETAILS.cadenaCertificados}
                   </p>
@@ -128,7 +128,7 @@ export function SignatureValidationPanel({
                     }}
                   />
                 </div>
-                <div className="rounded-md border border-border bg-surface/40 p-3">
+                <div className="border-t border-border pt-3">
                   <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted">
                     {EVIDENCE_DETAILS.revocacion}
                   </p>
@@ -138,7 +138,7 @@ export function SignatureValidationPanel({
                     labelMap={VALIDATION_STATUS}
                   />
                 </div>
-                <div className="rounded-md border border-border bg-surface/40 p-3">
+                <div className="border-t border-border pt-3">
                   <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted">
                     {EVIDENCE_DETAILS.timestamp}
                   </p>
@@ -148,7 +148,7 @@ export function SignatureValidationPanel({
                     labelMap={VALIDATION_STATUS}
                   />
                 </div>
-                <div className="rounded-md border border-border bg-surface/40 p-3">
+                <div className="border-t border-border pt-3">
                   <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted">
                     {EVIDENCE_DETAILS.integridadPdf}
                   </p>

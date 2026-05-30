@@ -16,6 +16,11 @@ export const metadata: Metadata = {
   title: "VeraDoc.pe — Certificación de arrendamiento con revisión notarial",
   description:
     "Flujos de certificación de arrendamiento remoto para el sector inmobiliario peruano. Paquetes de evidencia notarial estructurados para revisión y certificación.",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/brand/apple-icon.png",
+  },
   openGraph: {
     title: "VeraDoc.pe — Certificación de arrendamiento con revisión notarial",
     description:

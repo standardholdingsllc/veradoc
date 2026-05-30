@@ -48,7 +48,7 @@ export function DocumentHashTimeline({
 
           <div
             className={cn(
-              "mb-4 flex-1 rounded-md border border-border bg-surface/50 p-4",
+              "mb-4 flex-1 border-t border-border pt-4",
               index === sorted.length - 1 && "mb-0",
             )}
           >

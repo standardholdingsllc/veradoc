@@ -166,7 +166,7 @@ function SectionContainer({
 
 function buttonLinkClass(variant: "primary" | "outline" = "primary") {
   return cn(
-    "inline-flex h-11 items-center justify-center rounded-md px-6 text-sm font-medium transition-colors",
+    "inline-flex h-11 items-center justify-center px-6 text-sm font-medium transition-colors",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2",
     variant === "primary"
       ? "border border-primary bg-primary text-white hover:bg-primary/90"
@@ -180,7 +180,7 @@ export default function HomePage() {
       {/* 1. Hero */}
       <section className="border-b border-primary bg-primary text-white">
         <SectionContainer className="py-16 md:py-24">
-          <h1 className="max-w-3xl text-3xl font-semibold leading-tight tracking-tight md:text-4xl">
+          <h1 className="max-w-3xl text-3xl font-semibold leading-tight md:text-4xl">
             {HOMEPAGE.heroTitle}
           </h1>
           <p className="mt-6 max-w-2xl text-base leading-relaxed text-slate-200 md:text-lg">
@@ -206,7 +206,7 @@ export default function HomePage() {
       {/* 2. Trust strip */}
       <section className="border-b border-border bg-background py-12">
         <SectionContainer>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
             {TRUST_ITEMS.map((item) => (
               <Card key={item.title}>
                 <CardHeader className="pb-2">
@@ -228,14 +228,14 @@ export default function HomePage() {
       {/* 3. Problem */}
       <section className="border-b border-border py-16">
         <SectionContainer>
-          <h2 className="text-2xl font-semibold tracking-tight text-primary">
+          <h2 className="text-2xl font-semibold text-primary">
             {HOMEPAGE_PROBLEM.titulo}
           </h2>
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
             {PROBLEM_ITEMS.map((item) => (
               <div
                 key={item.text}
-                className="flex gap-4 rounded-md border border-border p-5"
+                className="flex gap-4 border-t border-border pt-5"
               >
                 <item.icon
                   className="mt-0.5 size-5 shrink-0 text-accent"
@@ -253,10 +253,10 @@ export default function HomePage() {
       {/* 4. Solution */}
       <section className="border-b border-border bg-surface py-16">
         <SectionContainer>
-          <h2 className="text-2xl font-semibold tracking-tight text-primary">
+          <h2 className="text-2xl font-semibold text-primary">
             {HOMEPAGE_SOLUTION.titulo}
           </h2>
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
             {SOLUTION_ITEMS.map((item) => (
               <Card key={item.title}>
                 <CardHeader>
@@ -277,10 +277,10 @@ export default function HomePage() {
       {/* 5. Role-based */}
       <section className="border-b border-border py-16">
         <SectionContainer>
-          <h2 className="text-2xl font-semibold tracking-tight text-primary">
+          <h2 className="text-2xl font-semibold text-primary">
             Por rol
           </h2>
-          <div className="mt-10 grid gap-4 sm:grid-cols-2">
+          <div className="mt-10 grid gap-x-10 gap-y-8 sm:grid-cols-2">
             {ROLE_ITEMS.map((item) => (
               <Card key={item.role}>
                 <CardHeader>
@@ -313,7 +313,7 @@ export default function HomePage() {
       {/* 6. Workflow timeline */}
       <section className="border-b border-border bg-surface py-16">
         <SectionContainer>
-          <h2 className="text-2xl font-semibold tracking-tight text-primary">
+          <h2 className="text-2xl font-semibold text-primary">
             {HOMEPAGE_WORKFLOW.titulo}
           </h2>
           <div className="mt-12 overflow-x-auto pb-2">
@@ -324,7 +324,7 @@ export default function HomePage() {
                   className="flex flex-1 items-center last:flex-none"
                 >
                   <div className="flex flex-col items-center gap-2">
-                    <div className="flex size-10 items-center justify-center rounded-full border border-border bg-background text-xs font-medium text-primary">
+                    <div className="flex size-10 items-center justify-center border border-secondary bg-background text-xs font-medium text-primary">
                       {index + 1}
                     </div>
                     <span className="text-xs font-medium text-foreground">
@@ -347,18 +347,18 @@ export default function HomePage() {
       {/* 7. Evidence packet */}
       <section className="border-b border-border py-16">
         <SectionContainer>
-          <h2 className="text-2xl font-semibold tracking-tight text-primary">
+          <h2 className="text-2xl font-semibold text-primary">
             {HOMEPAGE_EVIDENCE.titulo}
           </h2>
           <p className="mt-3 max-w-2xl text-sm text-muted">
             Cada paquete consolida evidencia estructurada para revisión
             notarial.
           </p>
-          <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid-cols-4">
             {EVIDENCE_ITEMS.map((item) => (
               <div
                 key={item.label}
-                className="flex items-center gap-3 rounded-md border border-border px-4 py-3"
+                className="flex items-center gap-3 border-t border-border py-3"
               >
                 <item.icon
                   className="size-4 shrink-0 text-secondary"

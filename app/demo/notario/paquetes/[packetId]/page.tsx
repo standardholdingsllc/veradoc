@@ -75,7 +75,7 @@ function EvidenceSection({
         <span className="flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-surface font-mono text-xs font-semibold text-muted">
           {sectionIndex + 1}
         </span>
-        <h2 className="text-base font-semibold tracking-tight text-primary">
+        <h2 className="text-base font-semibold text-primary">
           {title}
         </h2>
       </div>
@@ -267,7 +267,7 @@ export default function NotaryEvidenceReviewPage() {
               {ACTIONS.volverAlPanel}
             </Link>
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="font-mono text-lg font-semibold tracking-tight text-primary">
+              <h1 className="font-mono text-lg font-semibold text-primary">
                 {packet.packetCode}
               </h1>
               <StatusBadge status={packet.status} />

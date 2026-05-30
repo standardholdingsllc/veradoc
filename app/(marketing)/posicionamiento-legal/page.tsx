@@ -30,7 +30,7 @@ export default function PosicionamientoLegalPage() {
   return (
     <div className="mx-auto w-full max-w-[1200px] px-4 py-12">
       <header className="max-w-2xl">
-        <h1 className="text-3xl font-semibold tracking-tight text-primary">
+        <h1 className="text-3xl font-semibold text-primary">
           {LEGAL.titulo}
         </h1>
       </header>
@@ -52,7 +52,7 @@ export default function PosicionamientoLegalPage() {
         ))}
       </div>
 
-      <div className="mt-12 max-w-3xl rounded-md border border-border bg-surface px-6 py-5">
+      <div className="mt-12 max-w-3xl border-l-2 border-secondary py-1 pl-6">
         <p className="text-sm leading-relaxed text-muted">{LEGAL.disclaimer}</p>
       </div>
     </div>

@@ -11,7 +11,7 @@ export default function PreciosPage() {
   return (
     <div className="mx-auto w-full max-w-[1200px] px-4 py-12">
       <header className="max-w-2xl">
-        <h1 className="text-3xl font-semibold tracking-tight text-primary">
+        <h1 className="text-3xl font-semibold text-primary">
           {PRECIOS.titulo}
         </h1>
         <p className="mt-6 text-base leading-relaxed text-muted">
