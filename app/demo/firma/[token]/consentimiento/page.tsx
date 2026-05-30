@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -18,11 +18,27 @@ const CONSENT_PARAGRAPHS = [
   "Acepto que la evidencia recopilada forme parte del Paquete de Evidencia Notarial.",
 ] as const;
 
+const PAST_CONSENT_STATUSES = new Set([
+  "consent_accepted",
+  "identity_uploaded",
+  "identity_verified_demo",
+  "lease_reviewed",
+  "signature_started",
+  "signed",
+  "complete",
+]);
+
 export default function SignerConsentimientoPage() {
   const router = useRouter();
   const context = useSignerContext();
   const [accepted, setAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (context && PAST_CONSENT_STATUSES.has(context.signer.status)) {
+      router.replace(`${context.basePath}/identidad`);
+    }
+  }, [context, router]);
 
   if (!context) {
     return (
@@ -35,6 +51,10 @@ export default function SignerConsentimientoPage() {
   }
 
   const { basePath, packet, signer } = context;
+
+  if (PAST_CONSENT_STATUSES.has(signer.status)) {
+    return null;
+  }
 
   function handleContinue() {
     if (!accepted || loading) {

@@ -48,14 +48,15 @@ export function useSetCurrentRole() {
   return useVeraDocStore((state) => state.setCurrentRole);
 }
 
-export function useSignerByToken(token: string) {
+export function useSignerByToken(token: string): string | undefined {
   return useVeraDocStore((state) => {
     for (const packet of state.packets) {
       const signerIndex = packet.signers.findIndex(
         (signer) => signer.secureLinkToken === token,
       );
       if (signerIndex !== -1) {
-        return { packet, signerIndex };
+        const signer = packet.signers[signerIndex];
+        return `${packet.id}:${signerIndex}:${packet.updatedAt}:${signer.status}`;
       }
     }
     return undefined;

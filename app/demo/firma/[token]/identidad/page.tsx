@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Camera,
@@ -24,6 +24,7 @@ import {
 import {
   completeLiveness,
   uploadIdentity,
+  resumeAfterCorrection,
 } from "@/lib/services/signer-service";
 import { cn } from "@/lib/utils";
 
@@ -41,6 +42,14 @@ const UPLOAD_SECTIONS: {
   { key: "selfie", label: "Selfie / prueba de vida", icon: Camera },
 ];
 
+const PAST_IDENTITY_STATUSES = new Set([
+  "identity_verified_demo",
+  "lease_reviewed",
+  "signature_started",
+  "signed",
+  "complete",
+]);
+
 export default function SignerIdentidadPage() {
   const router = useRouter();
   const context = useSignerContext();
@@ -52,6 +61,12 @@ export default function SignerIdentidadPage() {
   const [loading, setLoading] = useState(false);
 
   const allUploaded = Object.values(uploads).every((state) => state === "done");
+
+  useEffect(() => {
+    if (context && PAST_IDENTITY_STATUSES.has(context.signer.status)) {
+      router.replace(`${context.basePath}/revision`);
+    }
+  }, [context, router]);
 
   const simulateUpload = useCallback((key: UploadKey) => {
     setUploads((prev) => {
@@ -78,6 +93,10 @@ export default function SignerIdentidadPage() {
 
   const { basePath, packet, signer } = context;
 
+  if (PAST_IDENTITY_STATUSES.has(signer.status)) {
+    return null;
+  }
+
   function handleVerifyIdentity() {
     if (!allUploaded || loading) {
       return;
@@ -85,7 +104,10 @@ export default function SignerIdentidadPage() {
 
     setLoading(true);
     try {
-      if (signer.status === "consent_accepted") {
+      if (signer.status === "needs_correction") {
+        resumeAfterCorrection(signer.id, packet.id, "identity_recheck");
+        uploadIdentity(signer.id, packet.id);
+      } else if (signer.status === "consent_accepted") {
         uploadIdentity(signer.id, packet.id);
       }
       completeLiveness(signer.id, packet.id);

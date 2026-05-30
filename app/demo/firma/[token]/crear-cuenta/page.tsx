@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -19,6 +19,17 @@ import {
 import { createAccount } from "@/lib/services/signer-service";
 import { cn } from "@/lib/utils";
 
+const PAST_ACCOUNT_STATUSES = new Set([
+  "account_created",
+  "consent_accepted",
+  "identity_uploaded",
+  "identity_verified_demo",
+  "lease_reviewed",
+  "signature_started",
+  "signed",
+  "complete",
+]);
+
 export default function SignerCrearCuentaPage() {
   const router = useRouter();
   const context = useSignerContext();
@@ -26,6 +37,12 @@ export default function SignerCrearCuentaPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (context && PAST_ACCOUNT_STATUSES.has(context.signer.status)) {
+      router.replace(`${context.basePath}/consentimiento`);
+    }
+  }, [context, router]);
 
   if (!context) {
     return (
@@ -38,6 +55,10 @@ export default function SignerCrearCuentaPage() {
   }
 
   const { basePath, packet, signer } = context;
+
+  if (PAST_ACCOUNT_STATUSES.has(signer.status)) {
+    return null;
+  }
 
   const canSubmit =
     email.trim().length > 0 &&

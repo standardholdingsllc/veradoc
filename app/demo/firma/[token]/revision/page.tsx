@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -23,11 +23,24 @@ import { cn } from "@/lib/utils";
 
 const DEMO_PAGE_COUNT = 12;
 
+const PAST_REVIEW_STATUSES = new Set([
+  "lease_reviewed",
+  "signature_started",
+  "signed",
+  "complete",
+]);
+
 export default function SignerRevisionPage() {
   const router = useRouter();
   const context = useSignerContext();
   const [reviewed, setReviewed] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (context && PAST_REVIEW_STATUSES.has(context.signer.status)) {
+      router.replace(`${context.basePath}/firmar`);
+    }
+  }, [context, router]);
 
   if (!context) {
     return (
@@ -40,6 +53,10 @@ export default function SignerRevisionPage() {
   }
 
   const { basePath, packet, signer, propertyAddress } = context;
+
+  if (PAST_REVIEW_STATUSES.has(signer.status)) {
+    return null;
+  }
 
   function handleContinue() {
     if (!reviewed || loading) {

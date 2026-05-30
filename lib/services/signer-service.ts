@@ -1,5 +1,6 @@
 import type {
   AuditEvent,
+  CorrectionScope,
   LeasePacket,
   SignatureEvidence,
   Signer,
@@ -457,6 +458,19 @@ export function advanceSignerToCompleteDemo(
   }
 
   return completedSigner;
+}
+
+export function resumeAfterCorrection(
+  signerId: string,
+  packetId: string,
+  correctionScope: "identity_recheck" | "contract_revision" = "identity_recheck",
+): Signer {
+  return applySignerTransition(
+    signerId,
+    packetId,
+    { type: "resume_after_correction", correctionScope },
+    "Reanudado tras corrección",
+  );
 }
 
 export function completeSigner(signerId: string, packetId: string): Signer {

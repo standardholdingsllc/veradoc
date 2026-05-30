@@ -20,10 +20,7 @@ export function useSignerContext(): SignerContext | undefined {
   const params = useParams<{ token: string }>();
   const token = params.token;
 
-  const signerMatch = useSignerByToken(token);
-  const refreshKey = signerMatch
-    ? `${signerMatch.packet.id}-${signerMatch.packet.updatedAt}-${signerMatch.signerIndex}`
-    : token;
+  const refreshKey = useSignerByToken(token) ?? token;
 
   const users = useUsers();
 

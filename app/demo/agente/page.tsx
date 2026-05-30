@@ -180,16 +180,16 @@ export default function AgenteDashboardPage() {
           <CardTitle className="text-base">{UI.paquetes}</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto p-0">
-          <table className="w-full min-w-[900px] text-sm">
+          <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-border bg-surface text-left text-xs uppercase tracking-wide text-muted">
-                <th className="px-4 py-3 font-medium">{UI.codigo}</th>
-                <th className="px-4 py-3 font-medium">{UI.propiedad}</th>
-                <th className="px-4 py-3 font-medium">{ROLES.landlord}</th>
-                <th className="px-4 py-3 font-medium">{ROLES.renter}</th>
-                <th className="px-4 py-3 font-medium">{UI.estado}</th>
-                <th className="px-4 py-3 font-medium">{UI.proximaAccion}</th>
-                <th className="px-4 py-3 font-medium">{DASHBOARD.ultimaActividad}</th>
+                <th className="px-3 py-3 font-medium">{UI.codigo}</th>
+                <th className="px-3 py-3 font-medium">{UI.propiedad}</th>
+                <th className="hidden px-3 py-3 font-medium md:table-cell">{ROLES.landlord}</th>
+                <th className="hidden px-3 py-3 font-medium md:table-cell">{ROLES.renter}</th>
+                <th className="px-3 py-3 font-medium">{UI.estado}</th>
+                <th className="hidden px-3 py-3 font-medium lg:table-cell">{UI.proximaAccion}</th>
+                <th className="hidden px-3 py-3 font-medium xl:table-cell">{DASHBOARD.ultimaActividad}</th>
               </tr>
             </thead>
             <tbody>
@@ -198,7 +198,7 @@ export default function AgenteDashboardPage() {
                   key={packet.id}
                   className="border-b border-border last:border-b-0 hover:bg-surface/50"
                 >
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-3">
                     <Link
                       href={`/demo/agente/paquetes/${packet.id}`}
                       className="font-mono text-sm font-medium text-secondary hover:underline"
@@ -206,18 +206,18 @@ export default function AgenteDashboardPage() {
                       {packet.packetCode}
                     </Link>
                   </td>
-                  <td className="max-w-[200px] truncate px-4 py-3 text-foreground">
+                  <td className="max-w-[180px] truncate px-3 py-3 text-foreground">
                     {getPropertyLabel(packet)}
                   </td>
-                  <td className="px-4 py-3">{getLandlordName(packet)}</td>
-                  <td className="px-4 py-3">{getRenterName(packet)}</td>
-                  <td className="px-4 py-3">
+                  <td className="hidden px-3 py-3 md:table-cell">{getLandlordName(packet)}</td>
+                  <td className="hidden px-3 py-3 md:table-cell">{getRenterName(packet)}</td>
+                  <td className="px-3 py-3">
                     <StatusBadge status={packet.status} />
                   </td>
-                  <td className="px-4 py-3 text-muted">
+                  <td className="hidden px-3 py-3 text-muted lg:table-cell">
                     {PACKET_STATUS_CONFIG[packet.status].nextAction}
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs text-muted">
+                  <td className="hidden px-3 py-3 font-mono text-xs text-muted xl:table-cell">
                     {getLastActivity(packet)}
                   </td>
                 </tr>

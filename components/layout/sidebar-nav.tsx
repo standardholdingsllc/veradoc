@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { UserRole } from "@/lib/domain/types";
 import { SIDEBAR } from "@/lib/i18n/labels";
-import { useCurrentRole } from "@/lib/services/hooks";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -35,6 +34,19 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
   ],
 };
 
+const ROUTE_ROLE_MAP: { prefix: string; role: UserRole }[] = [
+  { prefix: "/demo/agente", role: "realtor" },
+  { prefix: "/demo/notario", role: "notary" },
+  { prefix: "/demo/arrendador", role: "landlord" },
+  { prefix: "/demo/arrendatario", role: "renter" },
+  { prefix: "/demo/registro", role: "realtor" },
+];
+
+function roleFromPathname(pathname: string): UserRole {
+  const match = ROUTE_ROLE_MAP.find((entry) => pathname.startsWith(entry.prefix));
+  return match?.role ?? "realtor";
+}
+
 function isActive(pathname: string, href: string, exact = false): boolean {
   if (exact) {
     return pathname === href;
@@ -44,7 +56,7 @@ function isActive(pathname: string, href: string, exact = false): boolean {
 
 export function SidebarNav() {
   const pathname = usePathname();
-  const currentRole = useCurrentRole();
+  const currentRole = roleFromPathname(pathname);
   const items = NAV_BY_ROLE[currentRole];
 
   return (

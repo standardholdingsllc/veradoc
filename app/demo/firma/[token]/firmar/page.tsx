@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2, PenLine } from "lucide-react";
 import { SignerStepProgress } from "@/components/signing/signer-step-progress";
@@ -20,11 +20,19 @@ import { toast } from "sonner";
 
 type SignPhase = "idle" | "processing" | "complete";
 
+const PAST_SIGN_STATUSES = new Set(["signed", "complete"]);
+
 export default function SignerFirmarPage() {
   const router = useRouter();
   const context = useSignerContext();
   const [phase, setPhase] = useState<SignPhase>("idle");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (context && PAST_SIGN_STATUSES.has(context.signer.status)) {
+      router.replace(`${context.basePath}/completado`);
+    }
+  }, [context, router]);
 
   if (!context) {
     return (
@@ -37,6 +45,10 @@ export default function SignerFirmarPage() {
   }
 
   const { basePath, packet, signer } = context;
+
+  if (PAST_SIGN_STATUSES.has(signer.status)) {
+    return null;
+  }
 
   function handleSign() {
     if (loading || phase !== "idle") {

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MessageCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -13,11 +13,29 @@ import { ERRORS, PAGE_TITLES, SIGNER, TOAST } from "@/lib/i18n/labels";
 import { verifyOtp } from "@/lib/services/signer-service";
 import { cn } from "@/lib/utils";
 
+const PAST_OTP_STATUSES = new Set([
+  "otp_verified",
+  "account_created",
+  "consent_accepted",
+  "identity_uploaded",
+  "identity_verified_demo",
+  "lease_reviewed",
+  "signature_started",
+  "signed",
+  "complete",
+]);
+
 export default function SignerVerificarPage() {
   const router = useRouter();
   const context = useSignerContext();
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (context && PAST_OTP_STATUSES.has(context.signer.status)) {
+      router.replace(`${context.basePath}/crear-cuenta`);
+    }
+  }, [context, router]);
 
   if (!context) {
     return (
@@ -30,6 +48,10 @@ export default function SignerVerificarPage() {
   }
 
   const { basePath, packet, signer } = context;
+
+  if (PAST_OTP_STATUSES.has(signer.status)) {
+    return null;
+  }
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();

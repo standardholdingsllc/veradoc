@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Shield, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -20,17 +20,68 @@ import {
   UI,
 } from "@/lib/i18n/labels";
 import { openLink } from "@/lib/services/signer-service";
+import type { SignerStatus } from "@/lib/domain/types";
+
+function getResumeStep(status: SignerStatus): string | null {
+  switch (status) {
+    case "link_sent":
+    case "link_opened":
+      return null;
+    case "otp_verified":
+      return "/crear-cuenta";
+    case "account_created":
+      return "/consentimiento";
+    case "consent_accepted":
+      return "/identidad";
+    case "identity_uploaded":
+      return "/identidad";
+    case "identity_verified_demo":
+      return "/revision";
+    case "lease_reviewed":
+      return "/firmar";
+    case "signature_started":
+      return "/firmar";
+    case "signed":
+    case "complete":
+      return "/completado";
+    case "needs_correction":
+      return "/identidad";
+    default:
+      return null;
+  }
+}
 
 export default function SignerInicioPage() {
   const router = useRouter();
   const context = useSignerContext();
   const [loading, setLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
+
+  useEffect(() => {
+    if (!context) return;
+    const resumeStep = getResumeStep(context.signer.status);
+    if (resumeStep) {
+      setRedirecting(true);
+      router.replace(`${context.basePath}${resumeStep}`);
+    }
+  }, [context, router]);
 
   if (!context) {
     return (
       <Card>
         <CardContent className="py-10 text-center">
           <p className="text-sm text-muted">{ERRORS.enlaceInvalido}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (redirecting) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center gap-3 py-10">
+          <Loader2 className="size-8 animate-spin text-secondary" aria-hidden />
+          <p className="text-sm text-muted">Reanudando proceso…</p>
         </CardContent>
       </Card>
     );

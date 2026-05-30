@@ -109,34 +109,21 @@ function usePartyPackets(role: PartyRole): PartyPacket[] {
     const matchingUserDni =
       currentUser?.role === role ? currentUser.dni : undefined;
 
-    const matchingPackets = packets
-        .flatMap((packet) =>
-          packet.signers
-            .filter(
-              (signer) =>
-                signer.roleInLease === role &&
-                (!matchingUserDni || signer.dni === matchingUserDni),
-            )
-            .map((signer) => ({ packet, signer })),
-        )
-        .sort(
-          (a, b) =>
-            new Date(b.packet.updatedAt).getTime() -
-            new Date(a.packet.updatedAt).getTime(),
-        );
-
-    const activeAgreement = matchingPackets.find(
-      (item) =>
-        !isCertifiedPacket(item.packet) && item.signer.status !== "needs_correction",
-    );
-    const certifiedAgreement = matchingPackets.find((item) =>
-      isCertifiedPacket(item.packet),
-    );
-    const fallbackAgreement = matchingPackets[0];
-    const selectedAgreement =
-      activeAgreement ?? certifiedAgreement ?? fallbackAgreement;
-
-    return selectedAgreement ? [selectedAgreement] : [];
+    return packets
+      .flatMap((packet) =>
+        packet.signers
+          .filter(
+            (signer) =>
+              signer.roleInLease === role &&
+              (!matchingUserDni || signer.dni === matchingUserDni),
+          )
+          .map((signer) => ({ packet, signer })),
+      )
+      .sort(
+        (a, b) =>
+          new Date(b.packet.updatedAt).getTime() -
+          new Date(a.packet.updatedAt).getTime(),
+      );
   }, [currentUser?.dni, currentUser?.role, packets, role]);
 }
 
@@ -190,7 +177,7 @@ function ContractRow({
 
   return (
     <tr className="border-b border-border last:border-b-0 hover:bg-surface/50">
-      <td className="px-4 py-3">
+      <td className="px-3 py-3">
         <Link
           href={`${rolePath(role)}/contratos/${packet.id}`}
           className="font-mono text-sm font-semibold text-secondary hover:underline"
@@ -198,17 +185,17 @@ function ContractRow({
           {packet.packetCode}
         </Link>
       </td>
-      <td className="max-w-[260px] truncate px-4 py-3">
+      <td className="max-w-[200px] truncate px-3 py-3">
         {getPropertyLabel(packet)}
       </td>
-      <td className="px-4 py-3">{signer.fullName}</td>
-      <td className="px-4 py-3">
+      <td className="hidden px-3 py-3 sm:table-cell">{signer.fullName}</td>
+      <td className="px-3 py-3">
         <StatusBadge status={packet.status} />
       </td>
-      <td className="px-4 py-3 font-mono text-xs text-muted">
+      <td className="hidden px-3 py-3 font-mono text-xs text-muted lg:table-cell">
         {formatDate(packet.leaseTerms.expirationDate)}
       </td>
-      <td className="px-4 py-3">
+      <td className="px-3 py-3">
         {pending ? (
           <Link
             href={`/demo/firma/${signer.secureLinkToken}`}
@@ -217,10 +204,13 @@ function ContractRow({
             {PARTY_ACCOUNT.verFlujoFirma}
           </Link>
         ) : certified ? (
-          <span className="inline-flex items-center gap-1 text-sm text-success">
+          <Link
+            href={`${rolePath(role)}/contratos/${packet.id}`}
+            className="inline-flex items-center gap-1 text-sm text-success hover:underline"
+          >
             <BadgeCheck className="size-4" aria-hidden="true" />
             {PARTY_ACCOUNT.descargaDisponible}
-          </span>
+          </Link>
         ) : renewal ? (
           <span className="inline-flex items-center gap-1 text-sm text-warning">
             <RefreshCw className="size-4" aria-hidden="true" />
@@ -296,24 +286,24 @@ export function PartyDashboard({ role }: { role: PartyRole }) {
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-6 xl:grid-cols-[1fr_280px]">
         <Card>
           <CardHeader className="border-b border-border pb-4">
             <CardTitle className="text-base">{DASHBOARD.misContratos}</CardTitle>
             <CardDescription>{PARTY_ACCOUNT.historialContratos}</CardDescription>
           </CardHeader>
           <CardContent className="overflow-x-auto p-0">
-            <table className="w-full min-w-[900px] text-sm">
+            <table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="border-b border-border bg-surface text-left text-xs uppercase tracking-wide text-muted">
-                  <th className="px-4 py-3 font-medium">{UI.codigo}</th>
-                  <th className="px-4 py-3 font-medium">{UI.propiedad}</th>
-                  <th className="px-4 py-3 font-medium">{ROLES[role]}</th>
-                  <th className="px-4 py-3 font-medium">{UI.estado}</th>
-                  <th className="px-4 py-3 font-medium">
+                  <th className="px-3 py-3 font-medium">{UI.codigo}</th>
+                  <th className="px-3 py-3 font-medium">{UI.propiedad}</th>
+                  <th className="hidden px-3 py-3 font-medium sm:table-cell">{ROLES[role]}</th>
+                  <th className="px-3 py-3 font-medium">{UI.estado}</th>
+                  <th className="hidden px-3 py-3 font-medium lg:table-cell">
                     {FORMS.fechaVencimiento}
                   </th>
-                  <th className="px-4 py-3 font-medium">{UI.acciones}</th>
+                  <th className="px-3 py-3 font-medium">{UI.acciones}</th>
                 </tr>
               </thead>
               <tbody>
@@ -388,17 +378,17 @@ export function PartyContracts({ role }: { role: PartyRole }) {
 
       <Card>
         <CardContent className="overflow-x-auto p-0">
-          <table className="w-full min-w-[900px] text-sm">
+          <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-border bg-surface text-left text-xs uppercase tracking-wide text-muted">
-                <th className="px-4 py-3 font-medium">{UI.codigo}</th>
-                <th className="px-4 py-3 font-medium">{UI.propiedad}</th>
-                <th className="px-4 py-3 font-medium">{ROLES[role]}</th>
-                <th className="px-4 py-3 font-medium">{UI.estado}</th>
-                <th className="px-4 py-3 font-medium">
+                <th className="px-3 py-3 font-medium">{UI.codigo}</th>
+                <th className="px-3 py-3 font-medium">{UI.propiedad}</th>
+                <th className="hidden px-3 py-3 font-medium sm:table-cell">{ROLES[role]}</th>
+                <th className="px-3 py-3 font-medium">{UI.estado}</th>
+                <th className="hidden px-3 py-3 font-medium lg:table-cell">
                   {FORMS.fechaVencimiento}
                 </th>
-                <th className="px-4 py-3 font-medium">{UI.acciones}</th>
+                <th className="px-3 py-3 font-medium">{UI.acciones}</th>
               </tr>
             </thead>
             <tbody>
@@ -513,7 +503,7 @@ export function PartyContractDetail({
         </div>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-6 xl:grid-cols-[1fr_280px]">
         <div className="space-y-6">
           <Card>
             <CardHeader className="border-b border-border pb-4">
@@ -522,7 +512,7 @@ export function PartyContractDetail({
                 {DOCUMENT.contratoArrendamiento}
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <dl className="grid gap-3 sm:grid-cols-2">
                 <DetailItem label={DOCUMENT.nombreArchivo} value={packet.leaseDocument.fileName} />
                 <DetailItem
@@ -551,6 +541,21 @@ export function PartyContractDetail({
                   mono
                 />
               </dl>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => {
+                  const fileName = certified && packet.certifiedDocument
+                    ? packet.certifiedDocument.fileName
+                    : packet.finalSignedDocument
+                      ? packet.finalSignedDocument.fileName
+                      : packet.leaseDocument.fileName;
+                  toast.success(`Descarga simulada: ${fileName}`);
+                }}
+              >
+                <Download className="size-4" aria-hidden="true" />
+                {certified ? "Descargar contrato certificado" : "Descargar contrato"}
+              </Button>
             </CardContent>
           </Card>
 
@@ -630,7 +635,13 @@ export function PartyContractDetail({
               ) : null}
 
               {certified ? (
-                <Button className="w-full justify-start" variant="outline" disabled>
+                <Button
+                  className="w-full justify-start"
+                  variant="outline"
+                  onClick={() => {
+                    toast.success("Descarga simulada: " + (packet.certifiedDocument?.fileName ?? packet.leaseDocument.fileName));
+                  }}
+                >
                   <Download className="size-4" aria-hidden="true" />
                   {ACTIONS.descargarContrato}
                 </Button>
