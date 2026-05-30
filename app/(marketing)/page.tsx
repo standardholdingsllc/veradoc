@@ -3,29 +3,15 @@ import Link from "next/link";
 import {
   Archive,
   Building2,
-  Camera,
-  CheckSquare,
-  Clock,
-  Copy,
+  CheckCircle2,
   FileSignature,
   FileText,
-  FileX,
-  FolderSearch,
-  Hash,
   Home,
-  Key,
-  LayoutDashboard,
-  Link2,
-  MessageSquare,
-  Monitor,
   Package,
   Scale,
-  ShieldAlert,
+  ShieldCheck,
   User,
-  UserCheck,
-  UserX,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   HOMEPAGE,
   HOMEPAGE_EVIDENCE,
@@ -34,7 +20,6 @@ import {
   HOMEPAGE_TRUST,
   HOMEPAGE_WORKFLOW,
   META,
-  ROLES,
 } from "@/lib/i18n/labels";
 import { cn } from "@/lib/utils";
 
@@ -43,7 +28,7 @@ export const metadata: Metadata = {
   description: META.description,
 };
 
-const TRUST_ITEMS = [
+const AUDIENCES = [
   {
     icon: Building2,
     title: HOMEPAGE_TRUST.paraAgentes,
@@ -66,88 +51,36 @@ const TRUST_ITEMS = [
   },
 ] as const;
 
-const PROBLEM_ITEMS = [
-  { icon: FileX, text: HOMEPAGE_PROBLEM.fragmentacion },
-  { icon: UserX, text: HOMEPAGE_PROBLEM.identidad },
-  { icon: ShieldAlert, text: HOMEPAGE_PROBLEM.confianza },
-  { icon: Copy, text: HOMEPAGE_PROBLEM.duplicados },
-  { icon: FolderSearch, text: HOMEPAGE_PROBLEM.recuperacion },
-] as const;
-
-const SOLUTION_ITEMS = [
-  { icon: Package, title: HOMEPAGE_SOLUTION.paqueteControlado },
-  { icon: UserCheck, title: HOMEPAGE_SOLUTION.verificacionFirmantes },
-  { icon: FileSignature, title: HOMEPAGE_SOLUTION.evidenciaFirma },
-  { icon: FileText, title: HOMEPAGE_SOLUTION.informeNotarial },
-  { icon: LayoutDashboard, title: HOMEPAGE_SOLUTION.panelNotarial },
-  { icon: Archive, title: HOMEPAGE_SOLUTION.almacenamiento },
-] as const;
-
-const ROLE_ITEMS = [
+const CORE_FLOW = [
   {
-    role: ROLES.realtor,
-    icon: Building2,
-    actions: [
-      "Crear paquetes de arrendamiento estructurados",
-      "Cargar contrato y datos del inmueble",
-      "Enviar enlaces de firma a firmantes",
-      "Presentar expediente completo al notario",
-    ],
+    icon: Package,
+    title: HOMEPAGE_WORKFLOW.crear,
+    detail: HOMEPAGE_SOLUTION.paqueteControlado,
   },
   {
-    role: ROLES.landlord,
-    icon: Home,
-    actions: [
-      "Verificar identidad mediante WhatsApp y DNI",
-      "Aceptar consentimiento informado",
-      "Revisar y firmar el contrato digitalmente",
-      "Acceder al contrato certificado",
-    ],
+    icon: ShieldCheck,
+    title: HOMEPAGE_WORKFLOW.verificar,
+    detail: HOMEPAGE_SOLUTION.verificacionFirmantes,
   },
   {
-    role: ROLES.renter,
-    icon: User,
-    actions: [
-      "Completar verificación de identidad remota",
-      "Revisar términos del arrendamiento",
-      "Firmar con proveedor de firma digital",
-      "Consultar estado y documento certificado",
-    ],
+    icon: FileSignature,
+    title: HOMEPAGE_WORKFLOW.firmar,
+    detail: HOMEPAGE_SOLUTION.evidenciaFirma,
   },
   {
-    role: ROLES.notary,
     icon: Scale,
-    actions: [
-      "Revisar expediente de evidencia estructurado",
-      "Validar identidad, firmas y cadena de certificados",
-      "Certificar, devolver o rechazar el paquete",
-      "Emitir contrato con respaldo documental",
-    ],
+    title: HOMEPAGE_WORKFLOW.certificar,
+    detail: HOMEPAGE_SOLUTION.informeNotarial,
   },
 ] as const;
 
-const WORKFLOW_STEPS = [
-  HOMEPAGE_WORKFLOW.crear,
-  HOMEPAGE_WORKFLOW.verificar,
-  HOMEPAGE_WORKFLOW.firmar,
-  HOMEPAGE_WORKFLOW.evidencia,
-  HOMEPAGE_WORKFLOW.enviar,
-  HOMEPAGE_WORKFLOW.certificar,
-  HOMEPAGE_WORKFLOW.registrar,
-] as const;
-
-const EVIDENCE_ITEMS = [
-  { icon: User, label: "DNI" },
-  { icon: Camera, label: "Selfie" },
-  { icon: MessageSquare, label: "OTP" },
-  { icon: CheckSquare, label: "Consentimiento" },
-  { icon: Key, label: "Firma IOFE" },
-  { icon: Link2, label: "Cadena de certificados" },
-  { icon: Hash, label: "Hash" },
-  { icon: Clock, label: "Timestamp" },
-  { icon: Monitor, label: "Sesión" },
-  { icon: Building2, label: "Propiedad" },
-  { icon: Archive, label: "Registro" },
+const EVIDENCE = [
+  "DNI y selfie",
+  "Consentimiento",
+  "Firma digital",
+  "Hash SHA-256",
+  "Timestamp",
+  "Registro de auditoría",
 ] as const;
 
 function SectionContainer({
@@ -166,226 +99,159 @@ function SectionContainer({
 
 function buttonLinkClass(variant: "primary" | "outline" = "primary") {
   return cn(
-    "inline-flex h-11 items-center justify-center px-6 text-sm font-medium transition-colors",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2",
+    "inline-flex h-11 items-center justify-center border px-6 text-sm font-semibold transition-colors",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40 focus-visible:ring-offset-2",
     variant === "primary"
-      ? "border border-primary bg-primary text-white hover:bg-primary/90"
-      : "border border-border bg-transparent text-primary hover:bg-surface",
+      ? "border-primary bg-primary text-surface hover:bg-accent"
+      : "border-border bg-surface/70 text-primary hover:border-primary",
   );
 }
 
 export default function HomePage() {
   return (
     <div className="flex flex-col">
-      {/* 1. Hero */}
-      <section className="border-b border-primary bg-primary text-white">
-        <SectionContainer className="py-16 md:py-24">
-          <h1 className="max-w-3xl text-3xl font-semibold leading-tight md:text-4xl">
-            {HOMEPAGE.heroTitle}
-          </h1>
-          <p className="mt-6 max-w-2xl text-base leading-relaxed text-slate-200 md:text-lg">
-            {HOMEPAGE.heroSubtitle}
-          </p>
-          <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-            <Link href="/demo" className={buttonLinkClass("primary")}>
-              {HOMEPAGE.ctaDemo}
-            </Link>
-            <Link
-              href="/como-funciona"
-              className={cn(
-                buttonLinkClass("outline"),
-                "border-white/30 text-white hover:bg-white/10",
-              )}
-            >
-              {HOMEPAGE.ctaComoFunciona}
-            </Link>
-          </div>
-        </SectionContainer>
-      </section>
-
-      {/* 2. Trust strip */}
-      <section className="border-b border-border bg-background py-12">
-        <SectionContainer>
-          <div className="grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
-            {TRUST_ITEMS.map((item) => (
-              <Card key={item.title}>
-                <CardHeader className="pb-2">
-                  <item.icon
-                    className="size-5 text-secondary"
-                    aria-hidden="true"
-                  />
-                  <CardTitle className="text-sm">{item.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <p className="text-sm text-muted">{item.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </SectionContainer>
-      </section>
-
-      {/* 3. Problem */}
-      <section className="border-b border-border py-16">
-        <SectionContainer>
-          <h2 className="text-2xl font-semibold text-primary">
-            {HOMEPAGE_PROBLEM.titulo}
-          </h2>
-          <div className="mt-10 grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
-            {PROBLEM_ITEMS.map((item) => (
-              <div
-                key={item.text}
-                className="flex gap-4 border-t border-border pt-5"
+      <section className="relative overflow-hidden border-b border-border/70">
+        <SectionContainer className="grid min-h-[calc(84svh-5rem)] items-center gap-12 py-14 md:grid-cols-[1.04fr_0.72fr] md:py-20">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent">
+              Evidencia notarial para arrendamientos
+            </p>
+            <h1 className="mt-5 max-w-4xl font-serif text-4xl font-semibold leading-[1.03] text-primary md:text-6xl">
+              Certifique contratos de alquiler con presencia, orden y respaldo.
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-muted">
+              VeraDoc.pe convierte firmas remotas, identidad y documentos en un
+              expediente claro para revisión notarial en Perú.
+            </p>
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <Link href="/demo" className={buttonLinkClass("primary")}>
+                {HOMEPAGE.ctaDemo}
+              </Link>
+              <Link
+                href="/como-funciona"
+                className={buttonLinkClass("outline")}
               >
-                <item.icon
-                  className="mt-0.5 size-5 shrink-0 text-accent"
-                  aria-hidden="true"
-                />
-                <p className="text-sm leading-relaxed text-foreground">
-                  {item.text}
-                </p>
-              </div>
-            ))}
+                {HOMEPAGE.ctaComoFunciona}
+              </Link>
+            </div>
           </div>
-        </SectionContainer>
-      </section>
 
-      {/* 4. Solution */}
-      <section className="border-b border-border bg-surface py-16">
-        <SectionContainer>
-          <h2 className="text-2xl font-semibold text-primary">
-            {HOMEPAGE_SOLUTION.titulo}
-          </h2>
-          <div className="mt-10 grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
-            {SOLUTION_ITEMS.map((item) => (
-              <Card key={item.title}>
-                <CardHeader>
-                  <item.icon
-                    className="size-5 text-secondary"
+          <aside className="paper-panel hidden rounded-md p-5 md:block md:p-7">
+            <div className="border-b border-border/70 pb-5">
+              <p className="font-serif text-2xl font-semibold text-primary">
+                Informe de Evidencia Notarial
+              </p>
+              <p className="mt-2 text-sm leading-6 text-muted">
+                Un paquete legible para agentes, firmantes y notarios.
+              </p>
+            </div>
+            <div className="grid gap-3 py-5">
+              {EVIDENCE.map((item) => (
+                <div key={item} className="flex items-center gap-3">
+                  <CheckCircle2
+                    className="size-4 shrink-0 text-secondary"
                     aria-hidden="true"
                   />
-                  <CardTitle className="text-sm font-medium">
-                    {item.title}
-                  </CardTitle>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
-        </SectionContainer>
-      </section>
-
-      {/* 5. Role-based */}
-      <section className="border-b border-border py-16">
-        <SectionContainer>
-          <h2 className="text-2xl font-semibold text-primary">
-            Por rol
-          </h2>
-          <div className="mt-10 grid gap-x-10 gap-y-8 sm:grid-cols-2">
-            {ROLE_ITEMS.map((item) => (
-              <Card key={item.role}>
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <item.icon
-                      className="size-5 text-secondary"
-                      aria-hidden="true"
-                    />
-                    <CardTitle>{item.role}</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <ul className="flex flex-col gap-2">
-                    {item.actions.map((action) => (
-                      <li
-                        key={action}
-                        className="flex gap-2 text-sm text-muted before:mt-2 before:size-1 before:shrink-0 before:rounded-full before:bg-secondary before:content-['']"
-                      >
-                        {action}
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </SectionContainer>
-      </section>
-
-      {/* 6. Workflow timeline */}
-      <section className="border-b border-border bg-surface py-16">
-        <SectionContainer>
-          <h2 className="text-2xl font-semibold text-primary">
-            {HOMEPAGE_WORKFLOW.titulo}
-          </h2>
-          <div className="mt-12 overflow-x-auto pb-2">
-            <div className="flex min-w-[640px] items-center justify-between">
-              {WORKFLOW_STEPS.map((step, index) => (
-                <div
-                  key={step}
-                  className="flex flex-1 items-center last:flex-none"
-                >
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="flex size-10 items-center justify-center border border-secondary bg-background text-xs font-medium text-primary">
-                      {index + 1}
-                    </div>
-                    <span className="text-xs font-medium text-foreground">
-                      {step}
-                    </span>
-                  </div>
-                  {index < WORKFLOW_STEPS.length - 1 ? (
-                    <div
-                      className="mx-2 h-px flex-1 bg-border"
-                      aria-hidden="true"
-                    />
-                  ) : null}
+                  <span className="text-sm font-medium text-foreground">
+                    {item}
+                  </span>
                 </div>
               ))}
             </div>
-          </div>
+            <div className="border-t border-border/70 pt-5 text-sm leading-6 text-muted">
+              {HOMEPAGE.posicionamiento}
+            </div>
+          </aside>
         </SectionContainer>
       </section>
 
-      {/* 7. Evidence packet */}
-      <section className="border-b border-border py-16">
+      <section className="border-b border-border/70 py-14">
         <SectionContainer>
-          <h2 className="text-2xl font-semibold text-primary">
-            {HOMEPAGE_EVIDENCE.titulo}
-          </h2>
-          <p className="mt-3 max-w-2xl text-sm text-muted">
-            Cada paquete consolida evidencia estructurada para revisión
-            notarial.
-          </p>
-          <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid-cols-4">
-            {EVIDENCE_ITEMS.map((item) => (
-              <div
-                key={item.label}
-                className="flex items-center gap-3 border-t border-border py-3"
-              >
-                <item.icon
-                  className="size-4 shrink-0 text-secondary"
-                  aria-hidden="true"
-                />
-                <span className="text-sm font-medium text-foreground">
-                  {item.label}
-                </span>
-              </div>
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {AUDIENCES.map((item) => (
+              <article key={item.title} className="border-t border-border pt-5">
+                <item.icon className="size-5 text-secondary" aria-hidden="true" />
+                <h2 className="mt-4 text-base font-semibold text-primary">
+                  {item.title}
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-muted">
+                  {item.description}
+                </p>
+              </article>
             ))}
           </div>
         </SectionContainer>
       </section>
 
-      {/* 8. Legal positioning */}
-      <section className="border-b border-border bg-surface py-16">
-        <SectionContainer>
-          <p className="max-w-3xl text-base leading-relaxed text-muted">
-            {HOMEPAGE.posicionamiento}
-          </p>
+      <section className="border-b border-border/70 py-16">
+        <SectionContainer className="grid gap-10 md:grid-cols-[0.8fr_1fr]">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+              El problema
+            </p>
+            <h2 className="mt-3 font-serif text-3xl font-semibold text-primary md:text-4xl">
+              {HOMEPAGE_PROBLEM.titulo}
+            </h2>
+          </div>
+          <div className="grid gap-5">
+            {[
+              HOMEPAGE_PROBLEM.fragmentacion,
+              HOMEPAGE_PROBLEM.identidad,
+              HOMEPAGE_PROBLEM.confianza,
+            ].map((text) => (
+              <p
+                key={text}
+                className="border-l border-border pl-5 text-base leading-7 text-foreground"
+              >
+                {text}
+              </p>
+            ))}
+          </div>
         </SectionContainer>
       </section>
 
-      {/* 9. CTA footer */}
-      <section className="py-16">
+      <section className="border-b border-border/70 bg-surface/44 py-16">
         <SectionContainer>
-          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <div className="max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+              Sistema
+            </p>
+            <h2 className="mt-3 font-serif text-3xl font-semibold text-primary md:text-4xl">
+              {HOMEPAGE_SOLUTION.titulo}
+            </h2>
+          </div>
+          <div className="mt-10 grid gap-5 md:grid-cols-4">
+            {CORE_FLOW.map((item, index) => (
+              <article key={item.title} className="paper-panel rounded-md p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <item.icon className="size-5 text-secondary" aria-hidden="true" />
+                  <span className="font-mono text-xs text-muted">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                </div>
+                <h3 className="mt-8 text-xl font-semibold text-primary">
+                  {item.title}
+                </h3>
+                <p className="mt-3 text-sm leading-6 text-muted">
+                  {item.detail}
+                </p>
+              </article>
+            ))}
+          </div>
+        </SectionContainer>
+      </section>
+
+      <section className="py-16">
+        <SectionContainer className="grid items-center gap-8 md:grid-cols-[1fr_auto]">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+              {HOMEPAGE_EVIDENCE.titulo}
+            </p>
+            <h2 className="mt-3 max-w-3xl font-serif text-3xl font-semibold text-primary md:text-4xl">
+              Evidencia estructurada, lista para una decisión profesional.
+            </h2>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row md:flex-col">
             <Link href="/demo" className={buttonLinkClass("primary")}>
               {HOMEPAGE.ctaDemo}
             </Link>
@@ -393,6 +259,33 @@ export default function HomePage() {
               {HOMEPAGE.ctaFinal}
             </Link>
           </div>
+        </SectionContainer>
+        <SectionContainer className="mt-10 grid gap-4 sm:grid-cols-3">
+          {[
+            {
+              icon: FileText,
+              title: "Documento",
+              detail: "Versiones bloqueadas y hashes verificables.",
+            },
+            {
+              icon: Archive,
+              title: "Auditoría",
+              detail: "Acciones, tiempos y actores en un solo expediente.",
+            },
+            {
+              icon: Scale,
+              title: "Notaría",
+              detail: "Revisión enfocada en evidencia, no en reconstruir hechos.",
+            },
+          ].map((item) => (
+            <article key={item.title} className="border-t border-border pt-5">
+              <item.icon className="size-5 text-secondary" aria-hidden="true" />
+              <h3 className="mt-4 text-base font-semibold text-primary">
+                {item.title}
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-muted">{item.detail}</p>
+            </article>
+          ))}
         </SectionContainer>
       </section>
     </div>

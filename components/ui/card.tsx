@@ -18,7 +18,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "text-foreground",
+        "rounded-md border border-border/70 bg-surface/62 p-5 text-foreground shadow-[0_12px_30px_rgba(67,44,23,0.05)]",
         stripCardShellClasses(className),
       )}
       {...props}

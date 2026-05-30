@@ -31,21 +31,24 @@ export function TopNav() {
   }, [mobileOpen]);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-[1200px] items-center justify-between gap-4 px-4">
+    <header className="sticky top-0 z-40 border-b border-border/80 bg-surface/88 backdrop-blur-md">
+      <div className="mx-auto flex h-20 max-w-[1200px] items-center justify-between gap-4 px-4">
         <Link
           href="/"
-          className="flex shrink-0 items-center"
+          className="flex shrink-0 items-center gap-3"
           aria-label={`${META.siteName} — ${NAV.inicio}`}
         >
           <Image
-            src="/brand/veradoc-logo-full-transparent.svg"
-            alt="VeraDoc.pe"
-            width={150}
-            height={50}
+            src="/brand/veradoc-icon-transparent.svg"
+            alt=""
+            width={44}
+            height={56}
             priority
-            className="h-10 w-auto"
+            className="h-12 w-auto"
           />
+          <span className="font-serif text-[1.7rem] font-semibold leading-none text-primary">
+            VeraDoc.pe
+          </span>
         </Link>
 
         <nav
@@ -58,9 +61,9 @@ export function TopNav() {
               href={link.href}
               aria-current={pathname === link.href ? "page" : undefined}
               className={cn(
-                "text-sm transition-colors hover:text-primary",
+                "text-sm font-medium transition-colors hover:text-primary",
                 pathname === link.href
-                  ? "font-medium text-primary"
+                  ? "text-primary"
                   : "text-muted",
               )}
             >
@@ -75,7 +78,7 @@ export function TopNav() {
           ) : (
             <Link
               href="/demo"
-              className="inline-flex h-8 items-center justify-center border border-primary bg-primary px-3 text-xs font-medium text-white transition-colors hover:bg-primary/90"
+              className="inline-flex h-10 items-center justify-center border border-primary bg-primary px-4 text-sm font-semibold text-surface transition-colors hover:bg-accent"
             >
               {NAV.verDemostracion}
             </Link>
@@ -101,7 +104,7 @@ export function TopNav() {
       {mobileOpen ? (
         <div
           id="mobile-nav"
-          className="border-t border-border bg-background md:hidden"
+          className="border-t border-border bg-surface md:hidden"
         >
           <nav aria-label="Navegación móvil" className="flex flex-col px-4 py-4">
             {MARKETING_LINKS.map((link) => (
@@ -111,9 +114,9 @@ export function TopNav() {
                 aria-current={pathname === link.href ? "page" : undefined}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  "border-l-2 px-3 py-2.5 text-sm transition-colors",
+                  "border-l-2 px-3 py-2.5 text-sm font-medium transition-colors",
                   pathname === link.href
-                    ? "border-secondary font-medium text-primary"
+                    ? "border-secondary text-primary"
                     : "border-transparent text-muted hover:border-border hover:text-primary",
                 )}
               >
@@ -126,7 +129,7 @@ export function TopNav() {
               ) : (
                 <Link
                   href="/demo"
-                  className="inline-flex h-10 w-full items-center justify-center border border-primary bg-primary px-4 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+                  className="inline-flex h-10 w-full items-center justify-center border border-primary bg-primary px-4 text-sm font-semibold text-surface transition-colors hover:bg-accent"
                 >
                   {NAV.verDemostracion}
                 </Link>
