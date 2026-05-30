@@ -349,3 +349,121 @@ export function resubmitAfterCorrection(packetId: string): LeasePacket {
     "Reenviado al notario tras corrección",
   );
 }
+
+export function createRenewalPacket(sourcePacketId: string): LeasePacket {
+  const adapter = getPacketAdapter();
+  const source = adapter.getById(sourcePacketId);
+
+  if (!source) {
+    throw new Error(`Packet not found: ${sourcePacketId}`);
+  }
+
+  const now = new Date().toISOString();
+  const packetId = nextId("pkt-ren");
+  const year = new Date().getFullYear();
+  const sequence = adapter.getAll().length + 1;
+  const packetCode = `REN-${year}-${String(sequence).padStart(3, "0")}`;
+  const newStart = source.leaseTerms.expirationDate;
+  const newExpiration = new Date(source.leaseTerms.expirationDate);
+  newExpiration.setMonth(newExpiration.getMonth() + source.leaseTerms.durationMonths);
+  const initialHash = `${source.leaseDocument.initialHash.slice(0, 56)}${String(Date.now()).slice(-8)}`;
+
+  const signers: Signer[] = source.signers.map((signer, index) => ({
+    ...signer,
+    id: nextId(`sig-ren-${index}`),
+    status: "link_sent",
+    secureLinkToken: nextId(`tok-ren-${signer.dni.slice(-4)}`),
+    otpStatus: "sent",
+    accountCreated: true,
+    consentAccepted: false,
+    consentTimestamp: undefined,
+    identityEvidence: {
+      dniFrontStatus: "pending",
+      dniBackStatus: "pending",
+      selfieLivenessStatus: "pending",
+      reviewStatus: "pending",
+    },
+    signatureEvidence: undefined,
+    auditEvents: [
+      createAuditEvent(
+        packetId,
+        signer.id,
+        signer.roleInLease,
+        "renewal_link_sent",
+        "Enlace de renovación enviado",
+        { sourcePacketId },
+      ),
+    ],
+  }));
+
+  const packet: LeasePacket = {
+    ...source,
+    id: packetId,
+    packetCode,
+    version: source.version + 1,
+    status: "sent_to_signers",
+    createdAt: now,
+    updatedAt: now,
+    leaseDocument: {
+      fileName: source.leaseDocument.fileName.replace(".pdf", "-renovacion.pdf"),
+      uploadedAt: now,
+      initialHash,
+    },
+    finalSignedDocument: undefined,
+    certifiedDocument: undefined,
+    leaseTerms: {
+      ...source.leaseTerms,
+      startDate: newStart,
+      expirationDate: newExpiration.toISOString().slice(0, 10),
+    },
+    signers,
+    payment: {
+      status: "paid",
+      amount: source.payment.amount,
+      currency: "PEN",
+      paidAt: now,
+      paymentMethodPlaceholder: "Renovación demo",
+      invoiceStatus: "issued",
+    },
+    documentHashes: [
+      {
+        hash: initialHash,
+        stage: "initial_upload",
+        algorithm: "SHA-256",
+        timestamp: now,
+        actorId: source.signers.find((signer) => signer.roleInLease === "landlord")?.id,
+      },
+    ],
+    evidenceReport: undefined,
+    notaryReview: undefined,
+    registryCheck: { status: "checked", matchFound: false },
+    auditEvents: [
+      createAuditEvent(
+        packetId,
+        source.signers.find((signer) => signer.roleInLease === "landlord")?.id ??
+          "landlord",
+        "landlord",
+        "renewal_created",
+        "Renovación iniciada por arrendador",
+        { sourcePacketId },
+      ),
+      createAuditEvent(
+        packetId,
+        "system",
+        "system",
+        "send_to_signers",
+        "Enlaces enviados a firmantes",
+      ),
+    ],
+    factura: {
+      status: "issued",
+      numberPlaceholder: `F001-${String(Date.now()).slice(-8)}`,
+      issuedAt: now,
+      downloadUrlPlaceholder: `/demo/facturas/F001-${String(Date.now()).slice(-8)}.pdf`,
+    },
+    renewalEligibility: { eligible: false },
+  };
+
+  adapter.create(packet);
+  return packet;
+}

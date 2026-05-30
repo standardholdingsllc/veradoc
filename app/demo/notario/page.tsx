@@ -2,14 +2,15 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Scale } from "lucide-react";
+import { AlertTriangle, Banknote, ClipboardCheck, Scale } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { LeasePacket, PacketStatus, User } from "@/lib/domain/types";
-import { formatDateTime } from "@/lib/formatters";
+import { formatCurrency, formatDateTime } from "@/lib/formatters";
 import {
   DASHBOARD,
   EMPTY,
+  NOTARY_ACCOUNT,
   NOTARY_QUEUE,
   PAGE_TITLES,
   REGISTRY,
@@ -103,12 +104,66 @@ function hasRegistryAlert(packet: LeasePacket): boolean {
   return checkDuplicate(packet.property.normalizedAddressKey).length > 0;
 }
 
+function isCertified(packet: LeasePacket): boolean {
+  return (
+    packet.status === "certified" ||
+    packet.status === "certified_with_observations"
+  );
+}
+
+function isSameMonth(iso: string, reference = new Date()): boolean {
+  const date = new Date(iso);
+  return (
+    date.getMonth() === reference.getMonth() &&
+    date.getFullYear() === reference.getFullYear()
+  );
+}
+
+function NotaryMetricCard({
+  label,
+  value,
+  detail,
+  icon: Icon,
+}: {
+  label: string;
+  value: string | number;
+  detail: string;
+  icon: typeof Scale;
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center justify-between text-xs font-medium uppercase tracking-wide text-muted">
+          {label}
+          <Icon className="size-4 text-secondary" aria-hidden="true" />
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pb-0">
+        <p className="font-mono text-2xl font-semibold tabular-nums text-primary">
+          {value}
+        </p>
+        <p className="mt-1 text-xs text-muted">{detail}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function NotarioDashboardPage() {
   const packets = usePackets();
   const users = useUsers();
   const [activeTab, setActiveTab] = useState<QueueTab>("pendientes");
 
   const currentConfig = TAB_CONFIG.find((tab) => tab.id === activeTab)!;
+  const certifiedPackets = packets.filter(isCertified);
+  const certifiedThisMonth = certifiedPackets.filter((packet) =>
+    isSameMonth(packet.notaryReview?.certifiedAt ?? packet.updatedAt),
+  );
+  const partnerRate = 80;
+  const pendingReviewCount = packets.filter(
+    (packet) =>
+      packet.status === "ready_for_notary" ||
+      packet.status === "under_notary_review",
+  ).length;
 
   const filteredPackets = useMemo(() => {
     return packets
@@ -147,6 +202,33 @@ export default function NotarioDashboardPage() {
           </p>
         </div>
       </header>
+
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <NotaryMetricCard
+          label={NOTARY_ACCOUNT.revisionesPendientes}
+          value={pendingReviewCount}
+          detail={NOTARY_QUEUE.pendientes}
+          icon={ClipboardCheck}
+        />
+        <NotaryMetricCard
+          label={NOTARY_ACCOUNT.conteoMensual}
+          value={certifiedThisMonth.length}
+          detail={NOTARY_ACCOUNT.documentosCompletados}
+          icon={Scale}
+        />
+        <NotaryMetricCard
+          label={NOTARY_ACCOUNT.pagoPartner}
+          value={formatCurrency(certifiedThisMonth.length * partnerRate)}
+          detail={NOTARY_ACCOUNT.estimadoPago}
+          icon={Banknote}
+        />
+        <NotaryMetricCard
+          label={NOTARY_ACCOUNT.documentosCompletados}
+          value={certifiedPackets.length}
+          detail={NOTARY_ACCOUNT.tasaDemoPorDocumento}
+          icon={ClipboardCheck}
+        />
+      </div>
 
       <div className="mb-6 flex flex-wrap gap-2 border-b border-border pb-1">
         {TAB_CONFIG.map((tab) => {

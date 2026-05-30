@@ -262,6 +262,15 @@ export const NOTARY_QUEUE = {
   rechazados: "Rechazados",
 } as const;
 
+export const NOTARY_ACCOUNT = {
+  conteoMensual: "Conteo mensual",
+  documentosCompletados: "Documentos completados",
+  estimadoPago: "Estimado de pago",
+  pagoPartner: "Pago partner",
+  revisionesPendientes: "Revisiones pendientes",
+  tasaDemoPorDocumento: "Tarifa demo por documento",
+} as const;
+
 // ---------------------------------------------------------------------------
 // Evidence section headers
 // ---------------------------------------------------------------------------
@@ -463,6 +472,39 @@ export const DASHBOARD = {
   fechaEnvio: "Fecha de envío",
   estadoDecision: "Estado de decisión",
   agenteInmobiliario: "Agente inmobiliario",
+} as const;
+
+// ---------------------------------------------------------------------------
+// Party account demo
+// ---------------------------------------------------------------------------
+export const PARTY_ACCOUNT = {
+  accesoPostCertificacion: "Acceso post-certificación",
+  actividadFirma: "Actividad de firma",
+  autoridadPropiedad: "Autoridad sobre la propiedad",
+  contratoActual: "Contrato actual",
+  contratoAnterior: "Contrato anterior",
+  contratosCertificados: "Contratos certificados",
+  contratosEnProceso: "Contratos en proceso",
+  cuentaCreadaDuranteFirma: "Cuenta creada durante la firma",
+  descargaDisponible: "Descarga disponible",
+  detalleContrato: "Detalle del contrato",
+  documentoCertificadoDisponible: "Documento certificado disponible",
+  evidenciaIdentidad: "Evidencia de identidad",
+  evidenciaRegistrada: "Evidencia registrada",
+  firmaPendiente: "Firma pendiente",
+  historialContratos: "Historial de contratos",
+  informacionCuenta: "Información de cuenta",
+  iniciarNuevaFirma: "Iniciar nueva firma",
+  portalArrendador:
+    "Contratos, evidencia de identidad, autoridad de propiedad y renovaciones.",
+  portalArrendatario:
+    "Contratos, evidencia de identidad, firma pendiente y documentos certificados.",
+  renovacionCreada: "Renovación creada",
+  renovacionLista:
+    "El arrendador puede iniciar una renovación con el mismo inmueble y arrendatario.",
+  sinAccionesPendientes: "Sin acciones pendientes",
+  verContrato: "Ver contrato",
+  verFlujoFirma: "Ver flujo de firma",
 } as const;
 
 // ---------------------------------------------------------------------------
