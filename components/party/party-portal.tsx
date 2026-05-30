@@ -103,22 +103,41 @@ function signerEvidenceCount(signer: Signer): number {
 
 function usePartyPackets(role: PartyRole): PartyPacket[] {
   const packets = usePackets();
+  const currentUser = useCurrentUser();
 
-  return useMemo(
-    () =>
-      packets
+  return useMemo(() => {
+    const matchingUserDni =
+      currentUser?.role === role ? currentUser.dni : undefined;
+
+    const matchingPackets = packets
         .flatMap((packet) =>
           packet.signers
-            .filter((signer) => signer.roleInLease === role)
+            .filter(
+              (signer) =>
+                signer.roleInLease === role &&
+                (!matchingUserDni || signer.dni === matchingUserDni),
+            )
             .map((signer) => ({ packet, signer })),
         )
         .sort(
           (a, b) =>
             new Date(b.packet.updatedAt).getTime() -
             new Date(a.packet.updatedAt).getTime(),
-        ),
-    [packets, role],
-  );
+        );
+
+    const activeAgreement = matchingPackets.find(
+      (item) =>
+        !isCertifiedPacket(item.packet) && item.signer.status !== "needs_correction",
+    );
+    const certifiedAgreement = matchingPackets.find((item) =>
+      isCertifiedPacket(item.packet),
+    );
+    const fallbackAgreement = matchingPackets[0];
+    const selectedAgreement =
+      activeAgreement ?? certifiedAgreement ?? fallbackAgreement;
+
+    return selectedAgreement ? [selectedAgreement] : [];
+  }, [currentUser?.dni, currentUser?.role, packets, role]);
 }
 
 function SummaryCard({
