@@ -39,7 +39,9 @@ h3,
   position: relative;
   isolation: isolate;
   background:
-    linear-gradient(115deg, rgba(255, 252, 245, 0.86), rgba(234, 222, 202, 0.58)),
+    radial-gradient(ellipse at 22% 8%, rgba(255, 252, 244, 0.82), transparent 46%),
+    radial-gradient(ellipse at 76% 28%, rgba(229, 215, 191, 0.44), transparent 52%),
+    linear-gradient(115deg, rgba(255, 252, 245, 0.72), rgba(237, 225, 205, 0.48)),
     #f6f0e4;
 }
 
@@ -55,31 +57,23 @@ h3,
 .paper-site::before {
   transform: translate3d(0, calc(var(--paper-shift) * -0.14), 0);
   background:
-    repeating-linear-gradient(
-      3deg,
-      rgba(87, 66, 43, 0.026) 0,
-      rgba(87, 66, 43, 0.026) 1px,
-      transparent 1px,
-      transparent 13px
-    ),
-    repeating-linear-gradient(
-      92deg,
-      rgba(255, 255, 255, 0.18) 0,
-      rgba(255, 255, 255, 0.18) 1px,
-      transparent 1px,
-      transparent 17px
-    );
+    radial-gradient(ellipse at 16% 22%, rgba(111, 82, 47, 0.045), transparent 31%),
+    radial-gradient(ellipse at 68% 14%, rgba(255, 255, 255, 0.44), transparent 34%),
+    radial-gradient(ellipse at 82% 72%, rgba(122, 88, 52, 0.04), transparent 38%);
+  filter: blur(10px);
 }
 
 .paper-site::after {
   z-index: -1;
   transform: translate3d(0, calc(var(--paper-shift) * 0.09), 0);
   background-image:
-    radial-gradient(circle at 13% 18%, rgba(93, 68, 40, 0.075) 0 1px, transparent 1.6px),
-    radial-gradient(circle at 82% 8%, rgba(255, 255, 255, 0.55) 0 1px, transparent 1.8px),
-    radial-gradient(circle at 62% 74%, rgba(126, 91, 57, 0.05) 0 1px, transparent 1.7px);
-  background-size: 132px 132px, 96px 96px, 178px 178px;
-  opacity: 0.72;
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='4' seed='11'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.45 0 0 0 0 0.35 0 0 0 0 0.22 0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23paper)'/%3E%3C/svg%3E"),
+    radial-gradient(circle at 18% 31%, rgba(96, 70, 39, 0.07) 0 0.8px, transparent 1.5px),
+    radial-gradient(circle at 77% 64%, rgba(255, 255, 255, 0.44) 0 0.9px, transparent 1.8px);
+  background-size: 480px 480px, 193px 211px, 269px 247px;
+  background-position: 0 0, 31px 47px, 113px 19px;
+  mix-blend-mode: multiply;
+  opacity: 0.34;
 }
 
 .paper-panel {

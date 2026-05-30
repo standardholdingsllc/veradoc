@@ -5,7 +5,7 @@ export function Footer() {
     <footer className="border-t border-border">
       <div className="mx-auto max-w-[1200px] px-4 py-8">
         <p className="text-center text-sm text-muted">
-          © 2024 {META.siteName} — Plataforma de evidencia notarial para
+          © 2026 {META.siteName} — Plataforma de evidencia notarial para
           arrendamientos
         </p>
       </div>
