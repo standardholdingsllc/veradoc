@@ -1,0 +1,24 @@
+{
+  "brand": "VeraDoc.pe",
+  "source_spec": "source/veradoc_logo_exact_reproduction_spec.json",
+  "exact_reference": "source/veradoc-logo-reference-1024-white-bg.png",
+  "primary_svg": "svg/full/veradoc-logo-full-transparent.svg",
+  "primary_png": "png/full/veradoc-logo-full-transparent-1024.png",
+  "icon_svg": "svg/icon/veradoc-icon-transparent.svg",
+  "favicon": "png/favicons/favicon.ico",
+  "palette": {
+    "navy": "#00427E",
+    "blue": "#084C85",
+    "purple": "#604D80",
+    "red": "#B4494A",
+    "orange": "#F1460B",
+    "cyan": "#8CD0DF",
+    "charcoal": "#4B5055",
+    "ink": "#0F172A",
+    "soft": "#F5FAFC"
+  },
+  "notes": [
+    "Restored to the original-logo media kit before the vector-redesign attempt.",
+    "Transparent PNGs are cleaned extractions from the original raster reference."
+  ]
+}

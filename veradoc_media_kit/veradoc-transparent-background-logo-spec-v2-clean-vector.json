@@ -1,0 +1,851 @@
+{
+  "schema_name": "veradoc_transparent_logo_reproduction_spec",
+  "schema_version": "2.0-clean-vector",
+  "brand": "VeraDoc.pe",
+  "asset_name": "VeraDoc feather over water icon",
+  "purpose": "Create a transparent-background version of the uploaded VeraDoc icon without jagged, stair-stepped, white-fringed, or pixelated edges.",
+  "source_files": {
+    "original_soft_background_png": {
+      "path_hint": "veradoc-icon-soft-bg-1024.png",
+      "size_px": [
+        1024,
+        1024
+      ],
+      "sha256": "88e869b7f2c6fff0d20ecf53a75feef2f00f73c9bd6e7c010027c8bd6a3a624c",
+      "background_color_sample": {
+        "hex": "#F5FAFC",
+        "rgb": [
+          245,
+          250,
+          252
+        ]
+      }
+    },
+    "rejected_previous_transparent_output": {
+      "path_hint": "veradoc-icon-transparent-background-1024.png",
+      "sha256": "d76e98280745d10f60b3bbfcb02b4f1b73c81cf2cdf1a3bd8c65d573abc9a011",
+      "status": "rejected because edge pixels retained off-white matte/fringe and the silhouette was raster-derived."
+    },
+    "dark_background_failure_preview": {
+      "path_hint": "user-provided dark preview screenshot",
+      "sha256": "da4efa0a4c0972159686a23dca894a16c521d322f6c612597f5472448d1463a0",
+      "status": "shows the defect clearly: light halo and jagged raster stair-stepping on black."
+    }
+  },
+  "root_cause_analysis": {
+    "summary": "The unacceptable edge quality is not caused by the dark background. The dark background only reveals errors introduced by the transparent-background conversion.",
+    "causes": [
+      {
+        "id": "matte_contamination",
+        "problem": "The source icon was anti-aliased against a soft off-white background (#F5FAFC). A background-removal pass treated near-background pixels as semi-transparent but left their RGB values close to the original off-white matte. On a black background those pixels render as pale gray/white fringe around the logo.",
+        "visible_symptom": "White or gray outline around the feather and waves, especially along the diagonal outer feather edge and central vein."
+      },
+      {
+        "id": "raster_mask_thresholding",
+        "problem": "The previous JSON allowed a pixel-distance threshold/ramp against #F5FAFC. That creates an alpha mask from the 1024px raster source. Any slight threshold mistake turns antialiasing into a hard, uneven stair-step mask.",
+        "visible_symptom": "Edges look chipped and pixelated instead of smooth."
+      },
+      {
+        "id": "integer_polygon_trace",
+        "problem": "The previous path was an auto-traced bitmap contour made primarily of integer-coordinate straight line segments. Curved feather edges were approximated as many tiny line segments instead of true cubic B\u00e9zier curves.",
+        "visible_symptom": "Diagonal curves become visibly angular when composited on high-contrast backgrounds."
+      },
+      {
+        "id": "wrong_output_priority",
+        "problem": "The spec described a transparent PNG target but did not make SVG/vector reconstruction mandatory. Agents could legally perform a cleaned raster extraction, which is unsuitable for a logo that must work over dark UI backgrounds.",
+        "visible_symptom": "The image may look acceptable over off-white, but fails on black, charcoal, navy, or transparent app surfaces."
+      }
+    ],
+    "required_fix": "Do not re-key the background from the raster as the final asset. Rebuild the mark as clean vector paths on a transparent canvas, render with normal vector antialiasing, and export PNGs from the vector source at high resolution."
+  },
+  "non_negotiable_rendering_rules": {
+    "background": {
+      "must_be": "fully transparent",
+      "must_not_include": [
+        "white rectangle",
+        "off-white #F5FAFC rectangle",
+        "gray app-icon tile",
+        "dark preview background",
+        "checkerboard baked into the file"
+      ]
+    },
+    "vector_first": {
+      "mandatory": true,
+      "rule": "Final master asset must be SVG or equivalent vector geometry. PNG output must be rendered from the vector master, not from a keyed raster cutout.",
+      "forbidden": [
+        "hard threshold background removal as final output",
+        "magic-wand selection as final output",
+        "nearest-neighbor upscaling",
+        "shape-rendering='crispEdges'",
+        "integer-only polygon trace as final master",
+        "1px white/gray stroke to hide roughness",
+        "drop shadow or glow to conceal fringe"
+      ]
+    },
+    "antialiasing": {
+      "must_use": "renderer-generated subpixel antialiasing from vector geometry",
+      "recommended_export": "Render SVG at 4096x4096 or 8192x8192, then downsample to 1024x1024 using Lanczos if a PNG is needed.",
+      "edge_rgb_rule": "Transparent or semi-transparent edge pixels must be colored from the logo foreground, not from the removed #F5FAFC matte."
+    },
+    "negative_space": {
+      "central_vein": "transparent cut-through, not white paint",
+      "feather_notches": "transparent cut-throughs, not white paint",
+      "gaps_between_waves": "transparent gaps, not white paint"
+    }
+  },
+  "coordinate_system": {
+    "origin": "top-left",
+    "units": "CSS/SVG user units equal to pixels at 1024 viewBox",
+    "viewBox": [
+      0,
+      0,
+      1024,
+      1024
+    ],
+    "preserve_aspect_ratio": "xMidYMid meet",
+    "icon_visible_bbox_px": [
+      313,
+      215,
+      721,
+      810
+    ],
+    "feather_bbox_px": [
+      375,
+      215,
+      721,
+      782
+    ],
+    "waves_bbox_px": [
+      313,
+      736,
+      602,
+      810
+    ],
+    "visual_center_px": [
+      517,
+      512
+    ],
+    "safe_padding_px": {
+      "left": 313,
+      "right": 302,
+      "top": 215,
+      "bottom": 214
+    }
+  },
+  "palette": {
+    "navy": {
+      "hex": "#00427E",
+      "role": "deep lower feather"
+    },
+    "blue": {
+      "hex": "#084C85",
+      "role": "lower/mid feather"
+    },
+    "purple": {
+      "hex": "#604D80",
+      "role": "mid transition feather"
+    },
+    "red": {
+      "hex": "#B4494A",
+      "role": "upper feather transition"
+    },
+    "orange": {
+      "hex": "#F1460B",
+      "role": "feather tip"
+    },
+    "cyan": {
+      "hex": "#8CD0DF",
+      "role": "water waves"
+    },
+    "cyan_shadow": {
+      "hex": "#77C7D9",
+      "role": "subtle wave depth"
+    },
+    "old_soft_background_do_not_render": {
+      "hex": "#F5FAFC",
+      "role": "source matte only; must be transparent in final output"
+    }
+  },
+  "gradients": {
+    "featherGradient": {
+      "type": "linear",
+      "gradientUnits": "userSpaceOnUse",
+      "x1": 430,
+      "y1": 752,
+      "x2": 716,
+      "y2": 215,
+      "stops": [
+        {
+          "offset": 0.0,
+          "color": "#00427E"
+        },
+        {
+          "offset": 0.34,
+          "color": "#084C85"
+        },
+        {
+          "offset": 0.57,
+          "color": "#604D80"
+        },
+        {
+          "offset": 0.78,
+          "color": "#B4494A"
+        },
+        {
+          "offset": 1.0,
+          "color": "#F1460B"
+        }
+      ]
+    },
+    "waveGradient": {
+      "type": "linear",
+      "gradientUnits": "userSpaceOnUse",
+      "x1": 313,
+      "y1": 781,
+      "x2": 602,
+      "y2": 741,
+      "stops": [
+        {
+          "offset": 0.0,
+          "color": "#8CD0DF",
+          "opacity": 0.88
+        },
+        {
+          "offset": 0.55,
+          "color": "#8CD0DF",
+          "opacity": 0.98
+        },
+        {
+          "offset": 1.0,
+          "color": "#77C7D9",
+          "opacity": 0.84
+        }
+      ]
+    }
+  },
+  "layers": [
+    {
+      "id": "feather-body-with-transparent-internal-cuts",
+      "z_index": 10,
+      "type": "closed_smooth_vector_path",
+      "fill": "url(#featherGradient)",
+      "fill_rule": "nonzero",
+      "bbox_px": [
+        375,
+        215,
+        721,
+        782
+      ],
+      "description": "Single continuous feather silhouette. The central vein and side cuts are transparent negative space because the path boundary follows those cut-throughs.",
+      "smoothing": {
+        "method": "closed Catmull-Rom through measured contour anchors converted to cubic B\u00e9zier",
+        "tension": 1.0,
+        "reason": "prevents jagged integer line trace while retaining the original shape"
+      },
+      "path_d": "M 715 215 C 713.7 210, 715.7 211.8, 713 215 C 710.3 218.2, 706.2 226.3, 699 234 C 691.8 241.7, 687.7 246.8, 670 261 C 652.3 275.2, 610.2 305.5, 593 319 C 575.8 332.5, 572.5 335.5, 567 342 C 561.5 348.5, 562.2 351.3, 560 358 C 557.8 364.7, 555.2 381.7, 554 382 C 552.8 382.3, 553.5 364.2, 553 360 C 552.5 355.8, 554.8 354.3, 551 357 C 547.2 359.7, 539.7 366.2, 530 376 C 520.3 385.8, 503.8 403, 493 416 C 482.2 429, 471.2 444.8, 465 454 C 458.8 463.2, 458.2 464.8, 456 471 C 453.8 477.2, 452.5 482.7, 452 491 C 451.5 499.3, 452.3 513.2, 453 521 C 453.7 528.8, 456 535.3, 456 538 C 456 540.7, 455 542.2, 453 537 C 451 531.8, 445.5 513.3, 444 507 C 442.5 500.7, 444.7 500.5, 444 499 C 443.3 497.5, 443.2 493, 440 498 C 436.8 503, 428.8 519.5, 425 529 C 421.2 538.5, 419 546.8, 417 555 C 415 563.2, 413.7 568.7, 413 578 C 412.3 587.3, 412 600.7, 413 611 C 414 621.3, 414.2 626.7, 419 640 C 423.8 653.3, 437.5 682.8, 442 691 C 446.5 699.2, 444.3 696, 446 689 C 447.7 682, 447.3 668, 452 649 C 456.7 630, 468.3 592.3, 474 575 C 479.7 557.7, 479.7 558.7, 486 545 C 492.3 531.3, 504.7 506.7, 512 493 C 519.3 479.3, 521.3 476, 530 463 C 538.7 450, 552 430.7, 564 415 C 576 399.3, 588.3 384, 602 369 C 615.7 354, 646 323.7, 646 325 C 646 326.3, 614.7 361.3, 602 377 C 589.3 392.7, 582.3 401, 570 419 C 557.7 437, 539.3 465.3, 528 485 C 516.7 504.7, 509.7 519.8, 502 537 C 494.3 554.2, 488.5 569.2, 482 588 C 475.5 606.8, 468.2 630.3, 463 650 C 457.8 669.7, 453.7 688.2, 451 706 C 448.3 723.8, 450.8 747, 447 757 C 443.2 767, 434.7 764, 428 766 C 421.3 768, 414 769, 407 769 C 400 769, 391.2 767.5, 386 766 C 380.8 764.5, 377.7 760.5, 376 760 C 374.3 759.5, 374.3 761, 376 763 C 377.7 765, 380.2 768.8, 386 772 C 391.8 775.2, 402.7 780.7, 411 782 C 419.3 783.3, 426 782.7, 436 780 C 446 777.3, 457.8 772.8, 471 766 C 484.2 759.2, 503.8 745.3, 515 739 C 526.2 732.7, 530.7 730.7, 538 728 C 545.3 725.3, 552.3 723.8, 559 723 C 565.7 722.2, 572.2 722.3, 578 723 C 583.8 723.7, 592.8 727.7, 594 727 C 595.2 726.3, 589 721.3, 585 719 C 581 716.7, 578.2 714, 570 713 C 561.8 712, 547 711, 536 713 C 525 715, 518 717.8, 504 725 C 490 732.2, 461 751, 452 756 C 443 761, 447.7 765.7, 450 755 C 452.3 744.3, 451.2 709.7, 466 692 C 480.8 674.3, 524.2 658.2, 539 649 C 553.8 639.8, 548.7 642.8, 555 637 C 561.3 631.2, 570 623.8, 577 614 C 584 604.2, 588.8 597.2, 597 578 C 605.2 558.8, 621.7 512.3, 626 499 C 630.3 485.7, 624.5 497.5, 623 498 C 621.5 498.5, 626.5 499, 617 502 C 607.5 505, 575 513.8, 566 516 C 557 518.2, 551.2 521.8, 563 515 C 574.8 508.2, 622.7 483.8, 637 475 C 651.3 466.2, 641 474.2, 649 462 C 657 449.8, 677 417.3, 685 402 C 693 386.7, 699.5 373.7, 697 370 C 694.5 366.3, 676 378.2, 670 380 C 664 381.8, 656.2 385.5, 661 381 C 665.8 376.5, 691.7 358.7, 699 353 C 706.3 347.3, 703 350.2, 705 347 C 707 343.8, 708.3 344.7, 711 334 C 713.7 323.3, 719.3 297.8, 721 283 C 722.7 268.2, 722 256.3, 721 245 C 720 233.7, 716.3 220, 715 215 Z",
+      "anchor_points_px": [
+        [
+          715.0,
+          215.0
+        ],
+        [
+          713.0,
+          215.0
+        ],
+        [
+          699.0,
+          234.0
+        ],
+        [
+          670.0,
+          261.0
+        ],
+        [
+          593.0,
+          319.0
+        ],
+        [
+          567.0,
+          342.0
+        ],
+        [
+          560.0,
+          358.0
+        ],
+        [
+          554.0,
+          382.0
+        ],
+        [
+          553.0,
+          360.0
+        ],
+        [
+          551.0,
+          357.0
+        ],
+        [
+          530.0,
+          376.0
+        ],
+        [
+          493.0,
+          416.0
+        ],
+        [
+          465.0,
+          454.0
+        ],
+        [
+          456.0,
+          471.0
+        ],
+        [
+          452.0,
+          491.0
+        ],
+        [
+          453.0,
+          521.0
+        ],
+        [
+          456.0,
+          538.0
+        ],
+        [
+          453.0,
+          537.0
+        ],
+        [
+          444.0,
+          507.0
+        ],
+        [
+          444.0,
+          499.0
+        ],
+        [
+          440.0,
+          498.0
+        ],
+        [
+          425.0,
+          529.0
+        ],
+        [
+          417.0,
+          555.0
+        ],
+        [
+          413.0,
+          578.0
+        ],
+        [
+          413.0,
+          611.0
+        ],
+        [
+          419.0,
+          640.0
+        ],
+        [
+          442.0,
+          691.0
+        ],
+        [
+          446.0,
+          689.0
+        ],
+        [
+          452.0,
+          649.0
+        ],
+        [
+          474.0,
+          575.0
+        ],
+        [
+          486.0,
+          545.0
+        ],
+        [
+          512.0,
+          493.0
+        ],
+        [
+          530.0,
+          463.0
+        ],
+        [
+          564.0,
+          415.0
+        ],
+        [
+          602.0,
+          369.0
+        ],
+        [
+          646.0,
+          325.0
+        ],
+        [
+          602.0,
+          377.0
+        ],
+        [
+          570.0,
+          419.0
+        ],
+        [
+          528.0,
+          485.0
+        ],
+        [
+          502.0,
+          537.0
+        ],
+        [
+          482.0,
+          588.0
+        ],
+        [
+          463.0,
+          650.0
+        ],
+        [
+          451.0,
+          706.0
+        ],
+        [
+          447.0,
+          757.0
+        ],
+        [
+          428.0,
+          766.0
+        ],
+        [
+          407.0,
+          769.0
+        ],
+        [
+          386.0,
+          766.0
+        ],
+        [
+          376.0,
+          760.0
+        ],
+        [
+          376.0,
+          763.0
+        ],
+        [
+          386.0,
+          772.0
+        ],
+        [
+          411.0,
+          782.0
+        ],
+        [
+          436.0,
+          780.0
+        ],
+        [
+          471.0,
+          766.0
+        ],
+        [
+          515.0,
+          739.0
+        ],
+        [
+          538.0,
+          728.0
+        ],
+        [
+          559.0,
+          723.0
+        ],
+        [
+          578.0,
+          723.0
+        ],
+        [
+          594.0,
+          727.0
+        ],
+        [
+          585.0,
+          719.0
+        ],
+        [
+          570.0,
+          713.0
+        ],
+        [
+          536.0,
+          713.0
+        ],
+        [
+          504.0,
+          725.0
+        ],
+        [
+          452.0,
+          756.0
+        ],
+        [
+          450.0,
+          755.0
+        ],
+        [
+          466.0,
+          692.0
+        ],
+        [
+          539.0,
+          649.0
+        ],
+        [
+          555.0,
+          637.0
+        ],
+        [
+          577.0,
+          614.0
+        ],
+        [
+          597.0,
+          578.0
+        ],
+        [
+          626.0,
+          499.0
+        ],
+        [
+          623.0,
+          498.0
+        ],
+        [
+          617.0,
+          502.0
+        ],
+        [
+          566.0,
+          516.0
+        ],
+        [
+          563.0,
+          515.0
+        ],
+        [
+          637.0,
+          475.0
+        ],
+        [
+          649.0,
+          462.0
+        ],
+        [
+          685.0,
+          402.0
+        ],
+        [
+          697.0,
+          370.0
+        ],
+        [
+          670.0,
+          380.0
+        ],
+        [
+          661.0,
+          381.0
+        ],
+        [
+          699.0,
+          353.0
+        ],
+        [
+          705.0,
+          347.0
+        ],
+        [
+          711.0,
+          334.0
+        ],
+        [
+          721.0,
+          283.0
+        ],
+        [
+          721.0,
+          245.0
+        ]
+      ]
+    },
+    {
+      "id": "left-detached-wave",
+      "z_index": 20,
+      "type": "closed_smooth_vector_path",
+      "fill": "url(#waveGradient)",
+      "fill_rule": "nonzero",
+      "bbox_px": [
+        313,
+        736,
+        425,
+        768
+      ],
+      "description": "Small detached upper-left water stroke; all surrounding area must remain transparent.",
+      "smoothing": {
+        "method": "closed Catmull-Rom through measured contour anchors converted to cubic B\u00e9zier",
+        "tension": 1.0
+      },
+      "path_d": "M 425 758 C 423.8 756, 421.2 751, 418 748 C 414.8 745, 410.3 742, 406 740 C 401.7 738, 397.7 736.7, 392 736 C 386.3 735.3, 378.2 735.3, 372 736 C 365.8 736.7, 361 738, 355 740 C 349 742, 341.5 745, 336 748 C 330.5 751, 325.8 754.8, 322 758 C 318.2 761.2, 314.2 765.3, 313 767 C 311.8 768.7, 311.3 769.5, 315 768 C 318.7 766.5, 325.7 761, 335 758 C 344.3 755, 360.8 751.3, 371 750 C 381.2 748.7, 388.8 749.3, 396 750 C 403.2 750.7, 409.5 752.3, 414 754 C 418.5 755.7, 421.2 759, 423 760 C 424.8 761, 424.7 760.3, 425 760 C 425.3 759.7, 426.2 760, 425 758 Z",
+      "anchor_points_px": [
+        [
+          425.0,
+          758.0
+        ],
+        [
+          418.0,
+          748.0
+        ],
+        [
+          406.0,
+          740.0
+        ],
+        [
+          392.0,
+          736.0
+        ],
+        [
+          372.0,
+          736.0
+        ],
+        [
+          355.0,
+          740.0
+        ],
+        [
+          336.0,
+          748.0
+        ],
+        [
+          322.0,
+          758.0
+        ],
+        [
+          313.0,
+          767.0
+        ],
+        [
+          315.0,
+          768.0
+        ],
+        [
+          335.0,
+          758.0
+        ],
+        [
+          371.0,
+          750.0
+        ],
+        [
+          396.0,
+          750.0
+        ],
+        [
+          414.0,
+          754.0
+        ],
+        [
+          423.0,
+          760.0
+        ],
+        [
+          425.0,
+          760.0
+        ]
+      ]
+    },
+    {
+      "id": "main-lower-wave",
+      "z_index": 30,
+      "type": "closed_smooth_vector_path",
+      "fill": "url(#waveGradient)",
+      "fill_rule": "nonzero",
+      "bbox_px": [
+        381,
+        746,
+        602,
+        810
+      ],
+      "description": "Main lower water stroke cluster. The space between wave bands must be transparent, not white.",
+      "smoothing": {
+        "method": "closed Catmull-Rom through measured contour anchors converted to cubic B\u00e9zier",
+        "tension": 1.0
+      },
+      "path_d": "M 602 758 C 598.8 756, 586.5 749.7, 582 748 C 577.5 746.3, 576.7 748.3, 575 748 C 573.3 747.7, 576 746.3, 572 746 C 568 745.7, 560.2 744.3, 551 746 C 541.8 747.7, 529 750.7, 517 756 C 505 761.3, 491.3 771.7, 479 778 C 466.7 784.3, 453.8 790.7, 443 794 C 432.2 797.3, 421.2 797.7, 414 798 C 406.8 798.3, 405 797.7, 400 796 C 395 794.3, 387.2 789.2, 384 788 C 380.8 786.8, 380 787.3, 381 789 C 382 790.7, 385.2 794.8, 390 798 C 394.8 801.2, 405 806, 410 808 C 415 810, 414.8 809.7, 420 810 C 425.2 810.3, 434.7 810.7, 441 810 C 447.3 809.3, 451.7 808, 458 806 C 464.3 804, 469.2 803, 479 798 C 488.8 793, 504.8 782.3, 517 776 C 529.2 769.7, 542.5 763.3, 552 760 C 561.5 756.7, 567.7 756.5, 574 756 C 580.3 755.5, 585.5 756.3, 590 757 C 594.5 757.7, 599 759.8, 601 760 C 603 760.2, 605.2 760, 602 758 Z",
+      "anchor_points_px": [
+        [
+          602.0,
+          758.0
+        ],
+        [
+          582.0,
+          748.0
+        ],
+        [
+          575.0,
+          748.0
+        ],
+        [
+          572.0,
+          746.0
+        ],
+        [
+          551.0,
+          746.0
+        ],
+        [
+          517.0,
+          756.0
+        ],
+        [
+          479.0,
+          778.0
+        ],
+        [
+          443.0,
+          794.0
+        ],
+        [
+          414.0,
+          798.0
+        ],
+        [
+          400.0,
+          796.0
+        ],
+        [
+          384.0,
+          788.0
+        ],
+        [
+          381.0,
+          789.0
+        ],
+        [
+          390.0,
+          798.0
+        ],
+        [
+          410.0,
+          808.0
+        ],
+        [
+          420.0,
+          810.0
+        ],
+        [
+          441.0,
+          810.0
+        ],
+        [
+          458.0,
+          806.0
+        ],
+        [
+          479.0,
+          798.0
+        ],
+        [
+          517.0,
+          776.0
+        ],
+        [
+          552.0,
+          760.0
+        ],
+        [
+          574.0,
+          756.0
+        ],
+        [
+          590.0,
+          757.0
+        ],
+        [
+          601.0,
+          760.0
+        ]
+      ]
+    }
+  ],
+  "svg_master_template": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1024\" height=\"1024\" viewBox=\"0 0 1024 1024\">\n  <defs>\n    <linearGradient id=\"featherGradient\" x1=\"430\" y1=\"752\" x2=\"716\" y2=\"215\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0%\" stop-color=\"#00427E\"/>\n      <stop offset=\"34%\" stop-color=\"#084C85\"/>\n      <stop offset=\"57%\" stop-color=\"#604D80\"/>\n      <stop offset=\"78%\" stop-color=\"#B4494A\"/>\n      <stop offset=\"100%\" stop-color=\"#F1460B\"/>\n    </linearGradient>\n    <linearGradient id=\"waveGradient\" x1=\"313\" y1=\"781\" x2=\"602\" y2=\"741\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0%\" stop-color=\"#8CD0DF\" stop-opacity=\"0.88\"/>\n      <stop offset=\"55%\" stop-color=\"#8CD0DF\" stop-opacity=\"0.98\"/>\n      <stop offset=\"100%\" stop-color=\"#77C7D9\" stop-opacity=\"0.84\"/>\n    </linearGradient>\n  </defs>\n  <!-- No background rectangle. Canvas must remain transparent. -->\n  <path id=\"feather-body-with-transparent-internal-cuts\" d=\"M 715 215 C 713.7 210, 715.7 211.8, 713 215 C 710.3 218.2, 706.2 226.3, 699 234 C 691.8 241.7, 687.7 246.8, 670 261 C 652.3 275.2, 610.2 305.5, 593 319 C 575.8 332.5, 572.5 335.5, 567 342 C 561.5 348.5, 562.2 351.3, 560 358 C 557.8 364.7, 555.2 381.7, 554 382 C 552.8 382.3, 553.5 364.2, 553 360 C 552.5 355.8, 554.8 354.3, 551 357 C 547.2 359.7, 539.7 366.2, 530 376 C 520.3 385.8, 503.8 403, 493 416 C 482.2 429, 471.2 444.8, 465 454 C 458.8 463.2, 458.2 464.8, 456 471 C 453.8 477.2, 452.5 482.7, 452 491 C 451.5 499.3, 452.3 513.2, 453 521 C 453.7 528.8, 456 535.3, 456 538 C 456 540.7, 455 542.2, 453 537 C 451 531.8, 445.5 513.3, 444 507 C 442.5 500.7, 444.7 500.5, 444 499 C 443.3 497.5, 443.2 493, 440 498 C 436.8 503, 428.8 519.5, 425 529 C 421.2 538.5, 419 546.8, 417 555 C 415 563.2, 413.7 568.7, 413 578 C 412.3 587.3, 412 600.7, 413 611 C 414 621.3, 414.2 626.7, 419 640 C 423.8 653.3, 437.5 682.8, 442 691 C 446.5 699.2, 444.3 696, 446 689 C 447.7 682, 447.3 668, 452 649 C 456.7 630, 468.3 592.3, 474 575 C 479.7 557.7, 479.7 558.7, 486 545 C 492.3 531.3, 504.7 506.7, 512 493 C 519.3 479.3, 521.3 476, 530 463 C 538.7 450, 552 430.7, 564 415 C 576 399.3, 588.3 384, 602 369 C 615.7 354, 646 323.7, 646 325 C 646 326.3, 614.7 361.3, 602 377 C 589.3 392.7, 582.3 401, 570 419 C 557.7 437, 539.3 465.3, 528 485 C 516.7 504.7, 509.7 519.8, 502 537 C 494.3 554.2, 488.5 569.2, 482 588 C 475.5 606.8, 468.2 630.3, 463 650 C 457.8 669.7, 453.7 688.2, 451 706 C 448.3 723.8, 450.8 747, 447 757 C 443.2 767, 434.7 764, 428 766 C 421.3 768, 414 769, 407 769 C 400 769, 391.2 767.5, 386 766 C 380.8 764.5, 377.7 760.5, 376 760 C 374.3 759.5, 374.3 761, 376 763 C 377.7 765, 380.2 768.8, 386 772 C 391.8 775.2, 402.7 780.7, 411 782 C 419.3 783.3, 426 782.7, 436 780 C 446 777.3, 457.8 772.8, 471 766 C 484.2 759.2, 503.8 745.3, 515 739 C 526.2 732.7, 530.7 730.7, 538 728 C 545.3 725.3, 552.3 723.8, 559 723 C 565.7 722.2, 572.2 722.3, 578 723 C 583.8 723.7, 592.8 727.7, 594 727 C 595.2 726.3, 589 721.3, 585 719 C 581 716.7, 578.2 714, 570 713 C 561.8 712, 547 711, 536 713 C 525 715, 518 717.8, 504 725 C 490 732.2, 461 751, 452 756 C 443 761, 447.7 765.7, 450 755 C 452.3 744.3, 451.2 709.7, 466 692 C 480.8 674.3, 524.2 658.2, 539 649 C 553.8 639.8, 548.7 642.8, 555 637 C 561.3 631.2, 570 623.8, 577 614 C 584 604.2, 588.8 597.2, 597 578 C 605.2 558.8, 621.7 512.3, 626 499 C 630.3 485.7, 624.5 497.5, 623 498 C 621.5 498.5, 626.5 499, 617 502 C 607.5 505, 575 513.8, 566 516 C 557 518.2, 551.2 521.8, 563 515 C 574.8 508.2, 622.7 483.8, 637 475 C 651.3 466.2, 641 474.2, 649 462 C 657 449.8, 677 417.3, 685 402 C 693 386.7, 699.5 373.7, 697 370 C 694.5 366.3, 676 378.2, 670 380 C 664 381.8, 656.2 385.5, 661 381 C 665.8 376.5, 691.7 358.7, 699 353 C 706.3 347.3, 703 350.2, 705 347 C 707 343.8, 708.3 344.7, 711 334 C 713.7 323.3, 719.3 297.8, 721 283 C 722.7 268.2, 722 256.3, 721 245 C 720 233.7, 716.3 220, 715 215 Z\" fill=\"url(#featherGradient)\" fill-rule=\"nonzero\"/>\n  <path id=\"left-detached-wave\" d=\"M 425 758 C 423.8 756, 421.2 751, 418 748 C 414.8 745, 410.3 742, 406 740 C 401.7 738, 397.7 736.7, 392 736 C 386.3 735.3, 378.2 735.3, 372 736 C 365.8 736.7, 361 738, 355 740 C 349 742, 341.5 745, 336 748 C 330.5 751, 325.8 754.8, 322 758 C 318.2 761.2, 314.2 765.3, 313 767 C 311.8 768.7, 311.3 769.5, 315 768 C 318.7 766.5, 325.7 761, 335 758 C 344.3 755, 360.8 751.3, 371 750 C 381.2 748.7, 388.8 749.3, 396 750 C 403.2 750.7, 409.5 752.3, 414 754 C 418.5 755.7, 421.2 759, 423 760 C 424.8 761, 424.7 760.3, 425 760 C 425.3 759.7, 426.2 760, 425 758 Z\" fill=\"url(#waveGradient)\" fill-rule=\"nonzero\"/>\n  <path id=\"main-lower-wave\" d=\"M 602 758 C 598.8 756, 586.5 749.7, 582 748 C 577.5 746.3, 576.7 748.3, 575 748 C 573.3 747.7, 576 746.3, 572 746 C 568 745.7, 560.2 744.3, 551 746 C 541.8 747.7, 529 750.7, 517 756 C 505 761.3, 491.3 771.7, 479 778 C 466.7 784.3, 453.8 790.7, 443 794 C 432.2 797.3, 421.2 797.7, 414 798 C 406.8 798.3, 405 797.7, 400 796 C 395 794.3, 387.2 789.2, 384 788 C 380.8 786.8, 380 787.3, 381 789 C 382 790.7, 385.2 794.8, 390 798 C 394.8 801.2, 405 806, 410 808 C 415 810, 414.8 809.7, 420 810 C 425.2 810.3, 434.7 810.7, 441 810 C 447.3 809.3, 451.7 808, 458 806 C 464.3 804, 469.2 803, 479 798 C 488.8 793, 504.8 782.3, 517 776 C 529.2 769.7, 542.5 763.3, 552 760 C 561.5 756.7, 567.7 756.5, 574 756 C 580.3 755.5, 585.5 756.3, 590 757 C 594.5 757.7, 599 759.8, 601 760 C 603 760.2, 605.2 760, 602 758 Z\" fill=\"url(#waveGradient)\" fill-rule=\"nonzero\"/>\n</svg>",
+  "png_export_instructions": {
+    "master": "Use svg_master_template as the source of truth.",
+    "transparent_png_1024": [
+      "Render SVG to 4096x4096 or higher with transparent background.",
+      "Downsample to 1024x1024 using Lanczos/resampling intended for photographic/vector antialiasing.",
+      "Export as PNG-24 with alpha channel.",
+      "Do not flatten, matte, or premultiply against white, #F5FAFC, black, or any UI color."
+    ],
+    "transparent_png_512": [
+      "Render from SVG directly at 2048x2048 or 4096x4096.",
+      "Downsample to 512x512 using Lanczos.",
+      "Do not resize the already-exported 1024 raster with nearest-neighbor or bilinear."
+    ],
+    "favicon_or_small_icon": [
+      "For sizes below 128px, render directly from SVG. Do not use the old raster extraction.",
+      "Consider slightly simplifying wave detail only if required for legibility, but do not add a background."
+    ]
+  },
+  "validation_tests": {
+    "visual_tests": [
+      "Place final PNG over #000000. No white/gray halo may appear.",
+      "Place final PNG over #111111. Edges must remain smooth, with no stair-step outline.",
+      "Place final PNG over #0F172A navy/ink. The central feather vein and wave gaps must show the background cleanly.",
+      "Place final PNG over checkerboard. There must be no hidden square, rectangle, or off-white matte."
+    ],
+    "pixel_tests_for_png_outputs": [
+      {
+        "name": "transparent_canvas_corners",
+        "rule": "Pixels at (0,0), (1023,0), (0,1023), and (1023,1023) must have alpha 0."
+      },
+      {
+        "name": "no_soft_background_matte",
+        "rule": "No pixel with alpha > 0 may have RGB within 8 Euclidean units of #F5FAFC, except if it is intentionally part of a cyan wave highlight; this logo contains no white foreground."
+      },
+      {
+        "name": "edge_fringe_fail_condition",
+        "rule": "Fail if more than 0.1% of semi-transparent edge pixels, defined as 1 <= alpha <= 250, are closer to #F5FAFC than to the nearest declared foreground palette color."
+      },
+      {
+        "name": "antialias_presence",
+        "rule": "A valid PNG should contain semi-transparent alpha values at curved edges after vector rendering; alpha should not be only 0 and 255."
+      }
+    ],
+    "geometry_tests": [
+      "Visible non-transparent bounding box should be approximately x=313..721, y=215..810 on a 1024 canvas.",
+      "The feather tip should terminate near (715,215).",
+      "The lower wave cluster should terminate near x=602 and y=810.",
+      "The logo must remain visually centered around x=517, y=512."
+    ]
+  },
+  "agent_prompt": {
+    "title": "Create clean VeraDoc transparent logo from vector spec",
+    "instructions": "Use the SVG master template and path data in this JSON as the source of truth. Do not perform bitmap background removal as the final output. Produce a transparent SVG and transparent PNG exports. The old #F5FAFC source background is not a color in the final asset; it must be fully transparent. The central feather vein, feather side cuts, and spaces between the waves must be transparent negative space, not white fills. Render from vector at high resolution and downsample with high-quality antialiasing. Validate on black, charcoal, navy, and checkerboard backgrounds before returning the asset."
+  },
+  "change_log_from_v1": [
+    "Made vector-first rendering mandatory.",
+    "Removed reliance on keyed raster alpha as the final method.",
+    "Replaced straight-line integer contour trace with smoothed cubic B\u00e9zier paths.",
+    "Added explicit matte-contamination diagnosis.",
+    "Added edge RGB validation so #F5FAFC cannot leak into semi-transparent pixels.",
+    "Added dark-background and checkerboard validation tests."
+  ]
+}
