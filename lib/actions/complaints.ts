@@ -3,6 +3,8 @@
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { headers } from "next/headers";
+import { sendEmail } from "@/lib/services/email-service";
+import { complaintConfirmationHtml } from "@/lib/services/email-templates/complaint-confirmation";
 
 const complaintSchema = z.object({
   consumerName: z.string().min(2, "El nombre es obligatorio"),
@@ -90,8 +92,36 @@ export async function submitComplaint(
     };
   }
 
-  // TODO: Send email confirmation to consumer (required by DS 011-2011-PCM)
-  // This should be implemented with the Resend email service
+  const code = (row as { code: string }).code;
 
-  return { success: true, code: (row as { code: string }).code };
+  // DS 011-2011-PCM requires sending an immediate email confirmation
+  try {
+    await sendEmail({
+      to: parsed.data.consumerEmail,
+      subject: `Constancia de recepción — ${code}`,
+      html: complaintConfirmationHtml({
+        consumerName: parsed.data.consumerName,
+        complaintCode: code,
+        complaintType: parsed.data.complaintType,
+        productOrService: parsed.data.productOrService,
+        description: parsed.data.description,
+        requestedRemedy: parsed.data.requestedRemedy,
+        submittedAt: new Date().toLocaleDateString("es-PE", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      }),
+      tags: [
+        { name: "category", value: "complaint-confirmation" },
+        { name: "complaint_code", value: code },
+      ],
+    });
+  } catch (emailError) {
+    console.error("Complaint confirmation email failed:", emailError);
+  }
+
+  return { success: true, code };
 }
