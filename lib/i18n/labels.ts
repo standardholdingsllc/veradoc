@@ -457,6 +457,7 @@ export const REGISTRY = {
 export const DASHBOARD = {
   paquetesActivos: "Paquetes activos",
   esperandoFirmantes: "Esperando firmantes",
+  pagosPendientes: "Pagos pendientes",
   listosParaNotario: "Listos para notario",
   certificadosEsteMes: "Certificados este mes",
   requierenCorreccion: "Requieren corrección",
@@ -816,7 +817,9 @@ export const FOOTER = {
   derechos: "Todos los derechos reservados",
   avisoLegal: "Aviso legal",
   privacidad: "Política de privacidad",
-  terminos: "Términos de uso",
+  terminos: "Términos y condiciones",
+  devoluciones: "Devoluciones y cancelaciones",
+  libroReclamaciones: "Libro de reclamaciones",
   descripcion:
     "Plataforma de certificación de arrendamiento con revisión notarial para el sector inmobiliario peruano.",
 } as const;
