@@ -3,6 +3,7 @@ import { z } from "zod";
 
 const booleanFromString = z
   .enum(["true", "false", ""])
+  .optional()
   .default("false")
   .transform((v) => v === "true");
 
