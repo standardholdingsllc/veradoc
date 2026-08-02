@@ -7,7 +7,7 @@ const booleanFromString = z
   .transform((v) => v === "true");
 
 const schema = z.object({
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+  SUPABASE_SECRET_KEY: z.string().min(1),
   SITE_URL: z.string().url().default("https://veradoc.pe"),
   WHATSAPP_API_TOKEN: z.string().optional(),
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
@@ -21,6 +21,14 @@ const schema = z.object({
   CULQI_MODE: z.enum(["test", "live"]).default("test"),
   CULQI_USE_MOCK: booleanFromString,
   DEMO_PAYMENTS_ENABLED: booleanFromString,
+  // FirmEasy digital signature (firmeasy.legal)
+  FIRMEASY_API_BASE_URL: z.string().url().optional(),
+  FIRMEASY_USER_INTEGRATION_TOKEN: z.string().optional(),
+  FIRMEASY_EMAIL: z.string().optional(),
+  FIRMEASY_PASSWORD: z.string().optional(),
+  FIRMEASY_WEBHOOK_SECRET: z.string().optional(),
+  FIRMEASY_MODE: z.enum(["sandbox", "production"]).default("sandbox"),
+  FIRMEASY_ALLOW_DEV_STUB: booleanFromString,
 });
 
 export const serverEnv = schema.parse(process.env);
@@ -63,4 +71,46 @@ export function requireCulqiReady(): { ok: true } | { ok: false; reason: string 
 export function isDemoPaymentsEnabled(): boolean {
   if (serverEnv.CULQI_MODE === "live") return false;
   return serverEnv.DEMO_PAYMENTS_ENABLED;
+}
+
+// ---------------------------------------------------------------------------
+// FirmEasy configuration helpers
+// ---------------------------------------------------------------------------
+
+export function validateFirmEasyConfig(): void {
+  const {
+    FIRMEASY_MODE,
+    FIRMEASY_API_BASE_URL,
+    FIRMEASY_USER_INTEGRATION_TOKEN,
+    FIRMEASY_EMAIL,
+    FIRMEASY_PASSWORD,
+    FIRMEASY_WEBHOOK_SECRET,
+  } = serverEnv;
+
+  if (FIRMEASY_MODE === "production") {
+    if (!FIRMEASY_API_BASE_URL) {
+      throw new Error("FATAL: FIRMEASY_API_BASE_URL required in production mode");
+    }
+    if (!FIRMEASY_USER_INTEGRATION_TOKEN) {
+      throw new Error("FATAL: FIRMEASY_USER_INTEGRATION_TOKEN required in production mode");
+    }
+    if (!FIRMEASY_EMAIL) {
+      throw new Error("FATAL: FIRMEASY_EMAIL required in production mode");
+    }
+    if (!FIRMEASY_PASSWORD) {
+      throw new Error("FATAL: FIRMEASY_PASSWORD required in production mode");
+    }
+    if (!FIRMEASY_WEBHOOK_SECRET) {
+      throw new Error("FATAL: FIRMEASY_WEBHOOK_SECRET required in production mode");
+    }
+  }
+}
+
+export function isFirmEasyConfigured(): boolean {
+  return !!(
+    serverEnv.FIRMEASY_API_BASE_URL &&
+    serverEnv.FIRMEASY_USER_INTEGRATION_TOKEN &&
+    serverEnv.FIRMEASY_EMAIL &&
+    serverEnv.FIRMEASY_PASSWORD
+  );
 }

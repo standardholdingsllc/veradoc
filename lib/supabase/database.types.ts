@@ -7,8 +7,139 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   public: {
     Tables: {
+      complaints: {
+        Row: {
+          amount: number | null
+          code: string
+          complaint_type: string
+          consumer_address: string | null
+          consumer_dni: string
+          consumer_email: string
+          consumer_is_minor: boolean
+          consumer_name: string
+          consumer_phone: string | null
+          created_at: string
+          description: string
+          guardian_dni: string | null
+          guardian_name: string | null
+          id: number
+          ip_address: string | null
+          order_number: string | null
+          product_or_service: string
+          requested_remedy: string
+          responded_at: string | null
+          responded_by: string | null
+          response: string | null
+          status: string
+          user_agent: string | null
+        }
+        Insert: {
+          amount?: number | null
+          code: string
+          complaint_type: string
+          consumer_address?: string | null
+          consumer_dni: string
+          consumer_email: string
+          consumer_is_minor?: boolean
+          consumer_name: string
+          consumer_phone?: string | null
+          created_at?: string
+          description: string
+          guardian_dni?: string | null
+          guardian_name?: string | null
+          id?: never
+          ip_address?: string | null
+          order_number?: string | null
+          product_or_service: string
+          requested_remedy: string
+          responded_at?: string | null
+          responded_by?: string | null
+          response?: string | null
+          status?: string
+          user_agent?: string | null
+        }
+        Update: {
+          amount?: number | null
+          code?: string
+          complaint_type?: string
+          consumer_address?: string | null
+          consumer_dni?: string
+          consumer_email?: string
+          consumer_is_minor?: boolean
+          consumer_name?: string
+          consumer_phone?: string | null
+          created_at?: string
+          description?: string
+          guardian_dni?: string | null
+          guardian_name?: string | null
+          id?: never
+          ip_address?: string | null
+          order_number?: string | null
+          product_or_service?: string
+          requested_remedy?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          response?: string | null
+          status?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      firmeasy_webhook_log: {
+        Row: {
+          created_at: string | null
+          document_token: string | null
+          error_message: string | null
+          event_type: string
+          id: string
+          payload_hash: string
+          processed_at: string | null
+          processing_started_at: string | null
+          processing_state: string
+          raw_payload: Json
+          retry_count: number
+          signer_token: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          document_token?: string | null
+          error_message?: string | null
+          event_type: string
+          id?: string
+          payload_hash: string
+          processed_at?: string | null
+          processing_started_at?: string | null
+          processing_state?: string
+          raw_payload?: Json
+          retry_count?: number
+          signer_token?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          document_token?: string | null
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          payload_hash?: string
+          processed_at?: string | null
+          processing_started_at?: string | null
+          processing_state?: string
+          raw_payload?: Json
+          retry_count?: number
+          signer_token?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           accepted_at: string | null
@@ -65,6 +196,8 @@ export type Database = {
           deposit_amount: number | null
           district: string | null
           document_hash: string | null
+          firmeasy_document_status: string | null
+          firmeasy_document_token: string | null
           id: string
           lease_end_date: string | null
           lease_start_date: string | null
@@ -73,8 +206,8 @@ export type Database = {
           property_address: string | null
           property_unit: string | null
           province: string | null
-          rental_amount: number | null
           renewed_by_packet_id: string | null
+          rental_amount: number | null
           status: string
           submitted_to_notary_at: string | null
           updated_at: string | null
@@ -87,6 +220,8 @@ export type Database = {
           deposit_amount?: number | null
           district?: string | null
           document_hash?: string | null
+          firmeasy_document_status?: string | null
+          firmeasy_document_token?: string | null
           id?: string
           lease_end_date?: string | null
           lease_start_date?: string | null
@@ -95,8 +230,8 @@ export type Database = {
           property_address?: string | null
           property_unit?: string | null
           province?: string | null
-          rental_amount?: number | null
           renewed_by_packet_id?: string | null
+          rental_amount?: number | null
           status?: string
           submitted_to_notary_at?: string | null
           updated_at?: string | null
@@ -109,6 +244,8 @@ export type Database = {
           deposit_amount?: number | null
           district?: string | null
           document_hash?: string | null
+          firmeasy_document_status?: string | null
+          firmeasy_document_token?: string | null
           id?: string
           lease_end_date?: string | null
           lease_start_date?: string | null
@@ -117,8 +254,8 @@ export type Database = {
           property_address?: string | null
           property_unit?: string | null
           province?: string | null
-          rental_amount?: number | null
           renewed_by_packet_id?: string | null
+          rental_amount?: number | null
           status?: string
           submitted_to_notary_at?: string | null
           updated_at?: string | null
@@ -141,7 +278,7 @@ export type Database = {
           {
             foreignKeyName: "lease_packets_renewed_by_packet_id_fkey"
             columns: ["renewed_by_packet_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "lease_packets"
             referencedColumns: ["id"]
           },
@@ -402,7 +539,7 @@ export type Database = {
           id: string
           packet_id: string
           storage_path: string
-          uploaded_by: string
+          uploaded_by: string | null
           version: number
         }
         Insert: {
@@ -412,7 +549,7 @@ export type Database = {
           id?: string
           packet_id: string
           storage_path: string
-          uploaded_by: string
+          uploaded_by?: string | null
           version?: number
         }
         Update: {
@@ -422,7 +559,7 @@ export type Database = {
           id?: string
           packet_id?: string
           storage_path?: string
-          uploaded_by?: string
+          uploaded_by?: string | null
           version?: number
         }
         Relationships: [
@@ -446,6 +583,9 @@ export type Database = {
         Row: {
           completed_at: string | null
           created_at: string | null
+          firmeasy_signer_link: string | null
+          firmeasy_signer_status: string | null
+          firmeasy_signer_token: string | null
           id: string
           packet_id: string
           profile_id: string | null
@@ -461,6 +601,9 @@ export type Database = {
         Insert: {
           completed_at?: string | null
           created_at?: string | null
+          firmeasy_signer_link?: string | null
+          firmeasy_signer_status?: string | null
+          firmeasy_signer_token?: string | null
           id?: string
           packet_id: string
           profile_id?: string | null
@@ -476,6 +619,9 @@ export type Database = {
         Update: {
           completed_at?: string | null
           created_at?: string | null
+          firmeasy_signer_link?: string | null
+          firmeasy_signer_status?: string | null
+          firmeasy_signer_token?: string | null
           id?: string
           packet_id?: string
           profile_id?: string | null
@@ -514,46 +660,46 @@ export type Database = {
       }
       payment_webhook_events: {
         Row: {
-          id: string
-          provider: string
+          attempt_count: number
+          error_message: string | null
           event_type: string
+          id: string
+          last_attempt_at: string | null
           object_id: string
           payload_hash: string
-          raw_payload: Json | null
-          processing_result: string
-          attempt_count: number
-          last_attempt_at: string | null
-          received_at: string | null
           processed_at: string | null
-          error_message: string | null
+          processing_result: string | null
+          provider: string
+          raw_payload: Json | null
+          received_at: string | null
         }
         Insert: {
-          id?: string
-          provider?: string
+          attempt_count?: number
+          error_message?: string | null
           event_type: string
+          id?: string
+          last_attempt_at?: string | null
           object_id: string
           payload_hash: string
-          raw_payload?: Json | null
-          processing_result?: string
-          attempt_count?: number
-          last_attempt_at?: string | null
-          received_at?: string | null
           processed_at?: string | null
-          error_message?: string | null
+          processing_result?: string | null
+          provider?: string
+          raw_payload?: Json | null
+          received_at?: string | null
         }
         Update: {
-          id?: string
-          provider?: string
+          attempt_count?: number
+          error_message?: string | null
           event_type?: string
+          id?: string
+          last_attempt_at?: string | null
           object_id?: string
           payload_hash?: string
-          raw_payload?: Json | null
-          processing_result?: string
-          attempt_count?: number
-          last_attempt_at?: string | null
-          received_at?: string | null
           processed_at?: string | null
-          error_message?: string | null
+          processing_result?: string | null
+          provider?: string
+          raw_payload?: Json | null
+          received_at?: string | null
         }
         Relationships: []
       }
@@ -652,33 +798,33 @@ export type Database = {
       }
       pricing_config: {
         Row: {
-          id: string
-          product_code: string
+          active: boolean
           amount_centimos: number
+          created_at: string | null
           currency: string
           description: string
-          active: boolean
-          created_at: string | null
+          id: string
+          product_code: string
           updated_at: string | null
         }
         Insert: {
-          id?: string
-          product_code: string
+          active?: boolean
           amount_centimos: number
+          created_at?: string | null
           currency?: string
           description?: string
-          active?: boolean
-          created_at?: string | null
+          id?: string
+          product_code: string
           updated_at?: string | null
         }
         Update: {
-          id?: string
-          product_code?: string
+          active?: boolean
           amount_centimos?: number
+          created_at?: string | null
           currency?: string
           description?: string
-          active?: boolean
-          created_at?: string | null
+          id?: string
+          product_code?: string
           updated_at?: string | null
         }
         Relationships: []
@@ -829,11 +975,16 @@ export type Database = {
           id: string
           packet_signer_id: string
           pdf_integrity_valid: boolean | null
+          provider_document_token: string | null
+          provider_name: string | null
+          provider_signed_at: string | null
+          provider_signer_token: string | null
           raw_validation_data: Json | null
           revocation_result: string | null
           signature_valid: boolean | null
           signed_document_hash: string | null
           timestamp_result: string | null
+          verification_url: string | null
         }
         Insert: {
           certificate_issuer?: string | null
@@ -846,11 +997,16 @@ export type Database = {
           id?: string
           packet_signer_id: string
           pdf_integrity_valid?: boolean | null
+          provider_document_token?: string | null
+          provider_name?: string | null
+          provider_signed_at?: string | null
+          provider_signer_token?: string | null
           raw_validation_data?: Json | null
           revocation_result?: string | null
           signature_valid?: boolean | null
           signed_document_hash?: string | null
           timestamp_result?: string | null
+          verification_url?: string | null
         }
         Update: {
           certificate_issuer?: string | null
@@ -863,11 +1019,16 @@ export type Database = {
           id?: string
           packet_signer_id?: string
           pdf_integrity_valid?: boolean | null
+          provider_document_token?: string | null
+          provider_name?: string | null
+          provider_signed_at?: string | null
+          provider_signer_token?: string | null
           raw_validation_data?: Json | null
           revocation_result?: string | null
           signature_valid?: boolean | null
           signed_document_hash?: string | null
           timestamp_result?: string | null
+          verification_url?: string | null
         }
         Relationships: [
           {
@@ -972,75 +1133,75 @@ export type Database = {
     Functions: {
       advance_signer_status: {
         Args: {
-          p_signer_id: string
           p_new_status: string
           p_profile_id?: string | null
+          p_signer_id: string
         }
         Returns: undefined
       }
+      check_duplicate_lease: {
+        Args: {
+          p_lease_end: string
+          p_lease_start: string
+          p_property_address: string
+          p_property_unit: string | null
+        }
+        Returns: {
+          earliest_start: string
+          latest_end: string
+          overlap_count: number
+        }[]
+      }
       claim_charging: {
         Args: {
+          p_device_finger_print_id?: string | null
+          p_from_status: string
           p_payment_id: string
           p_realtor_id: string
-          p_from_status: string
-          p_device_finger_print_id?: string | null
           p_source_token_hash?: string | null
         }
         Returns: {
-          payment_id: string | null
-          packet_id: string | null
           amount_centimos: number | null
+          challenge_nonce: string | null
           currency: string | null
           device_finger_print_id: string | null
+          packet_id: string | null
+          payment_id: string | null
           source_token_hash: string | null
-          challenge_nonce: string | null
         }
       }
       claim_payment_attempt: {
         Args: {
-          p_packet_id: string
-          p_realtor_id: string
           p_amount_centimos: number
+          p_challenge_nonce: string
           p_currency: string
           p_idempotency_key: string
-          p_challenge_nonce: string
+          p_packet_id: string
+          p_realtor_id: string
         }
         Returns: {
-          payment_id: string | null
-          existing_status: string | null
           amount_centimos: number | null
-          currency: string | null
           challenge_nonce: string | null
           claimed: boolean | null
+          currency: string | null
+          existing_status: string | null
+          payment_id: string | null
         }
       }
       claim_webhook_processing: {
         Args: {
-          p_provider: string
           p_event_type: string
           p_object_id: string
           p_payload_hash: string
+          p_provider: string
           p_raw_payload: Json
           p_stale_threshold_seconds?: number
         }
         Returns: {
+          already_processed: boolean | null
           event_id: string | null
           owned: boolean | null
-          already_processed: boolean | null
         }
-      }
-      check_duplicate_lease: {
-        Args: {
-          p_property_address: string
-          p_property_unit: string | null
-          p_lease_start: string
-          p_lease_end: string
-        }
-        Returns: {
-          overlap_count: number
-          earliest_start: string | null
-          latest_end: string | null
-        }[]
       }
       claim_signing_token: {
         Args: { p_token_hash: string }
@@ -1054,116 +1215,224 @@ export type Database = {
           signer_whatsapp: string
         }[]
       }
+      claim_webhook_for_retry: {
+        Args: { p_log_id: string; p_stale_threshold_seconds?: number }
+        Returns: boolean
+      }
       complete_notary_decision: {
         Args: {
-          p_packet_id: string
-          p_notary_id: string
-          p_decision: string
-          p_observations?: string | null
           p_checklist_data?: Json
+          p_decision: string
+          p_notary_id: string
+          p_observations?: string
+          p_packet_id: string
         }
         Returns: undefined
       }
-      expire_signing_tokens: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      generate_packet_code: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      is_active_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_active_realtor: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      expire_signing_tokens: { Args: Record<PropertyKey, never>; Returns: number }
+      is_active_admin: { Args: Record<PropertyKey, never>; Returns: boolean }
+      is_active_realtor: { Args: Record<PropertyKey, never>; Returns: boolean }
       lookup_invitation: {
         Args: { p_token: string }
         Returns: {
-          id: string
           email: string
+          expires_at: string
+          id: string
+          invited_by: string
           role: string
           status: string
-          expires_at: string
-          invited_by: string
         }[]
       }
+      lookup_signing_context: {
+        Args: { p_token_hash: string }
+        Returns: {
+          expires_at: string
+          packet_id: string
+          role_in_lease: string
+          signer_email: string
+          signer_full_name: string
+          token_id: string
+          token_status: string
+        }[]
+      }
+      my_packet_signer_ids: { Args: Record<PropertyKey, never>; Returns: string[] }
+      packets_as_notary: { Args: Record<PropertyKey, never>; Returns: string[] }
+      packets_as_realtor: { Args: Record<PropertyKey, never>; Returns: string[] }
+      packets_as_signer: { Args: Record<PropertyKey, never>; Returns: string[] }
       process_payment_success: {
         Args: {
-          p_payment_id: string
-          p_charge_id: string
+          p_actor_id: string | null
           p_charge_amount_centimos: number
           p_charge_currency: string
+          p_charge_id: string
+          p_payment_id: string
           p_payment_method: string
-          p_actor_id: string | null
         }
         Returns: {
           outcome: string | null
         }
       }
-      lookup_signing_context: {
-        Args: { p_token_hash: string }
-        Returns: {
-          token_id: string
-          packet_id: string
-          signer_email: string
-          signer_full_name: string
-          role_in_lease: string
-          token_status: string
-          expires_at: string
-        }[]
-      }
-      set_updated_at: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      safe_cast_uuid: { Args: { p_text: string }; Returns: string }
+      signer_ids_on_notary_packets: { Args: Record<PropertyKey, never>; Returns: string[] }
+      signer_ids_on_own_packets: { Args: Record<PropertyKey, never>; Returns: string[] }
       transition_packet_status: {
         Args: {
-          p_packet_id: string
-          p_new_status: string
-          p_actor_id: string
           p_action: string
+          p_actor_id: string
           p_metadata?: Json
+          p_new_status: string
+          p_packet_id: string
         }
         Returns: undefined
       }
-      verify_signing_otp: {
-        Args: { p_token_hash: string }
-        Returns: undefined
+      user_is_notary_for_signer: {
+        Args: { p_signer_id: string }
+        Returns: boolean
       }
+      user_is_notary_on_packet: {
+        Args: { p_packet_id: string }
+        Returns: boolean
+      }
+      user_is_packet_signer: { Args: { p_signer_id: string }; Returns: boolean }
+      user_is_signer_on_packet: {
+        Args: { p_packet_id: string }
+        Returns: boolean
+      }
+      user_owns_packet: { Args: { p_packet_id: string }; Returns: boolean }
+      user_owns_signer_packet: {
+        Args: { p_signer_id: string }
+        Returns: boolean
+      }
+      verify_signing_otp: { Args: { p_token_hash: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
     }
     CompositeTypes: {
-      claim_attempt_result: {
-        payment_id: string | null
-        existing_status: string | null
-        amount_centimos: number | null
-        currency: string | null
-        challenge_nonce: string | null
-        claimed: boolean | null
-      }
-      claim_charging_result: {
-        payment_id: string | null
-        packet_id: string | null
-        amount_centimos: number | null
-        currency: string | null
-        device_finger_print_id: string | null
-        source_token_hash: string | null
-        challenge_nonce: string | null
-      }
-      payment_success_result: {
-        outcome: string | null
-      }
-      webhook_claim_result: {
-        event_id: string | null
-        owned: boolean | null
-        already_processed: boolean | null
-      }
+      [_ in never]: never
     }
   }
 }
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const

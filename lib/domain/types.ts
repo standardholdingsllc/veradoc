@@ -14,6 +14,7 @@ export type PacketStatus =
   | "needs_correction"
   | "rejected"
   | "archived"
+  | "expired"
   | "renewal_available"
   | "renewal_in_progress";
 

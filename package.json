@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "postinstall": "node scripts/copy-pdf-worker.mjs",
     "db:types": "npx supabase gen types typescript --local --schema public > lib/supabase/database.types.ts",
     "db:types:remote": "npx supabase gen types typescript --project-id fyfcslzgahfbyezsnpxl --schema public > lib/supabase/database.types.ts"
@@ -40,6 +42,7 @@
     "eslint-config-next": "16.2.6",
     "supabase": "^2.108.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }

@@ -93,6 +93,12 @@ export const PACKET_STATUS_CONFIG: Record<
     iconName: "Archive",
     nextAction: "Sin acciones disponibles",
   },
+  expired: {
+    label: "Vencido",
+    color: "amber",
+    iconName: "CalendarX",
+    nextAction: "Revisar renovación",
+  },
   renewal_available: {
     label: "Renovación disponible",
     color: "blue",

@@ -6,7 +6,7 @@ import type { Database } from "./database.types";
 export function createAdminClient() {
   return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    serverEnv.SUPABASE_SERVICE_ROLE_KEY,
+    serverEnv.SUPABASE_SECRET_KEY,
     {
       auth: {
         autoRefreshToken: false,

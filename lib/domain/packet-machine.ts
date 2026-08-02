@@ -207,6 +207,7 @@ const NEXT_ACTIONS_BY_STATUS: Record<
   certified_with_observations: {},
   rejected: {},
   archived: {},
+  expired: { realtor: ["start_renewal"] },
   renewal_available: { realtor: ["start_renewal"] },
   renewal_in_progress: {},
 };

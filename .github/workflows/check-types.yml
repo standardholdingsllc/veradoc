@@ -1,0 +1,41 @@
+name: Check DB Types
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - "lib/supabase/database.types.ts"
+
+jobs:
+  verify-types:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Supabase
+        run: supabase start -x realtime,storage-api,imgproxy,inbucket,postgrest-exporter,pgadmin-schema-diff,pg_prove
+
+      - name: Generate types
+        run: supabase gen types typescript --local --schema public > /tmp/database.types.ts
+
+      - name: Compare types
+        run: |
+          if ! diff -q lib/supabase/database.types.ts /tmp/database.types.ts > /dev/null 2>&1; then
+            echo "::error::database.types.ts is out of date. Run 'npm run db:types' and commit the result."
+            diff lib/supabase/database.types.ts /tmp/database.types.ts || true
+            exit 1
+          fi
+          echo "Types are up to date."
+
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop
