@@ -2,7 +2,9 @@ import "server-only";
 import { z } from "zod";
 
 const booleanFromString = z
-  .preprocess((v) => (v === undefined || v === null ? "false" : v), z.enum(["true", "false", ""]))
+  .string()
+  .optional()
+  .default("false")
   .transform((v) => v === "true");
 
 const schema = z.object({
