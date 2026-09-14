@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { WizardClient } from "@/components/agente/wizard-client";
-import { publicEnv } from "@/lib/env/public";
 import { isDemoPaymentsEnabled } from "@/lib/env/server";
+import { getPacketPricing } from "@/lib/services/pricing-service";
+import { publicEnv } from "@/lib/env/public";
 
 export default async function NuevoPaquetePage() {
   const supabase = await createClient();
@@ -10,16 +11,24 @@ export default async function NuevoPaquetePage() {
     .select("province")
     .eq("active", true);
 
-  const { data: { user } } = await supabase.auth.getUser();
-
   const coveredProvinces = coverage?.map((c) => c.province) ?? [];
+  const pricing = await getPacketPricing();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const realtorEmail = user?.email ?? "";
 
   return (
     <WizardClient
       coveredProvinces={coveredProvinces}
-      culqiPublicKey={publicEnv.NEXT_PUBLIC_CULQI_PUBLIC_KEY}
-      userEmail={user?.email ?? undefined}
+      feeAmount={pricing.amountCentimos / 100}
+      serviceWindowDays={pricing.serviceWindowDays}
+      includedServices={pricing.includedServices}
+      excludedServices={pricing.excludedServices}
       demoPaymentsEnabled={isDemoPaymentsEnabled()}
+      mercadoPagoPublicKey={publicEnv.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY ?? ""}
+      realtorEmail={realtorEmail}
     />
   );
 }

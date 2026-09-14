@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/internal/notification-outbox/process",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}

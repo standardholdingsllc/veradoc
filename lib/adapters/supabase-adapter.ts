@@ -124,13 +124,6 @@ export class SupabasePacketAdapter implements PacketAdapter {
       uploaded_by: packet.createdByRealtorId,
     });
 
-    await admin.from("payments").insert({
-      packet_id: data.id,
-      realtor_id: packet.createdByRealtorId,
-      amount: packet.leaseTerms.monthlyRent * 0.1,
-      currency: "PEN",
-    });
-
     await admin.from("packet_audit_log").insert({
       packet_id: data.id,
       actor_id: packet.createdByRealtorId,
@@ -197,7 +190,7 @@ export class SupabaseSignerAdapter implements SignerAdapter {
     const { error } = await admin.rpc("advance_signer_status", {
       p_signer_id: signerId,
       p_new_status: newStatus,
-      p_profile_id: profileId ?? null,
+      p_profile_id: profileId ?? undefined,
     });
     if (error) throw error;
   }
@@ -282,7 +275,7 @@ export class SupabaseRegistryAdapter implements RegistryAdapter {
     const supabase = await createClient();
     const { data, error } = await supabase.rpc("check_duplicate_lease", {
       p_property_address: address,
-      p_property_unit: unit,
+      p_property_unit: unit ?? "",
       p_lease_start: startDate,
       p_lease_end: endDate,
     });
@@ -356,13 +349,21 @@ export class SupabaseNotaryAdapter implements NotaryAdapter {
 }
 
 export class SupabasePaymentAdapter implements PaymentAdapter {
-  async create(data: { packetId: string; realtorId: string; amount: number; currency: string }): Promise<{ id: string }> {
+  async create(data: {
+    packetId: string;
+    realtorId: string;
+    amount: number;
+    currency: string;
+    provider: string;
+  }): Promise<{ id: string }> {
     const admin = createAdminClient();
     const { data: row, error } = await admin.from("payments").insert({
       packet_id: data.packetId,
       realtor_id: data.realtorId,
       amount: data.amount,
+      amount_centimos: Math.round(data.amount * 100),
       currency: data.currency,
+      payment_provider: data.provider,
     }).select("id").single();
     if (error) throw error;
     return { id: row.id };

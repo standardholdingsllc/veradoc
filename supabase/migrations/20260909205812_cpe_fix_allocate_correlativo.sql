@@ -1,0 +1,2 @@
+-- Historical remote migration marker.
+-- Canonical effects are represented by 20260909000000_cpe_response_and_safety.sql.

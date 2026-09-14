@@ -1,0 +1,2 @@
+-- Historical remote migration marker.
+-- Canonical CPE effects are represented by 20260908000000_apisperu_cpe.sql and later hardening migrations.

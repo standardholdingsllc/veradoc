@@ -1,0 +1,2 @@
+-- Historical remote migration marker.
+-- Canonical schema effects are represented by 00006_signer_status_reconciliation.sql.

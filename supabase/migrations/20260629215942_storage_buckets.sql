@@ -1,0 +1,2 @@
+-- Historical remote migration marker.
+-- Canonical schema effects are represented by 00003_storage_buckets.sql.

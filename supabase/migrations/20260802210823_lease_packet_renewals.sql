@@ -1,0 +1,2 @@
+-- Historical remote migration marker.
+-- Canonical schema effects are represented by 00010_lease_packet_renewals.sql.

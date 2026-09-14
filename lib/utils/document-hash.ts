@@ -8,7 +8,7 @@ export function computeSha256(buffer: Buffer): string {
 }
 
 export interface HashAuditEntry {
-  stage: "initial_upload" | "post_signatures" | "final_certified";
+  stage: "initial_upload" | "post_signatures" | "final_certified" | "notarial_scan" | "certification_report";
   algorithm: "SHA-256";
   hash: string;
   storagePath: string;

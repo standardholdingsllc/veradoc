@@ -1,0 +1,2 @@
+-- Historical remote migration marker.
+-- Canonical schema effects are represented by 00009_notary_dashboard.sql.

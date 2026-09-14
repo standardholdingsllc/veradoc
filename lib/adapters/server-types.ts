@@ -86,6 +86,7 @@ export interface PaymentAdapter {
     realtorId: string;
     amount: number;
     currency: string;
+    provider: string;
   }): Promise<{ id: string }>;
   updateStatus(id: string, status: string, providerRef?: string): Promise<void>;
 }

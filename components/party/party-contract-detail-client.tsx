@@ -114,7 +114,7 @@ export interface PartyContractDetailProps {
   evidence: EvidenceRow[];
   onDownload: (
     packetId: string,
-    documentType: string,
+    documentId: string,
   ) => Promise<{ error?: string; data?: { url: string } | null }>;
   onStartRenewal?: (
     packetId: string,
@@ -158,14 +158,23 @@ function getPropertyLabel(packet: PacketRow): string {
   return parts.filter(Boolean).join(", ");
 }
 
-function bestDocumentType(
+function bestDocument(
   documents: DocumentRow[],
   certified: boolean,
-): string {
-  const types = new Set(documents.map((d) => d.document_type));
-  if (certified && types.has("certified_lease")) return "certified_lease";
-  if (types.has("signed_pdf")) return "signed_pdf";
-  return "lease_original";
+): DocumentRow | null {
+  const accepted = documents.filter(
+    (d) => !("status" in d) || d.status === "accepted",
+  );
+  const byType = (t: string) => accepted.find((d) => d.document_type === t);
+  if (certified) {
+    const scan = byType("notarial_scan");
+    if (scan) return scan;
+    const cert = byType("certified_lease");
+    if (cert) return cert;
+  }
+  const signed = byType("signed_pdf");
+  if (signed) return signed;
+  return byType("lease_original") ?? null;
 }
 
 function evidenceCount(evidence: EvidenceRow[]): number {
@@ -239,13 +248,23 @@ export function PartyContractDetailClient({
   const router = useRouter();
   const base = role === "landlord" ? "/arrendador" : "/arrendatario";
   const certified = isCertifiedStatus(displayStatus);
-  const docType = bestDocumentType(documents, certified);
+  const bestDoc = bestDocument(documents, certified);
   const certifiedDoc = documents.find(
     (d) => d.document_type === "certified_lease",
+  );
+  const notarialScan = documents.find(
+    (d) => d.document_type === "notarial_scan" && (!("status" in d) || d.status === "accepted"),
+  );
+  const certificationReport = documents.find(
+    (d) => d.document_type === "certification_report" && (!("status" in d) || d.status === "accepted"),
   );
   const evidenceReport = documents.find(
     (d) => d.document_type === "evidence_report",
   );
+  const signedPdf = documents.find(
+    (d) => d.document_type === "signed_pdf",
+  );
+  const hasPhysicalSealArtifacts = !!notarialScan;
   const isPending =
     signerDisplayStatus !== "complete" && signerDisplayStatus !== "signed";
   const renewalAvailable =
@@ -255,10 +274,10 @@ export function PartyContractDetailClient({
     isLeaseExpired(packet.lease_end_date);
 
   const handleViewDocument = useCallback(
-    async (type: string, title: string = DOCUMENT.contratoCertificado) => {
+    async (documentId: string, title: string = DOCUMENT.contratoCertificado) => {
       setDownloading(true);
       try {
-        const result = await onDownload(packet.id, type);
+        const result = await onDownload(packet.id, documentId);
         if (result.error) {
           toast.error(result.error);
           return;
@@ -372,7 +391,7 @@ export function PartyContractDetailClient({
                 variant="outline"
                 className="w-full justify-start"
                 disabled={downloading}
-                onClick={() => handleViewDocument(docType, DOCUMENT.contratoArrendamiento)}
+                onClick={() => bestDoc && handleViewDocument(bestDoc.id, DOCUMENT.contratoArrendamiento)}
               >
                 {downloading ? (
                   <Loader2
@@ -519,12 +538,73 @@ export function PartyContractDetailClient({
                 </p>
               )}
 
-              {certified && (
+              {certified && hasPhysicalSealArtifacts && (
+                <>
+                  <Button
+                    className="w-full justify-start"
+                    variant="outline"
+                    disabled={downloading}
+                    onClick={() =>
+                      notarialScan && handleViewDocument(
+                        notarialScan.id,
+                        "Documento con certificación notarial de firmas",
+                      )
+                    }
+                  >
+                    {downloading ? (
+                      <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Download className="size-4" aria-hidden="true" />
+                    )}
+                    Documento con certificación notarial
+                  </Button>
+                  <Button
+                    className="w-full justify-start"
+                    variant="outline"
+                    disabled={downloading}
+                    onClick={() =>
+                      signedPdf && handleViewDocument(
+                        signedPdf.id,
+                        "Original firmado por las partes",
+                      )
+                    }
+                  >
+                    {downloading ? (
+                      <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Download className="size-4" aria-hidden="true" />
+                    )}
+                    Original firmado por las partes
+                  </Button>
+                  {certificationReport && (
+                    <Button
+                      className="w-full justify-start"
+                      variant="outline"
+                      disabled={downloading}
+                      onClick={() =>
+                        handleViewDocument(
+                          certificationReport.id,
+                          "Reporte de verificación VeraDoc",
+                        )
+                      }
+                    >
+                      {downloading ? (
+                        <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <Download className="size-4" aria-hidden="true" />
+                      )}
+                      Reporte de verificación VeraDoc
+                    </Button>
+                  )}
+                </>
+              )}
+
+              {certified && !hasPhysicalSealArtifacts && (
                 <Button
                   className="w-full justify-start"
                   variant="outline"
                   disabled={downloading}
-                  onClick={() => handleViewDocument("certified_lease")}
+                  onClick={() => certifiedDoc && handleViewDocument(certifiedDoc.id)}
                 >
                   {downloading ? (
                     <Loader2
@@ -544,8 +624,8 @@ export function PartyContractDetailClient({
                   variant="outline"
                   disabled={downloading}
                   onClick={() =>
-                    handleViewDocument(
-                      "evidence_report",
+                    evidenceReport && handleViewDocument(
+                      evidenceReport.id,
                       "Informe de evidencia",
                     )
                   }

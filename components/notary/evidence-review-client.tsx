@@ -8,9 +8,11 @@ import {
   AlertTriangle,
   ArrowLeft,
   CheckCircle2,
-  Clock,
+  Database,
   Eye,
+  ExternalLink,
   FileText,
+  ImageIcon,
   Loader2,
   Shield,
   User,
@@ -40,10 +42,12 @@ import { DocumentHashTimeline } from "@/components/evidence/document-hash-timeli
 import { HashDisplay } from "@/components/evidence/hash-display";
 import {
   startReviewAction,
+  recordPropertyAuthorityCheckAction,
   type PacketEvidenceData,
 } from "@/lib/actions/notary";
 import { ProductionChecklistPanel } from "@/components/notary/checklist-panel";
 import { ProductionDecisionPanel, DecisionResultSummary } from "@/components/notary/decision-panel";
+import { SealWorkflowPanel } from "@/components/notary/seal-workflow-panel";
 import {
   STATUS_LABELS,
   EVIDENCE,
@@ -78,6 +82,7 @@ function formatDateTime(iso: string | null): string {
 function statusColor(status: string): string {
   if (status === "certified") return "bg-green-50 text-green-700";
   if (status === "under_review") return "bg-blue-50 text-blue-700";
+  if (status === "awaiting_notary_seal") return "bg-purple-50 text-purple-700";
   if (status === "needs_correction") return "bg-amber-50 text-amber-700";
   if (status === "rejected") return "bg-red-50 text-red-700";
   return "bg-gray-50 text-gray-700";
@@ -144,9 +149,15 @@ export function EvidenceReviewClient({ data }: EvidenceReviewClientProps) {
 
   const isPreview = data.packet.status === "pending_notary";
   const isUnderReview = data.packet.status === "under_review";
+  const isAwaitingSeal = data.packet.status === "awaiting_notary_seal";
   const isTerminal = ["certified", "needs_correction", "rejected"].includes(
     data.packet.status,
   );
+  const isDecisionProcessing = isUnderReview
+    && ["certified", "certified_with_observations"].includes(
+      data.assignment.decision ?? "",
+    );
+  const isWorkflowJobActive = Boolean(data.decisionJob);
 
   const checklistKeys = Object.keys(CHECKLIST);
   const allChecked =
@@ -251,6 +262,7 @@ export function EvidenceReviewClient({ data }: EvidenceReviewClientProps) {
         <div className="min-w-0 flex-1 space-y-8 px-4 py-6 md:px-8">
           {/* 1. Summary */}
           <Section id="summary" number={1} title={EVIDENCE.resumenPaquete}>
+            <EvidenceSummaryPanel data={data} />
             <DetailGrid
               items={[
                 { label: "Código", value: data.packet.packetCode },
@@ -372,14 +384,16 @@ export function EvidenceReviewClient({ data }: EvidenceReviewClientProps) {
 
           {/* 7. Property evidence */}
           <Section id="property-evidence" number={7} title={EVIDENCE.evidenciaPropiedad}>
-            <DetailGrid
-              items={[
-                { label: "Dirección", value: data.packet.propertyAddress },
-                { label: "Unidad", value: data.packet.propertyUnit ?? "—" },
-                { label: "Distrito", value: data.packet.district ?? "—" },
-                { label: "Provincia", value: data.packet.province ?? "—" },
-                { label: "Departamento", value: data.packet.department ?? "—" },
-              ]}
+            <PropertyAuthorityPanel
+              packetId={data.packet.id}
+              property={data.packet}
+              checks={data.propertyAuthorityChecks}
+              uploadedEvidence={data.signers.flatMap((signer) =>
+                signer.evidence.filter((evidence) =>
+                  evidence.evidenceType === "property_authority"
+                )
+              )}
+              interactive={isUnderReview && !isDecisionProcessing}
             />
           </Section>
 
@@ -467,15 +481,17 @@ export function EvidenceReviewClient({ data }: EvidenceReviewClientProps) {
 
           {/* 11. System flags */}
           <Section id="system-flags" number={11} title={EVIDENCE.banderasSistema}>
-            {data.duplicateCheck.overlapCount > 0 ? (
-              <div className="flex items-center gap-2 text-sm text-amber-700">
-                <AlertTriangle className="size-4" />
-                Superposición de registro detectada.
+            {data.systemFlags.length > 0 ? (
+              <div className="space-y-2">
+                {data.systemFlags.map((flag, index) => (
+                  <SystemFlagRow key={`${flag.code}-${index}`} flag={flag} />
+                ))}
               </div>
             ) : (
-              <p className="text-sm text-green-700">
+              <div className="flex items-center gap-2 text-sm text-green-700">
+                <CheckCircle2 className="size-4" />
                 Sin banderas del sistema.
-              </p>
+              </div>
             )}
           </Section>
 
@@ -484,21 +500,30 @@ export function EvidenceReviewClient({ data }: EvidenceReviewClientProps) {
             <ProductionChecklistPanel
               packetId={data.packet.id}
               checklistData={data.checklist}
-              interactive={isUnderReview}
+              interactive={isUnderReview && !isDecisionProcessing}
             />
           </Section>
 
-          {/* 13. Decision panel */}
+          {/* 13. Decision panel / Seal workflow */}
           {!isPreview && (
-            <Section id="decision" number={13} title={EVIDENCE.panelDecision}>
+            <Section id="decision" number={13} title={
+              isAwaitingSeal ? "Certificación física" : EVIDENCE.panelDecision
+            }>
               {isTerminal ? (
                 <DecisionResultSummary
                   decision={data.assignment.decision ?? undefined}
                   observations={data.assignment.observations ?? undefined}
                   decidedAt={data.assignment.decidedAt ?? undefined}
                 />
+              ) : isDecisionProcessing || (isAwaitingSeal && isWorkflowJobActive) ? (
+                <DecisionProcessingPanel job={data.decisionJob} />
+              ) : isAwaitingSeal && data.sealWorkflowState ? (
+                <SealWorkflowPanel packetId={data.packet.id} workflowState={data.sealWorkflowState} />
               ) : isUnderReview && allChecked ? (
-                <ProductionDecisionPanel packetId={data.packet.id} />
+                <ProductionDecisionPanel
+                  packetId={data.packet.id}
+                  workflowVersion={data.packet.notaryWorkflowVersion ?? undefined}
+                />
               ) : isUnderReview ? (
                 <p className="text-sm text-muted">
                   Complete todos los elementos de la lista de verificación para
@@ -538,6 +563,382 @@ function Section({
       </div>
       {children}
     </section>
+  );
+}
+
+function EvidenceSummaryPanel({ data }: { data: PacketEvidenceData }) {
+  const report = data.documents.find(
+    (document) => document.documentType === "evidence_report",
+  );
+  const criticalCount = data.systemFlags.filter(
+    (flag) => flag.severity === "critical",
+  ).length;
+  const warningCount = data.systemFlags.filter(
+    (flag) => flag.severity === "warning",
+  ).length;
+
+  return (
+    <Card className="mb-5 border-secondary/30 bg-secondary/5">
+      <CardContent className="space-y-4 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-primary">
+              Resumen del informe de evidencia
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              {data.evidenceSummary.completedChecks} de {data.evidenceSummary.totalChecks} controles automáticos disponibles
+              {data.evidenceSummary.generatedAt
+                ? ` · informe ${formatDateTime(data.evidenceSummary.generatedAt)}`
+                : " · informe pendiente"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant={criticalCount ? "error" : warningCount ? "warning" : "success"}>
+              {criticalCount
+                ? `${criticalCount} crítica${criticalCount === 1 ? "" : "s"}`
+                : warningCount
+                  ? `${warningCount} advertencia${warningCount === 1 ? "" : "s"}`
+                  : "Sin alertas"}
+            </Badge>
+            {report?.signedUrl && (
+              <a
+                href={report.signedUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-medium text-secondary hover:underline"
+              >
+                Ver informe <ExternalLink className="size-3" />
+              </a>
+            )}
+          </div>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-background">
+          <div
+            className="h-full rounded-full bg-secondary transition-[width]"
+            style={{ width: `${data.evidenceSummary.completenessPercent}%` }}
+          />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-4">
+          <SummaryMetric
+            label="Completitud"
+            value={`${data.evidenceSummary.completenessPercent}%`}
+          />
+          <SummaryMetric
+            label="Imágenes de identidad"
+            value={String(data.evidenceSummary.identityImages)}
+          />
+          <SummaryMetric
+            label="Firmas válidas"
+            value={`${data.evidenceSummary.validSignatures}/${data.evidenceSummary.signerCount}`}
+          />
+          <SummaryMetric
+            label="Consulta SUNARP"
+            value={data.propertyAuthorityChecks[0]?.verificationStatus === "verified"
+              ? "Verificada"
+              : data.propertyAuthorityChecks.length > 0
+                ? "Con observación"
+                : "Pendiente"}
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SummaryMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-border bg-background px-3 py-2">
+      <p className="text-[10px] font-medium uppercase text-muted">{label}</p>
+      <p className="mt-0.5 text-sm font-semibold text-primary">{value}</p>
+    </div>
+  );
+}
+
+function PropertyAuthorityPanel({
+  packetId,
+  property,
+  checks,
+  uploadedEvidence,
+  interactive,
+}: {
+  packetId: string;
+  property: PacketEvidenceData["packet"];
+  checks: PacketEvidenceData["propertyAuthorityChecks"];
+  uploadedEvidence: PacketEvidenceData["signers"][number]["evidence"];
+  interactive: boolean;
+}) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [showForm, setShowForm] = useState(false);
+  const [titleNumber, setTitleNumber] = useState("");
+  const [status, setStatus] = useState<"verified" | "observation" | "not_found">("verified");
+  const [checkedAt, setCheckedAt] = useState(() =>
+    new Date().toISOString().slice(0, 16)
+  );
+  const [zone, setZone] = useState("");
+  const [office, setOffice] = useState("");
+  const [queryReference, setQueryReference] = useState("");
+  const [ownerNames, setOwnerNames] = useState("");
+  const [sourceUrl, setSourceUrl] = useState("");
+  const [notes, setNotes] = useState("");
+
+  const submit = () => {
+    startTransition(async () => {
+      try {
+        await recordPropertyAuthorityCheckAction(packetId, {
+          titleNumber,
+          verificationStatus: status,
+          checkedAt,
+          registryZone: zone,
+          registryOffice: office,
+          queryReference,
+          ownerNames: ownerNames.split(","),
+          sourceUrl,
+          notes,
+        });
+        toast.success("Consulta SUNARP registrada");
+        setShowForm(false);
+        router.refresh();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "No se pudo registrar la consulta");
+      }
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <DetailGrid
+        items={[
+          { label: "Dirección", value: property.propertyAddress },
+          { label: "Unidad", value: property.propertyUnit ?? "—" },
+          { label: "Distrito", value: property.district ?? "—" },
+          { label: "Provincia", value: property.province ?? "—" },
+          { label: "Departamento", value: property.department ?? "—" },
+        ]}
+      />
+
+      {uploadedEvidence.length > 0 && (
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase text-muted">
+            Documentos de autoridad aportados
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {uploadedEvidence.map((evidence) => (
+              evidence.signedUrl ? (
+                <a
+                  key={evidence.id}
+                  href={evidence.signedUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-xs text-secondary hover:bg-surface"
+                >
+                  <FileText className="size-4" /> Documento aportado
+                  <ExternalLink className="size-3" />
+                </a>
+              ) : null
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold uppercase text-muted">
+            Consultas oficiales registradas
+          </p>
+          {interactive && (
+            <Button size="sm" variant="outline" onClick={() => setShowForm((value) => !value)}>
+              <Database className="mr-1 size-3.5" /> Registrar consulta
+            </Button>
+          )}
+        </div>
+        {checks.length === 0 ? (
+          <p className="rounded-md border border-dashed border-border p-4 text-sm text-muted">
+            No hay una consulta SUNARP registrada. Adjunte la referencia oficial consultada antes de decidir.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {checks.map((check) => (
+              <div key={check.id} className="rounded-md border border-border p-3">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <p className="font-mono text-sm font-semibold text-primary">
+                      {check.provider} · Partida {check.titleNumber}
+                    </p>
+                    <p className="mt-1 text-xs text-muted">
+                      {check.registryZone ?? "Zona no indicada"}
+                      {check.registryOffice ? ` · ${check.registryOffice}` : ""}
+                      {` · ${formatDateTime(check.checkedAt)}`}
+                    </p>
+                  </div>
+                  <Badge variant={
+                    check.verificationStatus === "verified"
+                      ? "success"
+                      : check.verificationStatus === "not_found"
+                        ? "error"
+                        : "warning"
+                  }>
+                    {check.verificationStatus === "verified"
+                      ? "Verificada"
+                      : check.verificationStatus === "not_found"
+                        ? "No encontrada"
+                        : "Con observación"}
+                  </Badge>
+                </div>
+                {check.ownerNames.length > 0 && (
+                  <p className="mt-2 text-xs">
+                    <span className="text-muted">Titular(es):</span> {check.ownerNames.join(", ")}
+                  </p>
+                )}
+                {check.queryReference && (
+                  <p className="mt-1 font-mono text-xs">
+                    <span className="font-sans text-muted">Consulta:</span> {check.queryReference}
+                  </p>
+                )}
+                {check.notes && <p className="mt-2 text-xs text-muted">{check.notes}</p>}
+                {check.sourceUrl && (
+                  <a
+                    href={check.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-flex items-center gap-1 text-xs text-secondary hover:underline"
+                  >
+                    Abrir constancia fuente <ExternalLink className="size-3" />
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {showForm && (
+        <Card className="bg-surface/20">
+          <CardContent className="grid gap-3 p-4 sm:grid-cols-2">
+            <AuthorityInput label="Número de partida *" value={titleNumber} onChange={setTitleNumber} />
+            <label className="space-y-1 text-xs font-medium text-muted">
+              Resultado *
+              <select
+                value={status}
+                onChange={(event) => setStatus(event.target.value as typeof status)}
+                className="block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-primary"
+              >
+                <option value="verified">Titularidad verificada</option>
+                <option value="observation">Con observación</option>
+                <option value="not_found">Partida no encontrada</option>
+              </select>
+            </label>
+            <AuthorityInput label="Fecha y hora de consulta *" type="datetime-local" value={checkedAt} onChange={setCheckedAt} />
+            <AuthorityInput label="Referencia de consulta" value={queryReference} onChange={setQueryReference} />
+            <AuthorityInput label="Zona registral" value={zone} onChange={setZone} />
+            <AuthorityInput label="Oficina registral" value={office} onChange={setOffice} />
+            <AuthorityInput label="Titulares (separados por coma)" value={ownerNames} onChange={setOwnerNames} />
+            <AuthorityInput label="URL de constancia" type="url" value={sourceUrl} onChange={setSourceUrl} />
+            <label className="space-y-1 text-xs font-medium text-muted sm:col-span-2">
+              Observaciones
+              <textarea
+                rows={3}
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                className="block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-primary"
+              />
+            </label>
+            <div className="flex justify-end gap-2 sm:col-span-2">
+              <Button variant="outline" onClick={() => setShowForm(false)} disabled={isPending}>
+                Cancelar
+              </Button>
+              <Button onClick={submit} disabled={isPending || !titleNumber.trim() || !checkedAt}>
+                {isPending && <Loader2 className="mr-1 size-4 animate-spin" />}
+                Guardar evidencia SUNARP
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function AuthorityInput({
+  label,
+  value,
+  onChange,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+}) {
+  return (
+    <label className="space-y-1 text-xs font-medium text-muted">
+      {label}
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-primary"
+      />
+    </label>
+  );
+}
+
+function SystemFlagRow({
+  flag,
+}: {
+  flag: PacketEvidenceData["systemFlags"][number];
+}) {
+  const isCritical = flag.severity === "critical";
+  const isWarning = flag.severity === "warning";
+  return (
+    <div className={cn(
+      "flex items-start gap-2 rounded-md border p-3",
+      isCritical
+        ? "border-red-200 bg-red-50 text-red-800"
+        : isWarning
+          ? "border-amber-200 bg-amber-50 text-amber-800"
+          : "border-blue-200 bg-blue-50 text-blue-800",
+    )}>
+      {isCritical || isWarning
+        ? <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+        : <Shield className="mt-0.5 size-4 shrink-0" />}
+      <div>
+        <p className="text-sm font-medium">{flag.title}</p>
+        <p className="mt-0.5 text-xs opacity-80">{flag.detail}</p>
+      </div>
+    </div>
+  );
+}
+
+function DecisionProcessingPanel({
+  job,
+}: {
+  job: PacketEvidenceData["decisionJob"];
+}) {
+  const failed = job?.status === "failed";
+  const activeDescription = job?.jobType === "prepare_physical_certificate"
+    ? "VeraDoc está preparando la certificación y generando el reporte verificable."
+    : job?.jobType === "finalize_physical_certification"
+      ? "VeraDoc está publicando la certificación, creando la entrada registral y encolando las notificaciones."
+      : "VeraDoc está generando el certificado, creando la entrada registral y encolando las notificaciones.";
+  return (
+    <Card className={failed ? "border-red-200 bg-red-50/40" : "border-blue-200 bg-blue-50/40"}>
+      <CardContent className="flex items-start gap-3 p-4">
+        {failed
+          ? <AlertTriangle className="mt-0.5 size-5 text-red-600" />
+          : <Loader2 className="mt-0.5 size-5 animate-spin text-blue-600" />}
+        <div>
+          <p className="text-sm font-semibold text-primary">
+            {failed ? "La certificación requiere reintento" : "Certificación en procesamiento durable"}
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            {failed
+              ? job?.lastError ?? "El trabajo agotó sus intentos automáticos."
+              : activeDescription}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -665,9 +1066,21 @@ function SignerEvidenceSection({
                       href={ev.signedUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-1 inline-block text-xs text-secondary hover:underline"
+                      className="group mt-2 block overflow-hidden rounded border border-border bg-surface/30"
                     >
-                      Ver imagen
+                      {/* Signed evidence URLs are intentionally rendered directly so
+                          sensitive images are not copied through the image optimizer. */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={ev.signedUrl}
+                        alt={`${evidenceTypeLabel(ev.evidenceType)} de ${signer.fullName}`}
+                        loading="lazy"
+                        className="h-36 w-full object-cover transition-transform group-hover:scale-[1.02]"
+                      />
+                      <span className="flex items-center justify-between px-2 py-1.5 text-[10px] font-medium text-secondary">
+                        Vista protegida · abrir imagen
+                        <ImageIcon className="size-3" />
+                      </span>
                     </a>
                   ) : (
                     <p className="mt-1 text-xs text-muted">

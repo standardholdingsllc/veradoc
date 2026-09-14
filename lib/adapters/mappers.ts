@@ -124,7 +124,6 @@ export function toDomainPacket(
     currency: "PEN",
     paidAt: payment?.paid_at ?? undefined,
     paymentMethodPlaceholder: "Transferencia bancaria",
-    invoiceStatus: "pending",
   };
 
   const documentHashes: DocumentHashEntry[] = documentRows
@@ -146,7 +145,7 @@ export function toDomainPacket(
     eventType: a.action,
     eventLabel: a.action,
     timestamp: a.created_at ?? new Date().toISOString(),
-    ipAddressPlaceholder: a.ip_address ?? "server",
+    ipAddressPlaceholder: (a.ip_address as string | null) ?? "server",
     devicePlaceholder: "server",
     metadata: (a.metadata as Record<string, string>) ?? undefined,
   }));

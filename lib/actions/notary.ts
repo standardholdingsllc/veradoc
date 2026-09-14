@@ -1,26 +1,39 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import {
-  SupabasePacketAdapter,
-  SupabaseNotaryAdapter,
-} from "@/lib/adapters/supabase-adapter";
-import { getDocumentHashTimeline } from "@/lib/utils/document-hash";
-import { generateAndStoreCertifiedDocument } from "@/lib/pdf/generate-certified-document";
-import type { CertifiedDocumentData } from "@/lib/pdf/types";
 import type { Json } from "@/lib/supabase/database.types";
 import { requireApproved } from "@/lib/auth/guards";
-import {
-  notifyPacketCertified,
-  notifyPacketNeedsCorrection,
-  notifyPacketRejected,
-} from "@/lib/services/notifications";
+import { isNotarySealWorkflowGloballyEnabled } from "@/lib/env/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/database.types";
+import type { CorrectionScope, NotaryWorkflowVersion } from "@/lib/domain/types";
+import type { SealWorkflowState } from "@/lib/domain/notary-seal-types";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+async function resolveNotaryWorkflowVersion(
+  notaryId: string,
+  admin: SupabaseClient<Database>,
+): Promise<NotaryWorkflowVersion> {
+  if (!isNotarySealWorkflowGloballyEnabled()) {
+    return "legacy_v1";
+  }
+  const { data } = await admin
+    .from("notary_workflow_settings")
+    .select("physical_seal_v1_enabled")
+    .eq("notary_id", notaryId)
+    .maybeSingle();
+
+  if (data?.physical_seal_v1_enabled) {
+    return "physical_seal_v1";
+  }
+  return "legacy_v1";
+}
 
 async function verifyAssignment(packetId: string, notaryId: string) {
   const supabase = await createClient();
@@ -57,6 +70,9 @@ export interface NotaryQueueItem {
   realtorEmail: string;
   signerCount: number;
   registryAlert: boolean;
+  priority: "urgent" | "high" | "normal" | "low";
+  priorityReason: string | null;
+  payoutParticipationPercent: number | null;
 }
 
 export async function getNotaryQueue(
@@ -69,9 +85,10 @@ export async function getNotaryQueue(
     .select(
       `
       id, assigned_at, review_started_at, decision, decided_at, observations,
+      priority, priority_reason,
       lease_packets!inner (
         id, packet_code, status, property_address, property_unit, district, province,
-        submitted_to_notary_at,
+        submitted_to_notary_at, lease_start_date, lease_end_date,
         created_by,
         profiles!lease_packets_created_by_fkey ( full_name, email ),
         packet_signers ( id )
@@ -86,38 +103,64 @@ export async function getNotaryQueue(
 
   const admin = createAdminClient();
 
-  const addressSet = new Map<
-    string,
-    { unit: string | null; start: string | null; end: string | null }
-  >();
+  const addressSet = new Map<string, {
+    address: string;
+    unit: string | null;
+    start: string;
+    end: string;
+  }>();
   for (const row of data) {
     const lp = row.lease_packets as Record<string, unknown>;
     const addr = (lp.property_address as string) ?? "";
-    if (!addressSet.has(addr)) {
-      addressSet.set(addr, {
+    const unit = lp.property_unit as string | null;
+    const start = lp.lease_start_date as string | null;
+    const end = lp.lease_end_date as string | null;
+    if (!addr || !start || !end) continue;
+    const key = `${addr}\u0000${unit ?? ""}\u0000${start}\u0000${end}`;
+    if (!addressSet.has(key)) {
+      addressSet.set(key, {
+        address: addr,
         unit: lp.property_unit as string | null,
-        start: null,
-        end: null,
+        start,
+        end,
       });
     }
   }
 
   const duplicateMap = new Map<string, boolean>();
-  for (const [addr, info] of addressSet.entries()) {
-    const { data: dup } = await admin.rpc("check_duplicate_lease", {
-      p_property_address: addr,
-      p_property_unit: info.unit,
-      p_lease_start: info.start ?? "1970-01-01",
-      p_lease_end: info.end ?? "2099-12-31",
-    });
-    const overlap = Array.isArray(dup) ? dup[0] : dup;
-    duplicateMap.set(addr, (overlap?.overlap_count ?? 0) > 0);
-  }
+  await Promise.all(
+    Array.from(addressSet.entries()).map(async ([key, info]) => {
+      const { data: dup } = await admin.rpc("check_duplicate_lease", {
+        p_property_address: info.address,
+        p_property_unit: info.unit ?? "",
+        p_lease_start: info.start,
+        p_lease_end: info.end,
+      });
+      const overlap = Array.isArray(dup) ? dup[0] : dup;
+      duplicateMap.set(key, (overlap?.overlap_count ?? 0) > 0);
+    }),
+  );
+
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: activeRate } = await admin
+    .from("notary_payout_rates")
+    .select("participation_bps")
+    .eq("notary_id", notaryId)
+    .lte("effective_from", today)
+    .or(`effective_to.is.null,effective_to.gte.${today}`)
+    .order("effective_from", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   return data.map((row) => {
     const lp = row.lease_packets as Record<string, unknown>;
     const realtorProfile = (lp.profiles as Record<string, unknown>) ?? {};
     const signers = (lp.packet_signers as unknown[]) ?? [];
+    const start = lp.lease_start_date as string | null;
+    const end = lp.lease_end_date as string | null;
+    const duplicateKey = start && end
+      ? `${(lp.property_address as string) ?? ""}\u0000${(lp.property_unit as string | null) ?? ""}\u0000${start}\u0000${end}`
+      : null;
     return {
       assignmentId: row.id,
       assignedAt: row.assigned_at!,
@@ -136,8 +179,22 @@ export async function getNotaryQueue(
       realtorName: (realtorProfile.full_name as string) ?? "",
       realtorEmail: (realtorProfile.email as string) ?? "",
       signerCount: signers.length,
-      registryAlert: duplicateMap.get((lp.property_address as string) ?? "") ?? false,
+      registryAlert: duplicateKey ? duplicateMap.get(duplicateKey) ?? false : false,
+      priority: (row.priority ?? "normal") as NotaryQueueItem["priority"],
+      priorityReason: row.priority_reason,
+      payoutParticipationPercent: activeRate
+        ? Number(activeRate.participation_bps) / 100
+        : null,
     };
+  }).sort((a, b) => {
+    const rank: Record<NotaryQueueItem["priority"], number> = {
+      urgent: 0,
+      high: 1,
+      normal: 2,
+      low: 3,
+    };
+    return rank[a.priority] - rank[b.priority]
+      || new Date(a.assignedAt).getTime() - new Date(b.assignedAt).getTime();
   });
 }
 
@@ -163,12 +220,14 @@ export interface PacketEvidenceData {
     submittedAt: string | null;
     certifiedAt: string | null;
     createdAt: string;
+    notaryWorkflowVersion: string | null;
   };
   assignment: {
     decision: string | null;
     observations: string | null;
     reviewStartedAt: string | null;
     decidedAt: string | null;
+    correctionScope: string | null;
   };
   documents: {
     id: string;
@@ -234,6 +293,42 @@ export interface PacketEvidenceData {
     earliestStart: string | null;
     latestEnd: string | null;
   };
+  propertyAuthorityChecks: {
+    id: string;
+    provider: string;
+    titleNumber: string;
+    registryZone: string | null;
+    registryOffice: string | null;
+    queryReference: string | null;
+    verificationStatus: "verified" | "observation" | "not_found";
+    ownerNames: string[];
+    checkedAt: string;
+    checkedBy: string;
+    sourceUrl: string | null;
+    notes: string | null;
+  }[];
+  evidenceSummary: {
+    completenessPercent: number;
+    completedChecks: number;
+    totalChecks: number;
+    identityImages: number;
+    validSignatures: number;
+    signerCount: number;
+    evidenceReportAvailable: boolean;
+    generatedAt: string | null;
+  };
+  systemFlags: {
+    code: string;
+    severity: "info" | "warning" | "critical";
+    title: string;
+    detail: string;
+  }[];
+  decisionJob: {
+    status: string;
+    jobType: string;
+    lastError: string | null;
+  } | null;
+  sealWorkflowState: SealWorkflowState | null;
 }
 
 export async function getPacketEvidenceReview(
@@ -266,10 +361,15 @@ export async function getPacketEvidenceReview(
     .eq("packet_id", packetId)
     .order("created_at", { ascending: true });
 
+  const isPhysicalFlow = packetRow.notary_workflow_version === "physical_seal_v1";
+
   const documentsWithUrls = await Promise.all(
     (docs ?? []).map(async (doc) => {
       let signedUrl: string | null = null;
-      if (doc.storage_path) {
+
+      const suppressUrl = isPhysicalFlow && doc.document_type === "signed_pdf";
+
+      if (doc.storage_path && !suppressUrl) {
         const bucket = doc.document_type === "lease_original"
           || doc.document_type === "signed_pdf"
           || doc.document_type === "certified_lease"
@@ -307,11 +407,17 @@ export async function getPacketEvidenceReview(
       (signerRows ?? []).map((s) => s.id),
     );
 
-  const imageTypes = new Set(["dni_front", "dni_back", "selfie", "liveness"]);
+  const previewTypes = new Set([
+    "dni_front",
+    "dni_back",
+    "selfie",
+    "liveness",
+    "property_authority",
+  ]);
   const evidenceWithUrls = await Promise.all(
     (evidenceRows ?? []).map(async (ev) => {
       let signedUrl: string | null = null;
-      if (ev.storage_path && imageTypes.has(ev.evidence_type ?? "")) {
+      if (ev.storage_path && previewTypes.has(ev.evidence_type ?? "")) {
         const { data: urlData } = await admin.storage
           .from("evidence")
           .createSignedUrl(ev.storage_path, 300);
@@ -356,13 +462,33 @@ export async function getPacketEvidenceReview(
     .eq("notary_id", notaryId)
     .maybeSingle();
 
+  const [{ data: authorityRows }, { data: decisionJobRow }] = await Promise.all([
+    admin
+      .from("property_authority_checks")
+      .select(
+        "id, provider, title_number, registry_zone, registry_office, query_reference, verification_status, owner_names, checked_at, checked_by, source_url, notes",
+      )
+      .eq("packet_id", packetId)
+      .order("checked_at", { ascending: false }),
+    admin
+      .from("notary_workflow_jobs")
+      .select("status, job_type, last_error")
+      .eq("packet_id", packetId)
+      .in("status", ["pending", "processing", "failed"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
   // 9. Duplicate check via admin client
-  const { data: dupResult } = await admin.rpc("check_duplicate_lease", {
-    p_property_address: packetRow.property_address ?? "",
-    p_property_unit: packetRow.property_unit,
-    p_lease_start: packetRow.lease_start_date ?? "1970-01-01",
-    p_lease_end: packetRow.lease_end_date ?? "2099-12-31",
-  });
+  const { data: dupResult } = packetRow.lease_start_date && packetRow.lease_end_date
+    ? await admin.rpc("check_duplicate_lease", {
+        p_property_address: packetRow.property_address ?? "",
+        p_property_unit: packetRow.property_unit ?? "",
+        p_lease_start: packetRow.lease_start_date,
+        p_lease_end: packetRow.lease_end_date,
+      })
+    : { data: null };
   const dupRow = Array.isArray(dupResult) ? dupResult[0] : dupResult;
 
   // Assemble signers
@@ -408,6 +534,131 @@ export async function getPacketEvidenceReview(
     };
   });
 
+  const evidenceReport = documentsWithUrls.find(
+    (document) => document.documentType === "evidence_report",
+  );
+  const requiredIdentityTypes = ["dni_front", "dni_back", "selfie"];
+  const identityImages = signers.reduce(
+    (count, signer) => count + signer.evidence.filter((evidence) =>
+      requiredIdentityTypes.includes(evidence.evidenceType)
+    ).length,
+    0,
+  );
+  const validSignatures = signers.filter(
+    (signer) => signer.signatureRecord?.signatureValid === true
+      && signer.signatureRecord.pdfIntegrityValid === true,
+  ).length;
+  const consentCount = signers.filter((signer) =>
+    signer.evidence.some((evidence) => evidence.evidenceType === "consent_record")
+  ).length;
+  const signedDocumentAvailable = documentsWithUrls.some(
+    (document) => document.documentType === "signed_pdf",
+  );
+  const latestAuthorityCheck = authorityRows?.[0];
+  const totalChecks = Math.max(1, signers.length * 5 + 4);
+  const completedChecks = Math.min(
+    totalChecks,
+    identityImages
+      + validSignatures
+      + consentCount
+      + Number(signedDocumentAvailable)
+      + Number(Boolean(evidenceReport))
+      + Number(Boolean(packetRow.document_hash))
+      + Number(latestAuthorityCheck?.verification_status === "verified"),
+  );
+
+  const systemFlags: PacketEvidenceData["systemFlags"] = [];
+  if (!evidenceReport) {
+    systemFlags.push({
+      code: "evidence_report_missing",
+      severity: "critical",
+      title: "Informe de evidencia no disponible",
+      detail: "El PDF consolidado de evidencia no está registrado para este paquete.",
+    });
+  }
+  if (!signedDocumentAvailable) {
+    systemFlags.push({
+      code: "signed_document_missing",
+      severity: "critical",
+      title: "Documento firmado no disponible",
+      detail: "No se encontró un PDF firmado aceptado para la revisión notarial.",
+    });
+  }
+  for (const signer of signers) {
+    const evidenceTypes = new Set(signer.evidence.map((evidence) => evidence.evidenceType));
+    const missingIdentity = requiredIdentityTypes.filter((type) => !evidenceTypes.has(type));
+    if (missingIdentity.length > 0) {
+      systemFlags.push({
+        code: "identity_evidence_incomplete",
+        severity: "critical",
+        title: `Identidad incompleta: ${signer.fullName}`,
+        detail: `Falta evidencia: ${missingIdentity.join(", ")}.`,
+      });
+    }
+    if (!evidenceTypes.has("consent_record")) {
+      systemFlags.push({
+        code: "consent_missing",
+        severity: "warning",
+        title: `Consentimiento faltante: ${signer.fullName}`,
+        detail: "No se encontró el registro de consentimiento del firmante.",
+      });
+    }
+    if (!signer.signatureRecord) {
+      systemFlags.push({
+        code: "signature_validation_missing",
+        severity: "critical",
+        title: `Validación de firma faltante: ${signer.fullName}`,
+        detail: "FirmEasy no registró resultados verificables para esta firma.",
+      });
+    } else if (
+      signer.signatureRecord.signatureValid !== true
+      || signer.signatureRecord.pdfIntegrityValid !== true
+    ) {
+      systemFlags.push({
+        code: "signature_validation_failed",
+        severity: "critical",
+        title: `Firma requiere revisión: ${signer.fullName}`,
+        detail: "La firma o la integridad del PDF no tiene un resultado válido.",
+      });
+    } else if (
+      signer.signatureRecord.certificateValidTo
+      && new Date(signer.signatureRecord.certificateValidTo).getTime() < Date.now()
+    ) {
+      systemFlags.push({
+        code: "signature_certificate_expired",
+        severity: "warning",
+        title: `Certificado vencido: ${signer.fullName}`,
+        detail: `La vigencia terminó el ${signer.signatureRecord.certificateValidTo}.`,
+      });
+    }
+  }
+  if ((dupRow?.overlap_count ?? 0) > 0) {
+    systemFlags.push({
+      code: "duplicate_lease_overlap",
+      severity: "warning",
+      title: "Superposición registral detectada",
+      detail: `Hay ${Number(dupRow?.overlap_count ?? 0)} arrendamiento(s) activo(s) superpuesto(s).`,
+    });
+  }
+  if (!latestAuthorityCheck) {
+    systemFlags.push({
+      code: "property_authority_missing",
+      severity: "warning",
+      title: "Verificación SUNARP pendiente",
+      detail: "Aún no se registró una consulta de autoridad sobre la propiedad.",
+    });
+  } else if (latestAuthorityCheck.verification_status !== "verified") {
+    systemFlags.push({
+      code: "property_authority_observation",
+      severity: latestAuthorityCheck.verification_status === "not_found"
+        ? "critical"
+        : "warning",
+      title: "Resultado SUNARP requiere atención",
+      detail: latestAuthorityCheck.notes
+        ?? `Estado: ${latestAuthorityCheck.verification_status}.`,
+    });
+  }
+
   return {
     packet: {
       id: packetRow.id,
@@ -426,12 +677,14 @@ export async function getPacketEvidenceReview(
       submittedAt: packetRow.submitted_to_notary_at,
       certifiedAt: packetRow.certified_at,
       createdAt: packetRow.created_at!,
+      notaryWorkflowVersion: packetRow.notary_workflow_version,
     },
     assignment: {
       decision: assignmentRow.decision,
       observations: assignmentRow.observations,
       reviewStartedAt: assignmentRow.review_started_at,
       decidedAt: assignmentRow.decided_at,
+      correctionScope: assignmentRow.correction_scope,
     },
     documents: documentsWithUrls,
     signers,
@@ -440,7 +693,7 @@ export async function getPacketEvidenceReview(
       actorId: a.actor_id,
       action: a.action,
       metadata: (a.metadata ?? {}) as Record<string, unknown>,
-      ipAddress: a.ip_address,
+      ipAddress: a.ip_address as string | null,
       createdAt: a.created_at,
     })),
     realtor: {
@@ -458,6 +711,44 @@ export async function getPacketEvidenceReview(
       earliestStart: dupRow?.earliest_start ?? null,
       latestEnd: dupRow?.latest_end ?? null,
     },
+    propertyAuthorityChecks: (authorityRows ?? []).map((check) => ({
+      id: check.id,
+      provider: check.provider,
+      titleNumber: check.title_number,
+      registryZone: check.registry_zone,
+      registryOffice: check.registry_office,
+      queryReference: check.query_reference,
+      verificationStatus: check.verification_status as
+        | "verified"
+        | "observation"
+        | "not_found",
+      ownerNames: check.owner_names ?? [],
+      checkedAt: check.checked_at,
+      checkedBy: check.checked_by,
+      sourceUrl: check.source_url,
+      notes: check.notes,
+    })),
+    evidenceSummary: {
+      completenessPercent: Math.round((completedChecks / totalChecks) * 100),
+      completedChecks,
+      totalChecks,
+      identityImages,
+      validSignatures,
+      signerCount: signers.length,
+      evidenceReportAvailable: Boolean(evidenceReport),
+      generatedAt: evidenceReport?.createdAt ?? null,
+    },
+    systemFlags,
+    decisionJob: decisionJobRow
+      ? {
+          status: decisionJobRow.status,
+          jobType: decisionJobRow.job_type,
+          lastError: decisionJobRow.last_error,
+        }
+      : null,
+    sealWorkflowState: isPhysicalFlow
+      ? await getSealWorkflowState(packetId, notaryId)
+      : null,
   };
 }
 
@@ -473,41 +764,96 @@ export async function toggleChecklistItemAction(
   const profile = await requireApproved("notary");
   await verifyAssignment(packetId, profile.id);
 
-  const admin = createAdminClient();
-  const now = new Date().toISOString();
+  const requestHeaders = await headers();
+  const context: Json = {
+    source: "notary_dashboard",
+    route: `/notario/paquetes/${packetId}`,
+    ip_address: requestHeaders.get("x-real-ip")
+      ?? requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim()
+      ?? null,
+    user_agent: requestHeaders.get("user-agent"),
+  };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("update_notary_checklist_item", {
+    p_packet_id: packetId,
+    p_item_key: itemKey,
+    p_checked: checked,
+    p_context: context,
+  });
 
-  const { data: existing } = await admin
-    .from("notary_review_checklists")
-    .select("id, checklist_data")
-    .eq("packet_id", packetId)
-    .eq("notary_id", profile.id)
-    .maybeSingle();
-
-  const currentData = (existing?.checklist_data ?? {}) as Record<
-    string,
-    { checked: boolean; checkedAt?: string }
-  >;
-  currentData[itemKey] = checked
-    ? { checked: true, checkedAt: now }
-    : { checked: false };
-
-  if (existing) {
-    await admin
-      .from("notary_review_checklists")
-      .update({
-        checklist_data: currentData as unknown as Json,
-        updated_at: now,
-      })
-      .eq("id", existing.id);
-  } else {
-    await admin.from("notary_review_checklists").insert({
-      packet_id: packetId,
-      notary_id: profile.id,
-      checklist_data: currentData as unknown as Json,
-      updated_at: now,
-    });
+  if (error) {
+    throw new Error(`No se pudo actualizar la lista: ${error.message}`);
   }
 
+  revalidatePath(`/notario/paquetes/${packetId}`);
+}
+
+export type NotaryPriority = "urgent" | "high" | "normal" | "low";
+
+export async function setNotaryPriorityAction(
+  packetId: string,
+  priority: NotaryPriority,
+  reason?: string,
+) {
+  await requireApproved("notary");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_notary_assignment_priority", {
+    p_packet_id: packetId,
+    p_priority: priority,
+    p_reason: reason?.trim() || undefined,
+  });
+  if (error) throw new Error(`No se pudo cambiar la prioridad: ${error.message}`);
+  revalidatePath("/notario");
+}
+
+export interface PropertyAuthorityCheckInput {
+  titleNumber: string;
+  verificationStatus: "verified" | "observation" | "not_found";
+  checkedAt: string;
+  registryZone?: string;
+  registryOffice?: string;
+  queryReference?: string;
+  ownerNames?: string[];
+  sourceUrl?: string;
+  notes?: string;
+}
+
+export async function recordPropertyAuthorityCheckAction(
+  packetId: string,
+  input: PropertyAuthorityCheckInput,
+) {
+  await requireApproved("notary");
+  if (!input.titleNumber.trim()) throw new Error("Ingrese el número de partida SUNARP");
+  if (!Number.isFinite(new Date(input.checkedAt).getTime())) {
+    throw new Error("La fecha de consulta SUNARP no es válida");
+  }
+  if (input.sourceUrl?.trim()) {
+    let sourceUrl: URL;
+    try {
+      sourceUrl = new URL(input.sourceUrl.trim());
+    } catch {
+      throw new Error("El enlace de respaldo SUNARP no es válido");
+    }
+    if (sourceUrl.protocol !== "https:") {
+      throw new Error("El enlace de respaldo SUNARP debe usar HTTPS");
+    }
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("record_property_authority_check", {
+    p_packet_id: packetId,
+    p_title_number: input.titleNumber.trim(),
+    p_verification_status: input.verificationStatus,
+    p_checked_at: new Date(input.checkedAt).toISOString(),
+    p_registry_zone: input.registryZone?.trim() || undefined,
+    p_registry_office: input.registryOffice?.trim() || undefined,
+    p_query_reference: input.queryReference?.trim() || undefined,
+    p_owner_names: input.ownerNames?.map((name) => name.trim()).filter(Boolean) ?? [],
+    p_source_url: input.sourceUrl?.trim() || undefined,
+    p_notes: input.notes?.trim() || undefined,
+    p_metadata: { source: "notary_dashboard" },
+  });
+  if (error) throw new Error(`No se pudo registrar la consulta SUNARP: ${error.message}`);
   revalidatePath(`/notario/paquetes/${packetId}`);
 }
 
@@ -516,24 +862,19 @@ export async function toggleChecklistItemAction(
 // ---------------------------------------------------------------------------
 
 export async function startReviewAction(packetId: string) {
+  const user = await requireApproved("notary");
+  const admin = createAdminClient();
+  const workflowVersion = await resolveNotaryWorkflowVersion(user.id, admin);
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
 
-  await verifyAssignment(packetId, user.id);
+  const { error } = await supabase.rpc("start_notary_review", {
+    p_packet_id: packetId,
+    p_workflow_version: workflowVersion,
+  });
 
-  const packetAdapter = new SupabasePacketAdapter();
-  const notaryAdapter = new SupabaseNotaryAdapter();
-
-  await packetAdapter.updateStatus(
-    packetId,
-    "under_review",
-    user.id,
-    "notary_started_review",
-  );
-  await notaryAdapter.startReview(packetId);
+  if (error) {
+    throw new Error(`Error al iniciar revisión: ${error.message}`);
+  }
 
   revalidatePath("/notario");
   revalidatePath(`/notario/paquetes/${packetId}`);
@@ -549,202 +890,11 @@ export async function certifyAction(
   _checklistData?: Record<string, unknown>,
   observations?: string,
 ) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-
-  await verifyAssignment(packetId, user.id);
-
-  const packetAdapter = new SupabasePacketAdapter();
-  const notaryAdapter = new SupabaseNotaryAdapter();
-  const admin = createAdminClient();
-
-  // Fetch the authoritative checklist from the database
-  const { data: checklistRow } = await admin
-    .from("notary_review_checklists")
-    .select("checklist_data")
-    .eq("packet_id", packetId)
-    .eq("notary_id", user.id)
-    .maybeSingle();
-
-  const checklistData: Record<string, unknown> =
-    (checklistRow?.checklist_data as Record<string, unknown>) ?? {};
-
-  const certType = observations
-    ? "certified_with_observations"
-    : "certified";
-
-  await packetAdapter.updateStatus(
+  return submitNotaryDecisionAction(
     packetId,
-    "certified",
-    user.id,
-    "notary_certified",
+    observations ? "certified_with_observations" : "certified",
+    observations,
   );
-  await notaryAdapter.updateDecision(packetId, certType, observations);
-  await notaryAdapter.createCertification({
-    packetId,
-    notaryId: user.id,
-    type: certType,
-    observations,
-    checklistData,
-  });
-
-  // Set certified_at on lease_packets
-  await admin
-    .from("lease_packets")
-    .update({ certified_at: new Date().toISOString() })
-    .eq("id", packetId);
-
-  // Create registry entry
-  const { data: packet } = await admin
-    .from("lease_packets")
-    .select(
-      "packet_code, property_address, property_unit, district, province, lease_start_date, lease_end_date, certified_at",
-    )
-    .eq("id", packetId)
-    .single();
-
-  const { data: signers } = await admin
-    .from("packet_signers")
-    .select("signer_full_name, signer_dni, role_in_lease")
-    .eq("packet_id", packetId);
-
-  const landlordDni =
-    signers?.find((s) => s.role_in_lease === "landlord")?.signer_dni ?? "";
-  const renterDni =
-    signers?.find((s) => s.role_in_lease === "renter")?.signer_dni ?? "";
-
-  if (packet) {
-    await admin.from("registry_entries").insert({
-      packet_id: packetId,
-      property_address: packet.property_address ?? "",
-      property_unit: packet.property_unit,
-      district: packet.district,
-      province: packet.province,
-      landlord_dni: landlordDni,
-      renter_dni: renterDni,
-      lease_start_date: packet.lease_start_date ?? "",
-      lease_end_date: packet.lease_end_date ?? "",
-      certified_at: packet.certified_at,
-      status: "active",
-    });
-  }
-
-  // Generate certified document PDF
-  const { data: notaryProfile } = await admin
-    .from("profiles")
-    .select("full_name, accreditation_number")
-    .eq("id", user.id)
-    .single();
-
-  const landlordNames = (signers ?? [])
-    .filter((s) => s.role_in_lease === "landlord")
-    .map((s) => s.signer_full_name ?? "");
-  const renterNames = (signers ?? [])
-    .filter((s) => s.role_in_lease === "renter")
-    .map((s) => s.signer_full_name ?? "");
-
-  const documentHashes = await getDocumentHashTimeline(packetId, admin);
-
-  const boolChecklist: Record<string, boolean> = {};
-  for (const [key, val] of Object.entries(checklistData)) {
-    const entry = val as { checked?: boolean } | boolean;
-    boolChecklist[key] = typeof entry === "object" && entry !== null
-      ? Boolean(entry.checked)
-      : Boolean(entry);
-  }
-
-  const now = new Date().toISOString();
-  const certData: CertifiedDocumentData = {
-    packetCode: packet?.packet_code ?? packetId.slice(0, 12),
-    packetId,
-    notaryName: notaryProfile?.full_name ?? "Notario",
-    accreditationNumber: notaryProfile?.accreditation_number ?? null,
-    certifiedAt: packet?.certified_at ?? now,
-    certificationType: certType as
-      | "certified"
-      | "certified_with_observations",
-    observations,
-    checklistSummary: boolChecklist,
-    documentHashes: documentHashes.map((h) => ({
-      stage: h.stage,
-      algorithm: h.algorithm,
-      hash: h.hash,
-      timestamp: h.timestamp,
-      actorId: h.actorId,
-    })),
-    propertyAddress: packet?.property_address ?? "",
-    propertyUnit: packet?.property_unit ?? undefined,
-    district: packet?.district ?? undefined,
-    province: packet?.province ?? undefined,
-    landlordNames,
-    renterNames,
-    leaseStartDate: packet?.lease_start_date ?? undefined,
-    leaseEndDate: packet?.lease_end_date ?? undefined,
-  };
-
-  await generateAndStoreCertifiedDocument(packetId, certData, user.id);
-
-  // Notify all parties (realtor + signers) that the packet was certified
-  const { data: packetForNotify } = await admin
-    .from("lease_packets")
-    .select("created_by")
-    .eq("id", packetId)
-    .single();
-
-  const recipients: Array<{ email: string; name: string; role: "realtor" | "landlord" | "renter" }> = [];
-
-  if (packetForNotify?.created_by) {
-    const { data: ownerProfile } = await admin
-      .from("profiles")
-      .select("email, full_name")
-      .eq("id", packetForNotify.created_by)
-      .single();
-
-    if (ownerProfile?.email) {
-      recipients.push({
-        email: ownerProfile.email,
-        name: ownerProfile.full_name ?? "",
-        role: "realtor",
-      });
-    }
-  }
-
-  const { data: allPacketSigners } = await admin
-    .from("packet_signers")
-    .select("signer_email, signer_full_name, role_in_lease")
-    .eq("packet_id", packetId);
-
-  for (const s of allPacketSigners ?? []) {
-    if (s.signer_email) {
-      recipients.push({
-        email: s.signer_email,
-        name: s.signer_full_name ?? "",
-        role: (s.role_in_lease as "landlord" | "renter") ?? "renter",
-      });
-    }
-  }
-
-  if (recipients.length > 0) {
-    void notifyPacketCertified({
-      recipients,
-      packetCode: packet?.packet_code ?? "",
-      packetId,
-      propertyAddress: packet?.property_address ?? "",
-    });
-  }
-
-  revalidatePath("/notario");
-  revalidatePath(`/agente/paquetes/${packetId}`);
-  revalidatePath("/agente");
-  revalidatePath("/arrendador");
-  revalidatePath("/arrendatario");
-  revalidatePath("/arrendador/contratos");
-  revalidatePath("/arrendatario/contratos");
-
-  return { success: true };
 }
 
 export async function certifyWithObservationsAction(
@@ -758,136 +908,68 @@ export async function certifyWithObservationsAction(
 export async function returnForCorrectionAction(
   packetId: string,
   reason: string,
+  correctionScope: CorrectionScope = "notary_observation",
 ) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-
-  await verifyAssignment(packetId, user.id);
-
-  const packetAdapter = new SupabasePacketAdapter();
-  const notaryAdapter = new SupabaseNotaryAdapter();
-  const admin = createAdminClient();
-
-  await packetAdapter.updateStatus(
+  return submitNotaryDecisionAction(
     packetId,
     "needs_correction",
-    user.id,
-    "notary_returned_for_correction",
+    reason,
+    correctionScope,
   );
-  await notaryAdapter.updateDecision(packetId, "needs_correction", reason);
-
-  // Notify realtor
-  const { data: pkt } = await admin
-    .from("lease_packets")
-    .select("created_by, packet_code, property_address")
-    .eq("id", packetId)
-    .single();
-
-  if (pkt?.created_by) {
-    const { data: realtorProfile } = await admin
-      .from("profiles")
-      .select("email, full_name")
-      .eq("id", pkt.created_by)
-      .single();
-
-    const { data: signers } = await admin
-      .from("packet_signers")
-      .select("signer_full_name, signer_email")
-      .eq("packet_id", packetId);
-
-    const parties = (signers ?? [])
-      .filter((s) => s.signer_email)
-      .map((s) => ({ email: s.signer_email!, name: s.signer_full_name ?? "" }));
-
-    if (realtorProfile?.email) {
-      void notifyPacketNeedsCorrection({
-        realtorEmail: realtorProfile.email,
-        realtorName: realtorProfile.full_name ?? "",
-        packetCode: pkt.packet_code ?? "",
-        packetId,
-        propertyAddress: pkt.property_address ?? "",
-        reason,
-        parties,
-      });
-    }
-  }
-
-  revalidatePath("/notario");
-  revalidatePath("/agente");
-  revalidatePath("/arrendador");
-  revalidatePath("/arrendatario");
-  revalidatePath("/arrendador/contratos");
-  revalidatePath("/arrendatario/contratos");
-  return { success: true };
 }
 
 export async function rejectAction(packetId: string, reason: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  return submitNotaryDecisionAction(packetId, "rejected", reason);
+}
 
-  await verifyAssignment(packetId, user.id);
+type PersistedNotaryDecision =
+  | "certified"
+  | "certified_with_observations"
+  | "needs_correction"
+  | "rejected";
 
-  const packetAdapter = new SupabasePacketAdapter();
-  const notaryAdapter = new SupabaseNotaryAdapter();
-  const admin = createAdminClient();
-
-  await packetAdapter.updateStatus(
-    packetId,
-    "rejected",
-    user.id,
-    "notary_rejected",
-  );
-  await notaryAdapter.updateDecision(packetId, "rejected", reason);
-
-  // Notify realtor
-  const { data: pkt } = await admin
-    .from("lease_packets")
-    .select("created_by, packet_code, property_address")
-    .eq("id", packetId)
-    .single();
-
-  if (pkt?.created_by) {
-    const { data: realtorProfile } = await admin
-      .from("profiles")
-      .select("email, full_name")
-      .eq("id", pkt.created_by)
-      .single();
-
-    const { data: signers } = await admin
-      .from("packet_signers")
-      .select("signer_full_name, signer_email")
-      .eq("packet_id", packetId);
-
-    const parties = (signers ?? [])
-      .filter((s) => s.signer_email)
-      .map((s) => ({ email: s.signer_email!, name: s.signer_full_name ?? "" }));
-
-    if (realtorProfile?.email) {
-      void notifyPacketRejected({
-        realtorEmail: realtorProfile.email,
-        realtorName: realtorProfile.full_name ?? "",
-        packetCode: pkt.packet_code ?? "",
-        packetId,
-        propertyAddress: pkt.property_address ?? "",
-        reason,
-        parties,
-      });
-    }
+async function submitNotaryDecisionAction(
+  packetId: string,
+  decision: PersistedNotaryDecision,
+  observations?: string,
+  correctionScope?: CorrectionScope,
+) {
+  await requireApproved("notary");
+  const reason = observations?.trim();
+  if (
+    ["certified_with_observations", "needs_correction", "rejected"].includes(decision)
+    && !reason
+  ) {
+    throw new Error("Se requiere un motivo u observación detallada");
   }
 
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("submit_notary_decision", {
+    p_packet_id: packetId,
+    p_decision: decision,
+    p_observations: reason || undefined,
+    p_correction_scope: correctionScope,
+  });
+  if (error) throw new Error(`No se pudo registrar la decisión: ${error.message}`);
+
+  revalidateNotaryDecisionPaths(packetId);
+  const result = (data ?? {}) as Record<string, unknown>;
+  return {
+    success: true,
+    queued: result.queued === true,
+    certificationId: result.certification_id as string | undefined,
+  };
+}
+
+function revalidateNotaryDecisionPaths(packetId: string) {
   revalidatePath("/notario");
+  revalidatePath(`/notario/paquetes/${packetId}`);
+  revalidatePath(`/agente/paquetes/${packetId}`);
   revalidatePath("/agente");
   revalidatePath("/arrendador");
   revalidatePath("/arrendatario");
   revalidatePath("/arrendador/contratos");
   revalidatePath("/arrendatario/contratos");
-  return { success: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -898,6 +980,12 @@ export interface EarningsMonth {
   month: string;
   certifiedCount: number;
   withObservationsCount: number;
+  estimatedPayoutPen: number;
+  pendingCalculationCount: number;
+  payoutStatus: "estimated" | "prepared" | "confirmed" | "paid" | "void";
+  confirmedAt: string | null;
+  paidAt: string | null;
+  paymentReference: string | null;
 }
 
 export async function getNotaryEarnings(
@@ -905,39 +993,198 @@ export async function getNotaryEarnings(
 ): Promise<EarningsMonth[]> {
   const admin = createAdminClient();
 
-  const { data, error } = await admin
-    .from("notary_certifications")
-    .select("certified_at, certification_type")
-    .eq("notary_id", notaryId)
-    .order("certified_at", { ascending: false });
+  const [certificationsResult, payoutsResult] = await Promise.all([
+    admin
+      .from("notary_certifications")
+      .select("certified_at, published_at, certification_type, publication_status")
+      .eq("notary_id", notaryId)
+      .eq("publication_status", "published")
+      .order("certified_at", { ascending: false }),
+    admin
+      .from("notary_monthly_payouts")
+      .select(
+        "period_month, certification_count, gross_amount, notary_igv_centimos, status, confirmed_at, paid_at, payment_reference",
+      )
+      .eq("notary_id", notaryId)
+      .order("period_month", { ascending: false }),
+  ]);
 
-  if (error) throw new Error(`Earnings fetch failed: ${error.message}`);
-  if (!data) return [];
+  if (certificationsResult.error) {
+    throw new Error(`Earnings fetch failed: ${certificationsResult.error.message}`);
+  }
+  if (payoutsResult.error) {
+    throw new Error(`Payout fetch failed: ${payoutsResult.error.message}`);
+  }
 
-  const monthMap = new Map<
-    string,
-    { total: number; withObs: number }
-  >();
+  const monthMap = new Map<string, {
+    total: number;
+    withObs: number;
+    estimated: number;
+    unconfigured: number;
+  }>();
   const cutoff = new Date();
   cutoff.setMonth(cutoff.getMonth() - 12);
 
-  for (const row of data) {
-    const d = new Date(row.certified_at!);
+  for (const row of certificationsResult.data ?? []) {
+    const occurredAt = row.published_at ?? row.certified_at;
+    if (!occurredAt) continue;
+    const d = new Date(occurredAt);
     if (d < cutoff) continue;
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const entry = monthMap.get(key) ?? { total: 0, withObs: 0 };
+    const entry = monthMap.get(key) ?? {
+      total: 0,
+      withObs: 0,
+      estimated: 0,
+      unconfigured: 0,
+    };
     entry.total += 1;
     if (row.certification_type === "certified_with_observations") {
       entry.withObs += 1;
     }
+    // MND depends on the actual tax-exclusive receipt and reconciled processor
+    // fee. Do not fabricate a fixed per-document estimate before monthly close.
+    entry.unconfigured += 1;
     monthMap.set(key, entry);
+  }
+
+  const payoutMap = new Map(
+    (payoutsResult.data ?? []).map((payout) => [payout.period_month.slice(0, 7), payout]),
+  );
+
+  for (const [month, payout] of payoutMap.entries()) {
+    if (!monthMap.has(month)) {
+      monthMap.set(month, {
+        total: payout.certification_count,
+        withObs: 0,
+        estimated: Number(payout.gross_amount) + payout.notary_igv_centimos / 100,
+        unconfigured: 0,
+      });
+    }
   }
 
   return Array.from(monthMap.entries())
     .sort((a, b) => b[0].localeCompare(a[0]))
-    .map(([month, counts]) => ({
-      month,
-      certifiedCount: counts.total,
-      withObservationsCount: counts.withObs,
-    }));
+    .map(([month, counts]) => {
+      const payout = payoutMap.get(month);
+      return {
+        month,
+        certifiedCount: payout?.certification_count ?? counts.total,
+        withObservationsCount: counts.withObs,
+        estimatedPayoutPen: payout
+          ? Number(payout.gross_amount) + payout.notary_igv_centimos / 100
+          : counts.estimated,
+        pendingCalculationCount: payout ? 0 : counts.unconfigured,
+        payoutStatus: (payout?.status ?? "estimated") as EarningsMonth["payoutStatus"],
+        confirmedAt: payout?.confirmed_at ?? null,
+        paidAt: payout?.paid_at ?? null,
+        paymentReference: payout?.payment_reference ?? null,
+      };
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Seal workflow state loader (authoritative server state)
+// ---------------------------------------------------------------------------
+
+export async function getSealWorkflowState(
+  packetId: string,
+  notaryId: string,
+): Promise<SealWorkflowState> {
+  const admin = createAdminClient();
+
+  const printDownloadAudit = await admin
+    .from("packet_audit_log")
+    .select("id")
+    .eq("packet_id", packetId)
+    .eq("action", "notary_print_download_url_issued")
+    .limit(1);
+
+  const printDownloadIssued = (printDownloadAudit.data?.length ?? 0) > 0;
+
+  const { data: signedDoc } = await admin
+    .from("packet_documents")
+    .select("id, file_hash, page_count")
+    .eq("packet_id", packetId)
+    .eq("document_type", "signed_pdf")
+    .eq("status", "accepted")
+    .maybeSingle();
+
+  const { data: scanDoc } = await admin
+    .from("packet_documents")
+    .select("id, file_hash, page_count, metadata")
+    .eq("packet_id", packetId)
+    .eq("document_type", "notarial_scan")
+    .eq("status", "accepted")
+    .maybeSingle();
+
+  let attestation: SealWorkflowState["attestation"] = null;
+  if (scanDoc) {
+    const { data: att } = await admin
+      .from("notary_attestations")
+      .select("id, attestation_text_version, attested_at, notarial_scan_document_id")
+      .eq("notarial_scan_document_id", scanDoc.id)
+      .eq("notary_id", notaryId)
+      .maybeSingle();
+
+    if (att) {
+      attestation = {
+        id: att.id,
+        textVersion: att.attestation_text_version,
+        attestedAt: att.attested_at,
+        scanId: att.notarial_scan_document_id,
+      };
+    }
+  }
+
+  let preparedCertification: SealWorkflowState["preparedCertification"] = null;
+  const { data: cert } = await admin
+    .from("notary_certifications")
+    .select("id, certification_report_document_id, notarial_scan_document_id")
+    .eq("packet_id", packetId)
+    .eq("publication_status", "prepared")
+    .maybeSingle();
+
+  if (cert) {
+    let reportDocumentId: string | null = null;
+
+    if (cert.certification_report_document_id) {
+      const { data: reportDoc } = await admin
+        .from("packet_documents")
+        .select("id, status, certification_id, source_document_id")
+        .eq("id", cert.certification_report_document_id)
+        .maybeSingle();
+
+      if (
+        reportDoc &&
+        reportDoc.status === "accepted" &&
+        reportDoc.certification_id === cert.id &&
+        reportDoc.source_document_id === cert.notarial_scan_document_id
+      ) {
+        reportDocumentId = reportDoc.id;
+      }
+    }
+
+    preparedCertification = {
+      id: cert.id,
+      reportDocumentId,
+      scanId: cert.notarial_scan_document_id,
+    };
+  }
+
+  return {
+    printDownloadIssued,
+    signedDocument: signedDoc
+      ? { id: signedDoc.id, hash: signedDoc.file_hash ?? "", pageCount: signedDoc.page_count }
+      : null,
+    acceptedScan: scanDoc
+      ? {
+          id: scanDoc.id,
+          hash: scanDoc.file_hash ?? "",
+          pageCount: scanDoc.page_count,
+          metadata: (scanDoc.metadata ?? {}) as Record<string, unknown>,
+        }
+      : null,
+    attestation,
+    preparedCertification,
+  };
 }

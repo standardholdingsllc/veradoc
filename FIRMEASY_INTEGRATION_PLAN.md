@@ -240,7 +240,7 @@ FirmEasy's public-facing marketing and API landing page (`firmeasy.legal/firmeas
 
 1. Log into VeraDoc as a realtor (use seed data or create a test realtor).
 2. Create a lease packet via the wizard with a test PDF.
-3. Complete the mock payment step (or bypass with `CULQI_USE_MOCK=true`).
+3. Complete the mock payment step (or bypass with `DEMO_PAYMENTS_ENABLED=true`).
 4. Click "Enviar enlaces" — this triggers `sendSigningLinksAction`.
 5. **Verify** in the VeraDoc database:
    - `lease_packets.firmeasy_document_token` is populated

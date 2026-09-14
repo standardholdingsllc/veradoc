@@ -1,7 +1,8 @@
 "use client";
 
-import { useTransition, useState, useOptimistic } from "react";
+import { useTransition, useOptimistic } from "react";
 import { CheckCircle2, Circle } from "lucide-react";
+import { toast } from "sonner";
 import type { NotaryReview } from "@/lib/domain/types";
 import { formatDateTime } from "@/lib/formatters";
 import { CHECKLIST } from "@/lib/i18n/labels";
@@ -170,7 +171,15 @@ export function ProductionChecklistPanel({
     const newChecked = !currentChecked;
     startTransition(async () => {
       setOptimisticItem({ key: itemKey, checked: newChecked });
-      await toggleChecklistItemAction(packetId, itemKey, newChecked);
+      try {
+        await toggleChecklistItemAction(packetId, itemKey, newChecked);
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "No se pudo actualizar la lista de verificación",
+        );
+      }
     });
   }
 

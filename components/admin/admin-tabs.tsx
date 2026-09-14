@@ -7,12 +7,19 @@ import { RealtorQueue } from "./realtor-queue";
 import { NotaryInvitations } from "./notary-invitations";
 import { NotaryCoverage } from "./notary-coverage";
 import { UserManagement } from "./user-management";
+import { NotaryPayouts } from "./notary-payouts";
+import { RefundPanel } from "./refund-panel";
+import { CommercialFinance } from "./commercial-finance";
+import type { PacketFinancialSummaryRow } from "@/lib/admin/queries";
 
 const TABS = [
   { id: "overview", label: "Resumen" },
   { id: "realtors", label: "Agentes" },
   { id: "invitations", label: "Invitaciones" },
   { id: "coverage", label: "Cobertura" },
+  { id: "payouts", label: "Pagos notariales" },
+  { id: "finance", label: "Finanzas" },
+  { id: "refunds", label: "Reembolsos" },
   { id: "users", label: "Usuarios" },
 ] as const;
 
@@ -81,6 +88,37 @@ interface AdminTabsProps {
     total: number;
     pageCount: number;
   };
+  payoutRates: {
+    id: string;
+    notary_id: string;
+    participation_bps: number;
+    formula_version: string;
+    protect_standard_price_for_promos: boolean;
+    currency: string;
+    effective_from: string;
+    effective_to: string | null;
+    contract_reference: string | null;
+    created_at: string;
+  }[];
+  payouts: {
+    id: string;
+    notary_id: string;
+    period_month: string;
+    certification_count: number;
+    gross_amount: number;
+    currency: string;
+    status: string;
+    prepared_at: string | null;
+    confirmed_at: string | null;
+    paid_at: string | null;
+    payment_reference: string | null;
+    notary_comprobante_reference: string | null;
+    contractual_amount_centimos: number;
+    promo_top_up_centimos: number;
+    notary_igv_centimos: number;
+    notes: string | null;
+  }[];
+  financeRows: PacketFinancialSummaryRow[];
   initialTab?: string;
 }
 
@@ -92,6 +130,9 @@ export function AdminTabs({
   metrics,
   users,
   usersPageInfo,
+  payoutRates,
+  payouts,
+  financeRows,
   initialTab,
 }: AdminTabsProps) {
   const [activeTab, setActiveTab] = useState(
@@ -110,6 +151,11 @@ export function AdminTabs({
       {activeTab === "coverage" && (
         <NotaryCoverage coverage={coverage} notaries={notaries} />
       )}
+      {activeTab === "payouts" && (
+        <NotaryPayouts notaries={notaries} rates={payoutRates} payouts={payouts} />
+      )}
+      {activeTab === "finance" && <CommercialFinance rows={financeRows} />}
+      {activeTab === "refunds" && <RefundPanel />}
       {activeTab === "users" && (
         <UserManagement users={users} pageInfo={usersPageInfo} />
       )}

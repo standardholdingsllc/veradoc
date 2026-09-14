@@ -75,18 +75,25 @@ const TRANSITIONS: TransitionRule[] = [
     to: "under_notary_review",
     actor: "notary",
   },
-  // under_notary_review → certified — Guard: checklist complete, decision certify; Actor: notary
+  // under_notary_review → certified — Guard: checklist complete, decision certify; Actor: notary (legacy_v1)
   {
     from: "under_notary_review",
     eventType: "certify",
     to: "certified",
     actor: "notary",
   },
-  // under_notary_review → certified_with_observations — Guard: checklist complete, observations; Actor: notary
+  // under_notary_review → certified_with_observations — Guard: checklist complete, observations; Actor: notary (legacy_v1)
   {
     from: "under_notary_review",
     eventType: "certify_with_observations",
     to: "certified_with_observations",
+    actor: "notary",
+  },
+  // under_notary_review → awaiting_notary_seal — Guard: checklist complete; Actor: notary (physical_seal_v1)
+  {
+    from: "under_notary_review",
+    eventType: "approve_evidence_for_seal",
+    to: "awaiting_notary_seal",
     actor: "notary",
   },
   // under_notary_review → needs_correction — Guard: correction reason provided; Actor: notary
@@ -99,6 +106,27 @@ const TRANSITIONS: TransitionRule[] = [
   // under_notary_review → rejected — Guard: rejection reason provided; Actor: notary
   {
     from: "under_notary_review",
+    eventType: "reject",
+    to: "rejected",
+    actor: "notary",
+  },
+  // awaiting_notary_seal → certified — Guard: finalization RPC; Actor: notary (physical_seal_v1)
+  {
+    from: "awaiting_notary_seal",
+    eventType: "finalize_certification",
+    to: "certified",
+    actor: "notary",
+  },
+  // awaiting_notary_seal → needs_correction — Guard: correction reason; Actor: notary
+  {
+    from: "awaiting_notary_seal",
+    eventType: "return_for_correction",
+    to: "needs_correction",
+    actor: "notary",
+  },
+  // awaiting_notary_seal → rejected — Guard: strong rejection reason; Actor: notary
+  {
+    from: "awaiting_notary_seal",
     eventType: "reject",
     to: "rejected",
     actor: "notary",
@@ -196,6 +224,14 @@ const NEXT_ACTIONS_BY_STATUS: Record<
     notary: [
       "certify",
       "certify_with_observations",
+      "approve_evidence_for_seal",
+      "return_for_correction",
+      "reject",
+    ],
+  },
+  awaiting_notary_seal: {
+    notary: [
+      "finalize_certification",
       "return_for_correction",
       "reject",
     ],

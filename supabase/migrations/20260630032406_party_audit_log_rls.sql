@@ -1,0 +1,2 @@
+-- Historical remote migration marker.
+-- Canonical schema effects are represented by 00007_party_audit_log_rls.sql.

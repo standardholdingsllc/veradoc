@@ -22,9 +22,9 @@ export async function changePasswordAction(
 
 export async function getPartyDocumentDownloadUrl(
   packetId: string,
-  documentType: string,
+  documentId: string,
 ) {
-  return _getDocumentDownloadUrl(packetId, documentType);
+  return _getDocumentDownloadUrl(packetId, documentId);
 }
 
 type ActionResult<T = null> = { error?: string; data?: T };

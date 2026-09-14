@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     "Política de devoluciones, cancelaciones y cambios de VeraDoc conforme a la Ley N° 29571, Código de Protección y Defensa del Consumidor del Perú.",
 };
 
-const LAST_UPDATED = "9 de julio de 2026";
+const LAST_UPDATED = "10 de septiembre de 2026";
 
 export default function DevolucionesPage() {
   return (
@@ -63,93 +63,79 @@ export default function DevolucionesPage() {
 
         <section>
           <h2 className="mb-3 text-xl font-semibold text-primary">
-            3. Cancelación Antes del Procesamiento
+            3. Regla General
           </h2>
           <p>
-            El agente inmobiliario que ha creado un paquete de arrendamiento
-            puede solicitar su cancelación bajo las siguientes condiciones:
+            El precio de VeraDoc corresponde al procesamiento digital de un
+            documento y a la activación de su flujo de evidencia, firma,
+            mensajería, comprobante y gestión notarial. Una vez confirmado el
+            pago, <strong>no se ofrecen cancelaciones ni reembolsos de manera
+            rutinaria</strong>, aun cuando el usuario no complete el flujo o el
+            documento no alcance la certificación notarial.
           </p>
           <ul className="mt-3 list-disc space-y-2 pl-6">
             <li>
-              <strong>
-                Antes del envío al notario y antes de que algún firmante haya
-                completado el flujo de firma:
-              </strong>{" "}
-              se procederá al reembolso del 100% del monto pagado.
+              La decisión independiente del notario de observar, solicitar
+              correcciones o rechazar un documento no convierte el pago en
+              reembolsable.
             </li>
             <li>
-              <strong>
-                Después de que al menos un firmante haya iniciado el flujo de
-                firma, pero antes del envío al notario:
-              </strong>{" "}
-              se evaluará cada caso individualmente. Se podrá aplicar un
-              reembolso parcial descontando los costos operativos ya incurridos.
+              El abandono, la falta de respuesta de un firmante o el vencimiento
+              de la ventana de servicio de 90 días no generan saldo, crédito ni
+              reembolso automático.
             </li>
             <li>
-              <strong>Después del envío al notario:</strong> no procede
-              reembolso, dado que el servicio de revisión notarial ya ha sido
-              iniciado.
+              Los códigos promocionales privados reducen el precio de una
+              transacción específica; no constituyen dinero electrónico, saldo
+              a favor ni crédito transferible.
             </li>
           </ul>
         </section>
 
         <section>
           <h2 className="mb-3 text-xl font-semibold text-primary">
-            4. Paquetes Rechazados por el Notario
+            4. Excepciones Evaluables
           </h2>
           <p>
-            Si un paquete de arrendamiento es rechazado por el notario durante
-            su revisión:
+            VeraDoc podrá evaluar un reembolso excepcional cuando exista
+            evidencia suficiente de uno de los siguientes supuestos:
           </p>
           <ul className="mt-3 list-disc space-y-1 pl-6">
             <li>
-              <strong>
-                Si el rechazo se debe a deficiencias en la documentación
-                proporcionada por el agente o los firmantes:
-              </strong>{" "}
-              no procede reembolso, ya que el servicio de revisión notarial fue
-              efectivamente prestado.
+              cobro duplicado, monto cobrado incorrectamente o pago no
+              autorizado;
             </li>
             <li>
-              <strong>
-                Si el rechazo se debe a un error atribuible a VeraDoc:
-              </strong>{" "}
-              se ofrecerá la reelaboración del paquete sin costo adicional o el
-              reembolso completo del monto pagado, a elección del usuario.
+              falla sustancial atribuible a VeraDoc que impida prestar el
+              servicio y que no pueda remediarse razonablemente; o
             </li>
+            <li>un remedio exigido por la normativa aplicable o una autoridad competente.</li>
           </ul>
         </section>
 
         <section>
           <h2 className="mb-3 text-xl font-semibold text-primary">
-            5. Paquetes con Solicitud de Correcciones
+            5. Correcciones y Continuidad
           </h2>
           <p>
-            Cuando el notario solicita correcciones al paquete, el agente podrá
-            realizar los ajustes necesarios y reenviar el paquete sin costo
-            adicional. Si el agente decide no continuar con el proceso luego de
-            una solicitud de correcciones, no procede reembolso.
+            Cuando el notario solicita correcciones comprendidas en el servicio,
+            el agente puede ajustar y reenviar el paquete durante la ventana de
+            servicio sin pagar nuevamente la tarifa estándar. Si decide no
+            continuar, no procede un reembolso por ese solo hecho.
           </p>
         </section>
 
         <section>
           <h2 className="mb-3 text-xl font-semibold text-primary">
-            6. Fallos Técnicos de la Plataforma
+            6. Trabajo Parcial y Costos ya Incurridos
           </h2>
           <p>
-            Si la plataforma presenta una falla técnica que impida la
-            finalización del servicio contratado, VeraDoc se compromete a:
+            Al evaluar una excepción, VeraDoc documentará el avance del paquete y
+            los costos de proveedor, firma, mensajería, comprobante y notaría ya
+            incurridos. Estos costos se conservan como evidencia contable de
+            VeraDoc y de sus obligaciones frente a terceros; no crean un crédito
+            para el usuario ni alteran los derechos que la ley le reconozca.
           </p>
-          <ul className="mt-3 list-disc space-y-1 pl-6">
-            <li>
-              Resolver la falla y completar el servicio en el menor tiempo
-              posible.
-            </li>
-            <li>
-              En caso de que la falla no pueda ser resuelta en un plazo
-              razonable, proceder al reembolso completo del monto pagado.
-            </li>
-          </ul>
         </section>
 
         <section>
@@ -187,12 +173,10 @@ export default function DevolucionesPage() {
             8. Derecho de Retracto
           </h2>
           <p>
-            Conforme al artículo 59 de la Ley N° 29571, el consumidor puede
-            ejercer su derecho de retracto dentro de los 7 días calendario
-            posteriores a la contratación del servicio, siempre que el servicio
-            no haya sido ejecutado en su totalidad o de forma sustancial. Para
-            ejercer este derecho, comuníquese con nosotros a través de los
-            canales indicados en la sección anterior.
+            Esta política no limita los derechos irrenunciables ni los remedios
+            que correspondan conforme a la normativa peruana aplicable. Para
+            solicitar su evaluación, comuníquese por los canales indicados en la
+            sección anterior.
           </p>
         </section>
 

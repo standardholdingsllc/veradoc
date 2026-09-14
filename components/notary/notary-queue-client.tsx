@@ -1,12 +1,18 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useTransition } from "react";
 import Link from "next/link";
-import { AlertTriangle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { AlertTriangle, Flag, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { NotaryQueueItem } from "@/lib/actions/notary";
+import {
+  setNotaryPriorityAction,
+  type NotaryPriority,
+} from "@/lib/actions/notary";
 import {
   NOTARY_QUEUE,
   NOTARY_ACCOUNT,
@@ -15,12 +21,10 @@ import {
   EMPTY,
 } from "@/lib/i18n/labels";
 
-// Per-packet notary payout rate placeholder — Section 27.4 TBD
-const PAYOUT_RATE_PEN = 15;
-
 const TABS = [
   { id: "pendientes", label: NOTARY_QUEUE.pendientes },
   { id: "en_revision", label: NOTARY_QUEUE.enRevision },
+  { id: "pendiente_sello", label: NOTARY_QUEUE.pendienteSello },
   { id: "certificados", label: NOTARY_QUEUE.certificados },
   { id: "requieren_correccion", label: NOTARY_QUEUE.requierenCorreccion },
   { id: "rechazados", label: NOTARY_QUEUE.rechazados },
@@ -37,11 +41,10 @@ function matchesTab(
       );
     case "en_revision":
       return item.status === "under_review";
+    case "pendiente_sello":
+      return item.status === "awaiting_notary_seal";
     case "certificados":
-      return (
-        item.decision === "certified" ||
-        item.decision === "certified_with_observations"
-      );
+      return item.status === "certified";
     case "requieren_correccion":
       return item.status === "needs_correction";
     case "rechazados":
@@ -60,11 +63,13 @@ function statusBadge(item: NotaryQueueItem) {
       ? "bg-green-50 text-green-700"
       : item.status === "under_review"
         ? "bg-blue-50 text-blue-700"
-        : item.status === "needs_correction"
-          ? "bg-amber-50 text-amber-700"
-          : item.status === "rejected"
-            ? "bg-red-50 text-red-700"
-            : "bg-gray-50 text-gray-700";
+        : item.status === "awaiting_notary_seal"
+          ? "bg-purple-50 text-purple-700"
+          : item.status === "needs_correction"
+            ? "bg-amber-50 text-amber-700"
+            : item.status === "rejected"
+              ? "bg-red-50 text-red-700"
+              : "bg-gray-50 text-gray-700";
 
   return (
     <span
@@ -108,6 +113,8 @@ export function NotaryQueueClient({
   initialTab = "pendientes",
   historyMode = false,
 }: NotaryQueueClientProps) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [activeTab, setActiveTab] = useState(initialTab);
 
   const tabs = historyMode
@@ -126,13 +133,26 @@ export function NotaryQueueClient({
     (i) =>
       (i.decision === "certified" ||
         i.decision === "certified_with_observations") &&
+      i.status === "certified" &&
       isSameMonth(i.decidedAt),
   ).length;
   const totalCertified = items.filter(
     (i) =>
-      i.decision === "certified" ||
-      i.decision === "certified_with_observations",
+      i.status === "certified",
   ).length;
+  const participationPercent = items.find((item) => item.payoutParticipationPercent != null)?.payoutParticipationPercent ?? null;
+
+  const changePriority = (item: NotaryQueueItem, priority: NotaryPriority) => {
+    startTransition(async () => {
+      try {
+        await setNotaryPriorityAction(item.packetId, priority, item.priorityReason ?? undefined);
+        toast.success("Prioridad actualizada");
+        router.refresh();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "No se pudo actualizar la prioridad");
+      }
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -148,7 +168,9 @@ export function NotaryQueueClient({
           />
           <MetricCard
             label={NOTARY_ACCOUNT.estimadoPago}
-            value={`S/ ${(certifiedThisMonth * PAYOUT_RATE_PEN).toFixed(2)}`}
+            value={participationPercent == null
+              ? "Sin términos"
+              : `${participationPercent.toFixed(2)}% MND`}
           />
           <MetricCard
             label={NOTARY_ACCOUNT.documentosCompletados}
@@ -180,6 +202,7 @@ export function NotaryQueueClient({
                     {DASHBOARD.cantidadFirmantes}
                   </th>
                   <th className="px-3 py-3">{DASHBOARD.fechaEnvio}</th>
+                  <th className="px-3 py-3">Prioridad</th>
                   <th className="px-3 py-3 text-center">
                     {DASHBOARD.indicadorRegistro}
                   </th>
@@ -210,6 +233,36 @@ export function NotaryQueueClient({
                     </td>
                     <td className="px-3 py-3 text-sm">
                       {formatDate(item.submittedAt ?? item.assignedAt)}
+                    </td>
+                    <td className="px-3 py-3">
+                      <label className="sr-only" htmlFor={`priority-${item.assignmentId}`}>
+                        Prioridad de {item.packetCode}
+                      </label>
+                      <div className="flex items-center gap-1.5">
+                        {isPending
+                          ? <Loader2 className="size-3 animate-spin text-muted" />
+                          : <Flag className={cn(
+                              "size-3",
+                              item.priority === "urgent" || item.priority === "high"
+                                ? "text-red-500"
+                                : "text-muted",
+                            )} />}
+                        <select
+                          id={`priority-${item.assignmentId}`}
+                          value={item.priority}
+                          disabled={isPending || historyMode}
+                          title={item.priorityReason ?? undefined}
+                          onChange={(event) =>
+                            changePriority(item, event.target.value as NotaryPriority)
+                          }
+                          className="rounded border border-border bg-background px-1.5 py-1 text-xs"
+                        >
+                          <option value="urgent">Urgente</option>
+                          <option value="high">Alta</option>
+                          <option value="normal">Normal</option>
+                          <option value="low">Baja</option>
+                        </select>
+                      </div>
                     </td>
                     <td className="px-3 py-3 text-center">
                       {item.registryAlert && (

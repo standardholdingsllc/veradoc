@@ -122,7 +122,7 @@ export async function createLeasePacket(
   // Duplicate check
   const { data: dupResult } = await supabase.rpc("check_duplicate_lease", {
     p_property_address: data.property.address,
-    p_property_unit: data.property.unit ?? null,
+    p_property_unit: data.property.unit ?? "",
     p_lease_start: data.leaseTerms.startDate,
     p_lease_end: data.leaseTerms.expirationDate,
   });
@@ -238,7 +238,7 @@ export async function createLeasePacket(
 // ---------------------------------------------------------------------------
 
 export async function confirmPacketPayment(
-  packetId: string,
+  paymentId: string,
 ): Promise<ActionResult> {
   const { isDemoPaymentsEnabled } = await import("@/lib/env/server");
   if (!isDemoPaymentsEnabled()) {
@@ -248,47 +248,45 @@ export async function confirmPacketPayment(
   const userId = await getAuthenticatedUserId();
   if (!userId) return { error: "No autenticado." };
 
-  const supabase = await createClient();
   const admin = createAdminClient();
 
-  // Verify ownership
-  const { data: packet } = await supabase
-    .from("lease_packets")
-    .select("id, status")
-    .eq("id", packetId)
+  const { data: payment } = await admin
+    .from("payments")
+    .select("id, packet_id, realtor_id, amount_centimos, currency, status, payment_provider")
+    .eq("id", paymentId)
     .single();
 
-  if (!packet) return { error: "Paquete no encontrado." };
-  if (packet.status !== "draft") {
-    return { error: "El paquete ya no está en borrador." };
+  if (!payment || payment.realtor_id !== userId) return { error: "Pago no encontrado." };
+  if (payment.payment_provider !== "demo") {
+    return { error: "El pago no es de demostración." };
+  }
+  if (payment.status === "completed") return {};
+  if (payment.status !== "prepared") {
+    return { error: `Estado de pago no permite confirmación: ${payment.status}` };
+  }
+  if (payment.amount_centimos == null) {
+    return { error: "El pago no tiene un monto comercial válido." };
   }
 
-  const now = new Date().toISOString();
-
-  // Insert payment (admin -- service_role only)
-  await admin.from("payments").insert({
-    packet_id: packetId,
-    realtor_id: userId,
-    amount: 89.0,
-    currency: "PEN",
-    status: "completed",
-    payment_provider_ref: "stub-payment",
-    paid_at: now,
+  const { data, error } = await admin.rpc("process_commercial_payment_success", {
+    p_payment_id: payment.id,
+    p_payment_provider: "demo",
+    p_provider_payment_id: `demo-${payment.id}`,
+    p_provider_amount_centimos: payment.amount_centimos,
+    p_provider_currency: payment.currency,
+    p_payment_method: "demo",
+    p_actor_id: userId,
+    p_processing_fee_centimos: 0,
   });
 
-  // Update status (admin -- beyond draft transitions need admin)
-  await admin
-    .from("lease_packets")
-    .update({ status: "draft", updated_at: now })
-    .eq("id", packetId);
-
-  // Audit log
-  await admin.from("packet_audit_log").insert({
-    packet_id: packetId,
-    actor_id: userId,
-    action: "payment_confirmed",
-    metadata: { amount: "89.00", currency: "PEN" },
-  });
+  if (error) {
+    console.error("[confirmPacketPayment] Commercial completion failed:", error);
+    return { error: "No se pudo registrar el pago de demostración." };
+  }
+  const outcome = (data as { outcome?: string } | null)?.outcome;
+  if (outcome !== "completed" && outcome !== "already_completed_same_payment") {
+    return { error: `No se pudo completar el pago: ${outcome ?? "resultado desconocido"}.` };
+  }
 
   revalidatePath("/agente");
   return {};
@@ -718,28 +716,73 @@ export async function generateEvidenceReportAction(
 
 export async function getDocumentDownloadUrl(
   packetId: string,
-  documentType: string,
+  documentId: string,
 ): Promise<ActionResult<{ url: string }>> {
+  const {
+    authorizeDownload,
+    UUID_RE,
+    PHYSICAL_ARTIFACT_TYPES,
+  } = await import("@/lib/domain/download-authorization");
+
   const userId = await getAuthenticatedUserId();
   if (!userId) return { error: "No autenticado." };
 
+  if (!UUID_RE.test(documentId)) {
+    return { error: "Se requiere un ID de documento válido." };
+  }
+
   const supabase = await createClient();
+  const admin = createAdminClient();
 
   const { data: doc } = await supabase
     .from("packet_documents")
-    .select("storage_path")
+    .select("id, storage_path, document_type, status, file_hash")
+    .eq("id", documentId)
     .eq("packet_id", packetId)
-    .eq("document_type", documentType)
-    .order("created_at", { ascending: false })
-    .limit(1)
     .single();
 
-  if (!doc) return { error: "Documento no encontrado." };
+  let packetStatus = "";
+  let publishedCert: {
+    notarial_scan_document_id: string | null;
+    certification_report_document_id: string | null;
+  } | null = null;
 
-  const admin = createAdminClient();
+  if (doc && PHYSICAL_ARTIFACT_TYPES.has(doc.document_type)) {
+    const { data: packet } = await admin
+      .from("lease_packets")
+      .select("status")
+      .eq("id", packetId)
+      .single();
+    packetStatus = packet?.status ?? "";
+
+    const { data: cert } = await admin
+      .from("notary_certifications")
+      .select("id, notarial_scan_document_id, certification_report_document_id")
+      .eq("packet_id", packetId)
+      .eq("publication_status", "published")
+      .maybeSingle();
+    publishedCert = cert;
+  }
+
+  const authz = authorizeDownload(documentId, doc, packetStatus, publishedCert);
+
+  if (!authz.allowed) {
+    const messages: Record<string, string> = {
+      invalid_uuid: "Se requiere un ID de documento válido.",
+      not_found: "Documento no encontrado.",
+      non_distributable: "Tipo de documento no descargable.",
+      not_accepted: "Documento no disponible.",
+      packet_not_certified: "Documento no disponible hasta que el paquete esté certificado.",
+      no_published_cert: "No se encontró certificación publicada.",
+      scan_not_matching_cert: "Documento no corresponde a la certificación publicada.",
+      report_not_matching_cert: "Documento no corresponde a la certificación publicada.",
+    };
+    return { error: messages[authz.reason] };
+  }
+
   const { data: signed } = await admin.storage
     .from("documents")
-    .createSignedUrl(doc.storage_path, 300);
+    .createSignedUrl(doc!.storage_path, 300);
 
   if (!signed?.signedUrl) {
     return { error: "Error al generar URL de descarga." };
@@ -750,8 +793,10 @@ export async function getDocumentDownloadUrl(
     actor_id: userId,
     action: "document_downloaded",
     metadata: {
-      document_type: documentType,
-      storage_path: doc.storage_path,
+      document_id: doc!.id,
+      document_type: doc!.document_type,
+      file_hash: doc!.file_hash,
+      storage_path: doc!.storage_path,
     },
   });
 

@@ -1,0 +1,2 @@
+-- Historical remote migration marker.
+-- Canonical schema effects are represented by 00015_firmeasy_webhook_retry_rpc.sql.

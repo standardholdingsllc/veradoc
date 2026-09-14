@@ -24,6 +24,7 @@ export async function collectEvidenceData(
     { data: auditLog },
     hashTimeline,
     dupResult,
+    { data: propertyChecks },
   ] = await Promise.all([
     admin
       .from("packet_signers")
@@ -40,10 +41,18 @@ export async function collectEvidenceData(
     getDocumentHashTimeline(packetId, admin),
     admin.rpc("check_duplicate_lease", {
       p_property_address: packet.property_address ?? "",
-      p_property_unit: packet.property_unit ?? null,
+      p_property_unit: packet.property_unit ?? "",
       p_lease_start: packet.lease_start_date ?? "",
       p_lease_end: packet.lease_end_date ?? "",
     }),
+    admin
+      .from("property_authority_checks")
+      .select(
+        "provider, title_number, registry_zone, registry_office, query_reference, verification_status, owner_names, checked_at, notes",
+      )
+      .eq("packet_id", packetId)
+      .order("checked_at", { ascending: false })
+      .limit(1),
   ]);
 
   const signerRows = signers ?? [];
@@ -156,6 +165,7 @@ export async function collectEvidenceData(
   if (overlapCount > 0) {
     systemFlags.push("duplicate_address_warning");
   }
+  if (!hashTimeline.length) systemFlags.push("document_hash_history_missing");
 
   const allSigned = signerRows.every(
     (s) => s.status === "signed" || s.status === "complete",
@@ -166,6 +176,25 @@ export async function collectEvidenceData(
   const allSignaturesValid = signatureValidationResults.every(
     (s) => s.signatureValid === true,
   );
+  const latestPropertyCheck = propertyChecks?.[0];
+  if (!latestPropertyCheck) {
+    systemFlags.push("property_authority_check_missing");
+  } else if (latestPropertyCheck.verification_status === "observation") {
+    systemFlags.push("sunarp_observation");
+  } else if (latestPropertyCheck.verification_status === "not_found") {
+    systemFlags.push("sunarp_title_not_found");
+  }
+  for (const signer of signerEvidenceSummaries) {
+    if (signer.identityStatus !== "verified") {
+      systemFlags.push(`identity_incomplete:${signer.signerDni}`);
+    }
+    if (signer.consentStatus !== "accepted") {
+      systemFlags.push(`consent_missing:${signer.signerDni}`);
+    }
+    if (signer.signatureStatus !== "valid") {
+      systemFlags.push(`signature_requires_review:${signer.signerDni}`);
+    }
+  }
 
   let summaryForNotary: string;
   if (allSigned && allIdentityOk && allSignaturesValid) {
@@ -202,7 +231,22 @@ export async function collectEvidenceData(
     consentRecords,
     signatureValidationResults,
     sessionLogs,
-    propertyAuthorityEvidence: "Verificación pendiente de integración SUNARP",
+    propertyAuthorityEvidence: latestPropertyCheck
+      ? [
+          `${latestPropertyCheck.provider} · Partida ${latestPropertyCheck.title_number}`,
+          `Estado: ${latestPropertyCheck.verification_status}`,
+          latestPropertyCheck.registry_zone,
+          latestPropertyCheck.registry_office,
+          latestPropertyCheck.query_reference
+            ? `Consulta: ${latestPropertyCheck.query_reference}`
+            : null,
+          latestPropertyCheck.owner_names?.length
+            ? `Titular(es): ${latestPropertyCheck.owner_names.join(", ")}`
+            : null,
+          `Consultado: ${latestPropertyCheck.checked_at}`,
+          latestPropertyCheck.notes,
+        ].filter(Boolean).join(" · ")
+      : "Sin consulta SUNARP registrada",
     duplicateRentalCheck: {
       checked: true,
       matchFound: overlapCount > 0,

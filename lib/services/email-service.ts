@@ -9,6 +9,7 @@ export interface SendEmailParams {
   html: string;
   replyTo?: string;
   tags?: Array<{ name: string; value: string }>;
+  idempotencyKey?: string;
 }
 
 export interface SendEmailResult {
@@ -43,7 +44,7 @@ export async function sendEmail(
     html: params.html,
     ...(params.replyTo ? { replyTo: [params.replyTo] } : {}),
     ...(params.tags ? { tags: params.tags } : {}),
-  });
+  }, params.idempotencyKey ? { idempotencyKey: params.idempotencyKey } : {});
 
   if (error) {
     throw new Error(`Email send failed: ${error.message}`);

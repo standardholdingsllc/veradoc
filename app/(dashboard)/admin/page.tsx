@@ -6,6 +6,8 @@ import {
   getActiveNotaries,
   getMetrics,
   getUsers,
+  getNotaryPayoutAdminData,
+  getCommercialFinanceData,
 } from "@/lib/admin/queries";
 import { AdminTabs } from "@/components/admin/admin-tabs";
 
@@ -23,7 +25,7 @@ export default async function AdminDashboardPage({
   const params = (await searchParams) ?? {};
   const usersPage = Number(params.usersPage ?? "1");
 
-  const [pendingRealtors, rawInvitations, coverage, notaries, metrics, users] =
+  const [pendingRealtors, rawInvitations, coverage, notaries, metrics, users, payoutData, financeData] =
     await Promise.all([
       getPendingRealtors(),
       getInvitations(),
@@ -31,6 +33,8 @@ export default async function AdminDashboardPage({
       getActiveNotaries(),
       getMetrics(),
       getUsers(Number.isFinite(usersPage) ? usersPage : 1),
+      getNotaryPayoutAdminData(),
+      getCommercialFinanceData(),
     ]);
 
   const invitations = rawInvitations.map(
@@ -71,6 +75,9 @@ export default async function AdminDashboardPage({
             total: users.total,
             pageCount: users.pageCount,
           }}
+          payoutRates={payoutData.rates}
+          payouts={payoutData.payouts}
+          financeRows={financeData}
           initialTab={params.adminTab}
         />
       </div>

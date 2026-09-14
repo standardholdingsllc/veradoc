@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,6 +74,10 @@ interface PacketRow {
   document_hash: string | null;
   created_at: string | null;
   updated_at: string | null;
+  service_window_started_at?: string | null;
+  service_window_ends_at?: string | null;
+  archived_at?: string | null;
+  archive_reason?: string | null;
 }
 
 interface SignerRow {
@@ -101,6 +106,9 @@ interface PaymentRow {
   status: string;
   payment_provider_ref: string | null;
   paid_at: string | null;
+  standard_amount_centimos?: number | null;
+  promo_discount_centimos?: number | null;
+  recognized_at?: string | null;
 }
 
 interface AuditRow {
@@ -116,6 +124,15 @@ interface DuplicateCheck {
   latest_end: string | null;
 }
 
+interface CpeRow {
+  id: string;
+  tipo_doc: string;
+  serie: string;
+  correlativo: string;
+  status: string;
+  operation_status: string;
+}
+
 interface PacketDetailClientProps {
   packet: PacketRow;
   displayStatus: PacketStatus;
@@ -125,6 +142,30 @@ interface PacketDetailClientProps {
   auditLog: AuditRow[];
   duplicateCheck: DuplicateCheck | null;
   hashTimeline: DocumentHashEntry[];
+  cpeData?: CpeRow | null;
+  creditNotes?: CpeRow[];
+}
+
+function CpeStatusBadge({ status, operationStatus }: { status: string; operationStatus: string }) {
+  switch (status) {
+    case "pending":
+      return <Badge variant="default">Preparando</Badge>;
+    case "submitted":
+      return <Badge variant="info">Enviado a SUNAT</Badge>;
+    case "accepted":
+      return <Badge variant="info">Aceptado — PDF en proceso</Badge>;
+    case "available":
+      return <Badge variant="success">Disponible</Badge>;
+    case "rejected":
+      return <Badge variant="error">Rechazado</Badge>;
+    case "manual_review":
+      return <Badge variant="warning">En revisión</Badge>;
+    default:
+      if (operationStatus === "error") {
+        return <Badge variant="warning">Reintentando</Badge>;
+      }
+      return <Badge variant="default">{status}</Badge>;
+  }
 }
 
 const ACTION_LABELS: Record<string, string> = {
@@ -149,6 +190,8 @@ export function PacketDetailClient({
   auditLog,
   duplicateCheck,
   hashTimeline,
+  cpeData,
+  creditNotes = [],
 }: PacketDetailClientProps) {
   const router = useRouter();
   const [processing, setProcessing] = useState(false);
@@ -201,8 +244,8 @@ export function PacketDetailClient({
   }, []);
 
   const handleDownload = useCallback(
-    async (documentType: string) => {
-      const result = await getDocumentDownloadUrl(packet.id, documentType);
+    async (documentId: string) => {
+      const result = await getDocumentDownloadUrl(packet.id, documentId);
       if (result.error) {
         toast.error(result.error);
         return;
@@ -218,10 +261,10 @@ export function PacketDetailClient({
   const [viewerLoading, setViewerLoading] = useState(false);
 
   const handleViewDocument = useCallback(
-    async (documentType: string) => {
+    async (documentId: string) => {
       setViewerLoading(true);
       try {
-        const result = await getDocumentDownloadUrl(packet.id, documentType);
+        const result = await getDocumentDownloadUrl(packet.id, documentId);
         if (result.error) {
           toast.error(result.error);
           return;
@@ -254,10 +297,14 @@ export function PacketDetailClient({
   const certifiedLease = documents.find(
     (d) => d.document_type === "certified_lease",
   );
+  const notarialScan = documents.find(
+    (d) => d.document_type === "notarial_scan" && (!("status" in d) || d.status === "accepted"),
+  );
+  const certificationReport = documents.find(
+    (d) => d.document_type === "certification_report" && (!("status" in d) || d.status === "accepted"),
+  );
 
-  const isCertified = packet.status === "certified";
   const isPaid = payment?.status === "completed";
-  const showFactura = isCertified && isPaid;
 
   return (
     <>
@@ -287,6 +334,29 @@ export function PacketDetailClient({
           <StatusBadge status={displayStatus} />
         </div>
       </header>
+
+      {packet.service_window_ends_at && (
+        <div className={cn(
+          "mb-6 rounded-md border p-4 text-sm",
+          packet.status === "archived"
+            ? "border-warning/30 bg-warning/5 text-warning"
+            : "border-border bg-surface/50 text-muted",
+        )}>
+          {packet.status === "archived" ? (
+            <p>
+              Este paquete fue archivado el{" "}
+              {packet.archived_at ? formatDateTime(packet.archived_at) : "finalizar la ventana de servicio"}.
+              El archivo no genera reembolso, crédito ni saldo a favor.
+            </p>
+          ) : (
+            <p>
+              Ventana de servicio activa hasta <strong className="text-foreground">
+                {formatDateTime(packet.service_window_ends_at)}
+              </strong>. Los paquetes incompletos se archivan al vencimiento, salvo una retención aprobada.
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         {/* Left column */}
@@ -456,7 +526,7 @@ export function PacketDetailClient({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleViewDocument("lease_original")}
+                    onClick={() => leaseOriginal && handleViewDocument(leaseOriginal.id)}
                     disabled={viewerLoading}
                   >
                     {viewerLoading ? (
@@ -469,7 +539,7 @@ export function PacketDetailClient({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleDownload("lease_original")}
+                    onClick={() => leaseOriginal && handleDownload(leaseOriginal.id)}
                   >
                     <FileText className="size-4" />
                     {UI.descargar}
@@ -518,7 +588,7 @@ export function PacketDetailClient({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleViewDocument("signed_pdf")}
+                        onClick={() => handleViewDocument(signedPdf.id)}
                         disabled={viewerLoading}
                         aria-label="Ver PDF firmado"
                       >
@@ -527,7 +597,7 @@ export function PacketDetailClient({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDownload("signed_pdf")}
+                        onClick={() => handleDownload(signedPdf.id)}
                         aria-label="Descargar PDF firmado"
                       >
                         <FileText className="size-4" />
@@ -551,7 +621,7 @@ export function PacketDetailClient({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleViewDocument("evidence_report")}
+                        onClick={() => handleViewDocument(evidenceReport.id)}
                         disabled={viewerLoading}
                         aria-label="Ver informe de evidencia"
                       >
@@ -560,7 +630,7 @@ export function PacketDetailClient({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDownload("evidence_report")}
+                        onClick={() => handleDownload(evidenceReport.id)}
                         aria-label="Descargar informe de evidencia"
                       >
                         <FileText className="size-4" />
@@ -568,7 +638,40 @@ export function PacketDetailClient({
                     </div>
                   </div>
                 )}
-                {certifiedLease && (
+                {notarialScan && (
+                  <div className="flex items-center justify-between gap-2 rounded-md border border-border p-3">
+                    <div>
+                      <p className="text-sm font-medium">
+                        Documento con certificación notarial de firmas
+                      </p>
+                      {notarialScan.file_hash && (
+                        <p className="mt-1 font-mono text-xs text-muted">
+                          {truncateHash(notarialScan.file_hash, 8)}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewDocument(notarialScan.id)}
+                        disabled={viewerLoading}
+                        aria-label="Ver escaneo notarial"
+                      >
+                        <Eye className="size-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDownload(notarialScan.id)}
+                        aria-label="Descargar escaneo notarial"
+                      >
+                        <FileText className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {certifiedLease && !notarialScan && (
                   <div className="flex items-center justify-between gap-2 rounded-md border border-border p-3">
                     <div>
                       <p className="text-sm font-medium">
@@ -584,7 +687,7 @@ export function PacketDetailClient({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleViewDocument("certified_lease")}
+                        onClick={() => handleViewDocument(certifiedLease.id)}
                         disabled={viewerLoading}
                         aria-label="Ver documento certificado"
                       >
@@ -593,8 +696,36 @@ export function PacketDetailClient({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDownload("certified_lease")}
+                        onClick={() => handleDownload(certifiedLease.id)}
                         aria-label="Descargar documento certificado"
+                      >
+                        <FileText className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {certificationReport && (
+                  <div className="flex items-center justify-between gap-2 rounded-md border border-border p-3">
+                    <div>
+                      <p className="text-sm font-medium">
+                        Reporte de verificación VeraDoc
+                      </p>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewDocument(certificationReport.id)}
+                        disabled={viewerLoading}
+                        aria-label="Ver reporte de verificación"
+                      >
+                        <Eye className="size-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDownload(certificationReport.id)}
+                        aria-label="Descargar reporte de verificación"
                       >
                         <FileText className="size-4" />
                       </Button>
@@ -670,6 +801,14 @@ export function PacketDetailClient({
                       {formatCurrency(payment.amount)}
                     </dd>
                   </div>
+                  {(payment.promo_discount_centimos ?? 0) > 0 && (
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-muted">Promoción privada</dt>
+                      <dd className="font-mono text-success">
+                        −{formatCurrency((payment.promo_discount_centimos ?? 0) / 100)}
+                      </dd>
+                    </div>
+                  )}
                   {payment.paid_at && (
                     <div className="flex justify-between gap-2">
                       <dt className="text-muted">{RECORD.timestamp}</dt>
@@ -677,6 +816,12 @@ export function PacketDetailClient({
                         {formatDateTime(payment.paid_at)}
                       </dd>
                     </div>
+                  )}
+                  {payment.recognized_at && (
+                    <p className="border-t border-border pt-2 text-xs text-muted">
+                      Transacción confirmada y tarifa devengada. La emisión del comprobante
+                      electrónico se procesa por separado.
+                    </p>
                   )}
                   <div className="flex justify-between gap-2">
                     <dt className="text-muted">{PAYMENT.metodo}</dt>
@@ -747,51 +892,120 @@ export function PacketDetailClient({
             </CardContent>
           </Card>
 
-          {/* Factura (Invoice) - data only, download disabled for MVP */}
-          {showFactura && payment && (
+          {/* Comprobante (CPE) — shows state-driven badge and download when available */}
+          {isPaid && cpeData && (
             <Card>
               <CardHeader className="border-b border-border pb-4">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Receipt className="size-4 text-muted" />
-                  Factura
+                  {cpeData.tipo_doc === "01" ? "Factura" : cpeData.tipo_doc === "03" ? "Boleta de venta" : "Nota de crédito"}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-4">
-                <dl className="space-y-3 text-sm">
-                  <div className="flex justify-between gap-2">
-                    <dt className="text-muted">{PAYMENT.monto}</dt>
-                    <dd className="font-mono">
-                      {formatCurrency(payment.amount)}
-                    </dd>
+              <CardContent className="pt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted">Estado</span>
+                  <CpeStatusBadge status={cpeData.status} operationStatus={cpeData.operation_status} />
+                </div>
+                {cpeData.serie && cpeData.correlativo && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted">Número</span>
+                    <span className="font-mono text-sm">{cpeData.serie}-{cpeData.correlativo}</span>
                   </div>
-                  {payment.paid_at && (
-                    <div className="flex justify-between gap-2">
-                      <dt className="text-muted">Fecha de pago</dt>
-                      <dd className="font-mono text-xs">
-                        {formatDateTime(payment.paid_at)}
-                      </dd>
-                    </div>
-                  )}
-                  <div className="flex justify-between gap-2">
-                    <dt className="text-muted">Referencia</dt>
-                    <dd className="text-xs">
-                      {payment.payment_provider_ref ?? "Pendiente"}
-                    </dd>
-                  </div>
-                </dl>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-4 w-full"
-                  disabled
-                  title="Factura disponible próximamente"
-                >
-                  <Receipt className="size-4" />
-                  Descargar factura (próximamente)
-                </Button>
+                )}
+                {cpeData.status === "available" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 w-full"
+                    onClick={async () => {
+                      try {
+                        const { downloadComprobanteAction } = await import("@/lib/actions/comprobante-actions");
+                        const result = await downloadComprobanteAction(cpeData.id);
+                        if (result.error) {
+                          toast.error(result.error);
+                          return;
+                        }
+                        if (result.data?.signedUrl) {
+                          window.open(result.data.signedUrl, "_blank");
+                        }
+                      } catch {
+                        toast.error("Error al descargar el comprobante.");
+                      }
+                    }}
+                  >
+                    <Receipt className="size-4" />
+                    Descargar comprobante
+                  </Button>
+                )}
+                {cpeData.status === "rejected" && (
+                  <p className="text-xs text-error">
+                    El comprobante fue rechazado por SUNAT. Contacte a soporte para asistencia.
+                  </p>
+                )}
+                {cpeData.status === "manual_review" && (
+                  <p className="text-xs text-warning">
+                    El comprobante requiere revisión manual. Nuestro equipo lo está resolviendo.
+                  </p>
+                )}
+                {cpeData.operation_status === "error" && !["rejected", "manual_review"].includes(cpeData.status) && (
+                  <p className="text-xs text-muted">
+                    Hubo un error en el procesamiento. Se reintentará automáticamente.
+                  </p>
+                )}
               </CardContent>
             </Card>
           )}
+
+          {/* Credit Notes — one card per refund-generated nota de crédito */}
+          {creditNotes.map((cn) => (
+            <Card key={cn.id}>
+              <CardHeader className="border-b border-border pb-4">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Receipt className="size-4 text-muted" />
+                  Nota de crédito
+                  {cn.serie && cn.correlativo && (
+                    <span className="text-xs font-normal text-muted ml-1">{cn.serie}-{cn.correlativo}</span>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted">Estado</span>
+                  <CpeStatusBadge status={cn.status} operationStatus={cn.operation_status} />
+                </div>
+                {cn.status === "available" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 w-full"
+                    onClick={async () => {
+                      try {
+                        const { downloadComprobanteAction } = await import("@/lib/actions/comprobante-actions");
+                        const result = await downloadComprobanteAction(cn.id);
+                        if (result.error) {
+                          toast.error(result.error);
+                          return;
+                        }
+                        if (result.data?.signedUrl) {
+                          window.open(result.data.signedUrl, "_blank");
+                        }
+                      } catch {
+                        toast.error("Error al descargar la nota de crédito.");
+                      }
+                    }}
+                  >
+                    <Receipt className="size-4" />
+                    Descargar nota de crédito
+                  </Button>
+                )}
+                {cn.status === "manual_review" && (
+                  <p className="text-xs text-warning">
+                    La nota de crédito requiere revisión manual.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          ))}
 
           {/* Property info */}
           <Card>

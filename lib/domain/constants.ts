@@ -63,6 +63,12 @@ export const PACKET_STATUS_CONFIG: Record<
     iconName: "Eye",
     nextAction: "Completar revisión",
   },
+  awaiting_notary_seal: {
+    label: "Pendiente de sello notarial",
+    color: "purple",
+    iconName: "Stamp",
+    nextAction: "Subir escaneo con sello",
+  },
   certified: {
     label: "Certificado",
     color: "green",

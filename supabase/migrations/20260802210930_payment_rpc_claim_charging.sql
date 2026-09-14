@@ -1,0 +1,2 @@
+-- Historical remote migration marker.
+-- The obsolete provider-specific charging RPC is removed by 20260830030000_payment_provider_neutral.sql.

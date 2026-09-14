@@ -10,6 +10,10 @@ import {
   userActionSchema,
 } from "@/lib/auth/schemas";
 import { normalizeCoverageText } from "@/lib/coverage/normalize";
+import {
+  hashPrivatePromoCode,
+  promoCodeHint,
+} from "@/lib/services/commercial-service";
 
 function getBaseUrl(): string {
   if (process.env.NEXT_PUBLIC_SITE_URL) {
@@ -388,6 +392,222 @@ export async function reactivateUser(
     return { error: "Error al actualizar los permisos del usuario." };
   }
 
+  revalidatePath("/admin");
+  return {};
+}
+
+// ---------------------------------------------------------------------------
+// Contracted notary rates and monthly payout confirmation
+// ---------------------------------------------------------------------------
+
+function isIsoDate(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value)
+    && Number.isFinite(new Date(`${value}T00:00:00Z`).getTime());
+}
+
+export async function setNotaryContractedRate(
+  notaryId: string,
+  participationPercent: number,
+  effectiveFrom: string,
+  contractReference?: string,
+): Promise<{ error?: string }> {
+  const { error: authError } = await verifyAdmin();
+  if (authError) return { error: authError };
+  if (!notaryId || !Number.isFinite(participationPercent) || participationPercent <= 0 || participationPercent > 100) {
+    return { error: "Ingrese un porcentaje contractual válido." };
+  }
+  if (!isIsoDate(effectiveFrom)) {
+    return { error: "Ingrese una fecha de vigencia válida." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_notary_percentage_terms", {
+    p_notary_id: notaryId,
+    p_participation_percent: participationPercent,
+    p_effective_from: effectiveFrom,
+    p_contract_reference: contractReference?.trim() || undefined,
+    p_protect_promos: true,
+  });
+  if (error) return { error: `No se pudo guardar la tarifa: ${error.message}` };
+
+  revalidatePath("/admin");
+  revalidatePath("/notario");
+  revalidatePath("/notario/ganancias");
+  return {};
+}
+
+export async function confirmNotaryMonthlyPayout(
+  notaryId: string,
+  periodMonth: string,
+  notes?: string,
+): Promise<{ error?: string }> {
+  const { error: authError } = await verifyAdmin();
+  if (authError) return { error: authError };
+  const monthDate = `${periodMonth}-01`;
+  if (!/^\d{4}-\d{2}$/.test(periodMonth) || !isIsoDate(monthDate)) {
+    return { error: "Seleccione un mes válido." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("prepare_notary_monthly_payout_v2", {
+    p_notary_id: notaryId,
+    p_period_month: monthDate,
+    p_notes: notes?.trim() || undefined,
+  });
+  if (error) return { error: `No se pudo preparar el pago: ${error.message}` };
+
+  revalidatePath("/admin");
+  revalidatePath("/notario/ganancias");
+  return {};
+}
+
+export async function approveNotaryMonthlyPayout(
+  payoutId: string,
+  notaryComprobanteReference: string,
+  notaryIgvPen: number,
+  notes?: string,
+): Promise<{ error?: string }> {
+  const { error: authError } = await verifyAdmin();
+  if (authError) return { error: authError };
+  if (!payoutId || !notaryComprobanteReference.trim()) {
+    return { error: "Ingrese el comprobante emitido por el notario." };
+  }
+  if (!Number.isFinite(notaryIgvPen) || notaryIgvPen < 0) {
+    return { error: "Ingrese un IGV válido." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("approve_notary_monthly_payout", {
+    p_payout_id: payoutId,
+    p_notary_comprobante_reference: notaryComprobanteReference.trim(),
+    p_notary_igv_centimos: Math.round(notaryIgvPen * 100),
+    p_notes: notes?.trim() || undefined,
+  });
+  if (error) return { error: `No se pudo aprobar el desembolso: ${error.message}` };
+
+  revalidatePath("/admin");
+  revalidatePath("/notario/ganancias");
+  return {};
+}
+
+export async function markNotaryPayoutPaid(
+  payoutId: string,
+  paymentReference: string,
+  notes?: string,
+): Promise<{ error?: string }> {
+  const { error: authError } = await verifyAdmin();
+  if (authError) return { error: authError };
+  if (!payoutId || !paymentReference.trim()) {
+    return { error: "Ingrese la referencia del desembolso." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("mark_notary_payout_paid", {
+    p_payout_id: payoutId,
+    p_payment_reference: paymentReference.trim(),
+    p_notes: notes?.trim() || undefined,
+  });
+  if (error) return { error: `No se pudo registrar el desembolso: ${error.message}` };
+
+  revalidatePath("/admin");
+  revalidatePath("/notario/ganancias");
+  return {};
+}
+
+// ---------------------------------------------------------------------------
+// Commercial finance operations
+// ---------------------------------------------------------------------------
+
+export async function createPrivatePromoCodeAction(params: {
+  code: string;
+  description: string;
+  discountPen: number;
+  validUntil: string;
+  boundRealtorId?: string;
+  maxRedemptions: number;
+}): Promise<{ error?: string }> {
+  const { error: authError } = await verifyAdmin();
+  if (authError) return { error: authError };
+  if (!params.code.trim() || params.description.trim().length < 3) {
+    return { error: "Ingrese el código y el motivo de la promoción." };
+  }
+  if (!Number.isFinite(params.discountPen) || params.discountPen <= 0 || params.discountPen >= 199) {
+    return { error: "El descuento debe estar entre S/0.01 y S/198.99." };
+  }
+  if (!Number.isInteger(params.maxRedemptions) || params.maxRedemptions < 1) {
+    return { error: "El límite de usos debe ser un entero positivo." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("create_private_promo_code", {
+    p_code_hash: hashPrivatePromoCode(params.code),
+    p_code_hint: promoCodeHint(params.code),
+    p_description: params.description.trim(),
+    p_discount_centimos: Math.round(params.discountPen * 100),
+    p_valid_until: new Date(`${params.validUntil}T23:59:59-05:00`).toISOString(),
+    p_bound_realtor_id: params.boundRealtorId || undefined,
+    p_max_redemptions: params.maxRedemptions,
+  });
+  if (error) return { error: `No se pudo crear la promoción: ${error.message}` };
+  revalidatePath("/admin");
+  return {};
+}
+
+export async function recordPacketDirectCostAction(params: {
+  packetId: string;
+  paymentId?: string;
+  category: string;
+  provider: string;
+  amountPen: number;
+  costStatus: "estimated" | "actual" | "reversal";
+  evidenceReference: string;
+  allocationMethod?: string;
+  sourceId: string;
+}): Promise<{ error?: string }> {
+  const { error: authError } = await verifyAdmin();
+  if (authError) return { error: authError };
+  if (!params.packetId || !params.sourceId.trim() || params.evidenceReference.trim().length < 3) {
+    return { error: "Paquete, identificador de origen y evidencia son obligatorios." };
+  }
+  if (!Number.isFinite(params.amountPen) || params.amountPen === 0) {
+    return { error: "El costo debe ser distinto de cero." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("record_packet_direct_cost", {
+    p_packet_id: params.packetId,
+    p_payment_id: params.paymentId || null,
+    p_category: params.category,
+    p_provider: params.provider,
+    p_amount_centimos: Math.round(params.amountPen * 100),
+    p_cost_status: params.costStatus,
+    p_evidence_reference: params.evidenceReference.trim(),
+    p_allocation_method: params.allocationMethod?.trim() || null,
+    p_source_id: params.sourceId.trim(),
+  });
+  if (error) return { error: `No se pudo registrar el costo: ${error.message}` };
+  revalidatePath("/admin");
+  return {};
+}
+
+export async function setPacketArchivalHoldAction(params: {
+  packetId: string;
+  holdUntil: string;
+  reason: string;
+}): Promise<{ error?: string }> {
+  const { error: authError } = await verifyAdmin();
+  if (authError) return { error: authError };
+  if (!params.packetId || params.reason.trim().length < 5) {
+    return { error: "Ingrese el paquete y el motivo de la retención." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_packet_archival_hold", {
+    p_packet_id: params.packetId,
+    p_hold_until: new Date(`${params.holdUntil}T23:59:59-05:00`).toISOString(),
+    p_reason: params.reason.trim(),
+  });
+  if (error) return { error: `No se pudo retener el archivo: ${error.message}` };
   revalidatePath("/admin");
   return {};
 }

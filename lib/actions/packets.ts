@@ -69,7 +69,7 @@ export async function createPacketAction(input: z.infer<typeof createPacketSchem
       useType: "residential",
     },
     signers: [],
-    payment: { status: "pending", amount: 0, currency: "PEN", paymentMethodPlaceholder: "", invoiceStatus: "pending" },
+    payment: { status: "pending", amount: 0, currency: "PEN", paymentMethodPlaceholder: "" },
     documentHashes: [],
     registryCheck: { status: "pending", matchFound: false },
     auditEvents: [],

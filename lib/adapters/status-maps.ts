@@ -11,11 +11,12 @@ export function domainPacketStatusToDb(status: PacketStatus): string {
     evidence_report_generated: "all_signed",
     ready_for_notary: "pending_notary",
     under_notary_review: "under_review",
+    awaiting_notary_seal: "awaiting_notary_seal",
     certified: "certified",
     certified_with_observations: "certified",
     needs_correction: "needs_correction",
     rejected: "rejected",
-    archived: "certified",
+    archived: "archived",
     expired: "certified",
     renewal_available: "certified",
     renewal_in_progress: "certified",
@@ -51,6 +52,8 @@ export function dbPacketStatusToDomain(
       return "ready_for_notary";
     case "under_review":
       return "under_notary_review";
+    case "awaiting_notary_seal":
+      return "awaiting_notary_seal";
     case "needs_correction":
       return "needs_correction";
     case "certified":
@@ -62,6 +65,8 @@ export function dbPacketStatusToDomain(
       return "certified";
     case "rejected":
       return "rejected";
+    case "archived":
+      return "archived";
     default:
       return "draft";
   }

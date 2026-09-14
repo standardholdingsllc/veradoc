@@ -111,6 +111,13 @@ export const ACTIONS = {
   tomarDecision: "Tomar decisión",
   certificar: "Certificar",
   certificarConObservaciones: "Certificar con observaciones",
+  aprobarEvidenciaParaSello: "Aprobar evidencia para certificación física",
+  descargarParaImprimir: "Descargar PDF firmado para imprimir",
+  subirEscaneoNotarial: "Subir escaneo con certificación notarial",
+  confirmarAtestacion: "Confirmar atestación",
+  prepararReporte: "Preparar reporte de verificación",
+  publicarDocumentoNotarizado: "Publicar documento con certificación notarial",
+  reemplazarEscaneo: "Reemplazar escaneo",
   devolverParaCorreccion: "Devolver para corrección",
   rechazar: "Rechazar",
   enviarRecordatorio: "Enviar recordatorio",
@@ -256,6 +263,7 @@ export const CHECKLIST = {
 export const NOTARY_QUEUE = {
   pendientes: "Pendientes de revisión",
   enRevision: "En revisión",
+  pendienteSello: "Pendiente de sello notarial",
   requierenCorreccion: "Requieren corrección",
   certificados: "Certificados",
   certificadosConObservaciones: "Certificados con observaciones",
@@ -342,6 +350,7 @@ export const STATUS_LABELS = {
   evidence_report_generated: "Informe generado",
   ready_for_notary: "Listo para notario",
   under_notary_review: "En revisión notarial",
+  awaiting_notary_seal: "Pendiente de sello notarial",
   certified: "Certificado",
   certified_with_observations: "Certificado con observaciones",
   needs_correction: "Requiere corrección",
@@ -414,6 +423,8 @@ export const HASH_STAGES = {
   initial_upload: "Carga inicial",
   post_signatures: "Post-firmas",
   final_certified: "Certificación final",
+  notarial_scan: "Escaneo notarial",
+  certification_report: "Reporte de certificación",
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -618,11 +629,20 @@ export const CONFIRM = {
   certificarConObservacionesTitulo: "Confirmar certificación con observaciones",
   certificarConObservacionesMensaje:
     "¿Confirma la certificación con las observaciones indicadas?",
+  aprobarEvidenciaTitulo: "Aprobar evidencia para certificación física",
+  aprobarEvidenciaMensaje:
+    "La evidencia será aprobada. Deberá imprimir el documento, aplicar el sello y firma notarial, escanear el resultado y subirlo para completar la certificación.",
+  publicarDocumentoTitulo: "Publicar documento con certificación notarial",
+  publicarDocumentoMensaje:
+    "¿Confirma la publicación? El documento con certificación notarial de firmas será distribuido a todas las partes.",
   devolverTitulo: "Devolver para corrección",
   devolverMensaje:
     "¿Confirma que desea devolver este paquete para corrección?",
   rechazarTitulo: "Rechazar paquete",
   rechazarMensaje: "¿Confirma que desea rechazar este paquete? Esta acción es irreversible.",
+  rechazarDesdeSelloTitulo: "Rechazar paquete durante certificación física",
+  rechazarDesdeSelloMensaje:
+    "¿Confirma el rechazo de este paquete? Se requiere un motivo detallado. Esta acción es irreversible.",
   iniciarRevisionTitulo: "Iniciar revisión notarial",
   iniciarRevisionMensaje:
     "Al iniciar la revisión, el paquete quedará en estado de revisión activa.",
@@ -638,6 +658,12 @@ export const TOAST = {
   paqueteCertificado: "Paquete certificado exitosamente",
   paqueteCertificadoConObservaciones:
     "Paquete certificado con observaciones",
+  evidenciaAprobadaParaSello: "Evidencia aprobada — proceda con la certificación física",
+  escaneoSubido: "Escaneo con certificación notarial subido exitosamente",
+  escaneoReemplazado: "Escaneo reemplazado — se requiere nueva atestación",
+  atestacionConfirmada: "Atestación registrada",
+  reportePreparado: "Reporte de verificación preparado",
+  documentoPublicado: "Documento con certificación notarial publicado exitosamente",
   devueltoCorreccion: "Paquete devuelto para corrección",
   paqueteRechazado: "Paquete rechazado",
   firmaRegistrada: "Su firma ha sido registrada",

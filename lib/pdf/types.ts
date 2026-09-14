@@ -1,5 +1,5 @@
 export interface DocumentHashRecord {
-  stage: "initial_upload" | "post_signatures" | "final_certified";
+  stage: "initial_upload" | "post_signatures" | "final_certified" | "notarial_scan" | "certification_report";
   algorithm: string;
   hash: string;
   timestamp: string;

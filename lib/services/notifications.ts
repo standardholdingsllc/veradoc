@@ -11,11 +11,49 @@ import { packetNeedsCorrectionHtml, packetNeedsCorrectionPartyHtml } from "./ema
 import { packetRejectedHtml, packetRejectedPartyHtml } from "./email-templates/packet-rejected";
 import { paymentConfirmationHtml } from "./email-templates/payment-confirmation";
 import { signerRejectedFirmEasyHtml } from "./email-templates/signer-rejected-firmeasy";
+import { comprobanteAvailableHtml } from "./email-templates/comprobante-available";
+import {
+  packetArchivedHtml,
+  packetServiceWindowReminderHtml,
+} from "./email-templates/packet-service-window";
 
 function getSiteUrl(): string {
   if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
   return "http://localhost:3000";
+}
+
+export async function notifyPacketServiceWindow(params: {
+  email: string;
+  recipientName: string;
+  packetCode: string;
+  packetId: string;
+  propertyAddress: string;
+  daysRemaining?: number;
+  endsAt?: string;
+  archived: boolean;
+  idempotencyKey: string;
+}) {
+  const common = {
+    recipientName: params.recipientName,
+    packetCode: params.packetCode,
+    propertyAddress: params.propertyAddress,
+    dashboardUrl: `${getSiteUrl()}/agente/paquetes/${params.packetId}`,
+  };
+  return sendEmail({
+    to: params.email,
+    subject: params.archived
+      ? `Paquete ${params.packetCode} archivado — VeraDoc`
+      : `${params.daysRemaining} días para completar ${params.packetCode} — VeraDoc`,
+    html: params.archived
+      ? packetArchivedHtml(common)
+      : packetServiceWindowReminderHtml({
+          ...common,
+          daysRemaining: params.daysRemaining ?? 0,
+          endsAt: params.endsAt ?? "",
+        }),
+    idempotencyKey: params.idempotencyKey,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -234,6 +272,79 @@ export async function notifyPacketRejected(params: {
   return realtorEmail;
 }
 
+/**
+ * Recipient-level variants used by the durable outbox. They deliberately let
+ * provider failures propagate so the claim can be retried, and every delivery
+ * carries the outbox row id as its provider idempotency key.
+ */
+export async function notifyPacketNeedsCorrectionRecipient(params: {
+  recipientEmail: string;
+  recipientName: string;
+  recipientRole: "realtor" | "landlord" | "renter";
+  realtorName: string;
+  packetCode: string;
+  packetId: string;
+  propertyAddress: string;
+  reason: string;
+  idempotencyKey: string;
+}) {
+  const isRealtor = params.recipientRole === "realtor";
+  return sendEmail({
+    to: params.recipientEmail,
+    subject: isRealtor
+      ? `Paquete devuelto — ${params.packetCode} — VeraDoc`
+      : `Contrato en revisión — ${params.packetCode} — VeraDoc`,
+    html: isRealtor
+      ? packetNeedsCorrectionHtml({
+          realtorName: params.recipientName,
+          packetCode: params.packetCode,
+          propertyAddress: params.propertyAddress,
+          reason: params.reason,
+          packetUrl: `${getSiteUrl()}/agente/paquetes/${params.packetId}`,
+        })
+      : packetNeedsCorrectionPartyHtml({
+          partyName: params.recipientName,
+          packetCode: params.packetCode,
+          propertyAddress: params.propertyAddress,
+          realtorName: params.realtorName,
+        }),
+    idempotencyKey: params.idempotencyKey,
+  });
+}
+
+export async function notifyPacketRejectedRecipient(params: {
+  recipientEmail: string;
+  recipientName: string;
+  recipientRole: "realtor" | "landlord" | "renter";
+  realtorName: string;
+  packetCode: string;
+  propertyAddress: string;
+  reason: string;
+  idempotencyKey: string;
+}) {
+  const isRealtor = params.recipientRole === "realtor";
+  return sendEmail({
+    to: params.recipientEmail,
+    subject: isRealtor
+      ? `Paquete rechazado — ${params.packetCode} — VeraDoc`
+      : `Contrato no aprobado — ${params.packetCode} — VeraDoc`,
+    html: isRealtor
+      ? packetRejectedHtml({
+          realtorName: params.recipientName,
+          packetCode: params.packetCode,
+          propertyAddress: params.propertyAddress,
+          reason: params.reason,
+        })
+      : packetRejectedPartyHtml({
+          partyName: params.recipientName,
+          packetCode: params.packetCode,
+          propertyAddress: params.propertyAddress,
+          realtorName: params.realtorName,
+        }),
+    idempotencyKey: params.idempotencyKey,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Packet lifecycle — Notary notifications
 // ---------------------------------------------------------------------------
@@ -275,6 +386,7 @@ export async function notifyPacketCertified(params: {
   packetCode: string;
   packetId: string;
   propertyAddress: string;
+  idempotencyKey?: string;
 }) {
   const emails = params.recipients.map((r) => {
     const dashPath = r.role === "realtor"
@@ -306,6 +418,84 @@ export async function notifyPacketCertified(params: {
   });
 }
 
+/**
+ * Deliver one certification notification from the durable outbox.
+ * Provider errors intentionally propagate so the worker can retry the row.
+ */
+export async function notifyPacketCertifiedRecipient(params: {
+  email: string;
+  name: string;
+  role: "realtor" | "landlord" | "renter";
+  packetCode: string;
+  packetId: string;
+  propertyAddress: string;
+  idempotencyKey: string;
+}): Promise<{ id: string }> {
+  const dashPath = params.role === "realtor"
+    ? `/agente/paquetes/${params.packetId}`
+    : params.role === "landlord"
+      ? `/arrendador/contratos/${params.packetId}`
+      : `/arrendatario/contratos/${params.packetId}`;
+
+  return sendEmail({
+    to: params.email,
+    subject: `Contrato certificado — ${params.packetCode} — VeraDoc`,
+    html: packetCertifiedHtml({
+      recipientName: params.name,
+      packetCode: params.packetCode,
+      propertyAddress: params.propertyAddress,
+      dashboardUrl: `${getSiteUrl()}${dashPath}`,
+    }),
+    tags: [
+      { name: "event", value: "packet_certified" },
+      { name: "packet_id", value: params.packetId },
+      { name: "role", value: params.role },
+    ],
+    idempotencyKey: params.idempotencyKey,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Payment
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Comprobante (CPE) availability
+// ---------------------------------------------------------------------------
+
+/**
+ * Notify the realtor that their CPE document is available for download.
+ *
+ * IMPORTANT: This function must NOT catch errors. Delivery failures must
+ * propagate to the outbox processor for proper retry handling.
+ */
+export async function notifyComprobanteAvailable(params: {
+  realtorEmail: string;
+  realtorName: string;
+  tipoDoc: string;
+  documentNumber: string;
+  packetCode: string;
+  packetId: string;
+  propertyAddress: string;
+  idempotencyKey?: string;
+}): Promise<{ id: string }> {
+  const siteUrl = getSiteUrl();
+
+  return sendEmail({
+    to: params.realtorEmail,
+    subject: `Comprobante disponible — ${params.documentNumber} — VeraDoc`,
+    html: comprobanteAvailableHtml({
+      recipientName: params.realtorName,
+      tipoDoc: params.tipoDoc,
+      documentNumber: params.documentNumber,
+      packetCode: params.packetCode,
+      propertyAddress: params.propertyAddress,
+      dashboardUrl: `${siteUrl}/agente/paquetes/${params.packetId}`,
+    }),
+    idempotencyKey: params.idempotencyKey,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Payment
 // ---------------------------------------------------------------------------
@@ -316,7 +506,8 @@ export async function notifyPaymentConfirmation(params: {
   packetCode: string;
   propertyAddress: string;
   amount: string;
-  chargeId: string;
+  providerPaymentId: string;
+  idempotencyKey?: string;
 }) {
   return sendEmail({
     to: params.realtorEmail,
@@ -325,9 +516,10 @@ export async function notifyPaymentConfirmation(params: {
       realtorName: params.realtorName,
       packetCode: params.packetCode,
       amount: params.amount,
-      chargeId: params.chargeId,
+      providerPaymentId: params.providerPaymentId,
       propertyAddress: params.propertyAddress,
     }),
+    idempotencyKey: params.idempotencyKey,
   }).catch((err) => {
     console.error("[notifications] paymentConfirmation failed:", err);
     return { id: "error", status: "failed" };

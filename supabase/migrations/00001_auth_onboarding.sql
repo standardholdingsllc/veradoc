@@ -4,32 +4,6 @@
 -- RLS policies for all tables
 
 -- =============================================================================
--- ADMIN CHECK HELPER (avoids RLS self-recursion on profiles)
--- =============================================================================
--- Policies on public.profiles cannot query public.profiles to check admin
--- status — Postgres detects the cycle and throws "infinite recursion detected
--- in policy". This SECURITY DEFINER function runs as the owner (bypassing RLS)
--- so it can read the profiles table without triggering policy evaluation.
-
-create or replace function public.is_active_admin()
-returns boolean
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select exists (
-    select 1 from public.profiles
-    where id = auth.uid()
-      and role = 'admin'
-      and status = 'active'
-  );
-$$;
-
-revoke execute on function public.is_active_admin() from public;
-grant execute on function public.is_active_admin() to authenticated;
-
--- =============================================================================
 -- PROFILES
 -- =============================================================================
 
@@ -56,6 +30,34 @@ create table public.profiles (
 );
 
 alter table public.profiles enable row level security;
+
+-- =============================================================================
+-- ADMIN CHECK HELPER (avoids RLS self-recursion on profiles)
+-- =============================================================================
+-- Policies on public.profiles cannot query public.profiles to check admin
+-- status — Postgres detects the cycle and throws "infinite recursion detected
+-- in policy". This SECURITY DEFINER function runs as the owner (bypassing RLS)
+-- so it can read the profiles table without triggering policy evaluation.
+-- It must be created after public.profiles so a clean migration replay can
+-- validate the SQL-language function body.
+
+create or replace function public.is_active_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid()
+      and role = 'admin'
+      and status = 'active'
+  );
+$$;
+
+revoke execute on function public.is_active_admin() from public;
+grant execute on function public.is_active_admin() to authenticated;
 
 -- Users can read their own profile
 create policy "Users can read own profile"

@@ -1,11 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import type { EarningsMonth } from "@/lib/actions/notary";
-
-// Per-packet payout rate — Section 27.4 TBD
-const PAYOUT_RATE_PEN = 15;
 
 function formatMonth(key: string): string {
   const [year, month] = key.split("-");
@@ -27,13 +24,13 @@ export function EarningsClient({ months }: EarningsClientProps) {
 
   const currentMonthData = months.find((m) => m.month === thisMonth);
   const currentCount = currentMonthData?.certifiedCount ?? 0;
-  const currentPayout = currentCount * PAYOUT_RATE_PEN;
+  const currentPayout = currentMonthData?.estimatedPayoutPen ?? 0;
 
-  const cumulative = useMemo(
-    () => months.reduce((sum, m) => sum + m.certifiedCount, 0),
-    [months],
+  const cumulative = months.reduce((sum, m) => sum + m.certifiedCount, 0);
+  const cumulativePayout = months.reduce(
+    (sum, month) => sum + month.estimatedPayoutPen,
+    0,
   );
-  const cumulativePayout = cumulative * PAYOUT_RATE_PEN;
 
   return (
     <div className="space-y-6">
@@ -68,6 +65,7 @@ export function EarningsClient({ months }: EarningsClientProps) {
                     <th className="px-6 py-3 text-right">Certificados</th>
                     <th className="px-6 py-3 text-right">Con observaciones</th>
                     <th className="px-6 py-3 text-right">Estimado</th>
+                    <th className="px-6 py-3 text-right">Estado</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -86,7 +84,40 @@ export function EarningsClient({ months }: EarningsClientProps) {
                         {m.withObservationsCount}
                       </td>
                       <td className="px-6 py-3 text-right font-mono">
-                        S/ {(m.certifiedCount * PAYOUT_RATE_PEN).toFixed(2)}
+                        S/ {m.estimatedPayoutPen.toFixed(2)}
+                        {m.pendingCalculationCount > 0 && (
+                          <span className="ml-1 block text-[10px] text-amber-600">
+                            {m.pendingCalculationCount} pendientes de cierre MND
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-3 text-right">
+                        <Badge variant={
+                          m.payoutStatus === "paid"
+                            ? "success"
+                            : m.payoutStatus === "confirmed"
+                              ? "info"
+                              : m.payoutStatus === "prepared"
+                                ? "warning"
+                              : m.payoutStatus === "void"
+                                ? "error"
+                                : "muted"
+                        }>
+                          {m.payoutStatus === "paid"
+                            ? "Pagado"
+                            : m.payoutStatus === "confirmed"
+                              ? "Aprobado"
+                              : m.payoutStatus === "prepared"
+                                ? "Preparado"
+                              : m.payoutStatus === "void"
+                                ? "Anulado"
+                                : "Estimado"}
+                        </Badge>
+                        {m.paymentReference && (
+                          <p className="mt-1 font-mono text-[10px] text-muted">
+                            {m.paymentReference}
+                          </p>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -98,9 +129,10 @@ export function EarningsClient({ months }: EarningsClientProps) {
       </Card>
 
       <p className="text-xs text-muted">
-        El estimado se basa en una tarifa de S/ {PAYOUT_RATE_PEN.toFixed(2)} por
-        certificación. La tarifa definitiva está sujeta al acuerdo contractual.
-        Las certificaciones con observaciones cuentan para el pago.
+        La participación es un porcentaje del MND contractual, no una tarifa fija
+        por documento. El importe se muestra cuando Finanzas prepara el cierre con
+        la comisión de pago conciliada; otra persona lo aprueba contra el comprobante
+        notarial y el estado Pagado incluye la referencia de desembolso.
       </p>
     </div>
   );

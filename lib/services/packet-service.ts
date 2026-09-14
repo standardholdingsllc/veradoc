@@ -169,7 +169,6 @@ export function createPacket(data: CreatePacketInput): LeasePacket {
       amount: data.paymentAmount ?? 149,
       currency: "PEN",
       paymentMethodPlaceholder: "Pendiente",
-      invoiceStatus: "pending",
     },
     documentHashes: [
       {
@@ -218,13 +217,6 @@ export function confirmPayment(packetId: string): LeasePacket {
       status: "paid",
       paidAt: now,
       paymentMethodPlaceholder: "Tarjeta Visa •••• 4242",
-      invoiceStatus: "issued",
-    },
-    factura: {
-      status: "issued",
-      numberPlaceholder: `F001-${String(Date.now()).slice(-8)}`,
-      issuedAt: now,
-      downloadUrlPlaceholder: `/demo/facturas/F001-${String(Date.now()).slice(-8)}.pdf`,
     },
   });
 
@@ -423,7 +415,6 @@ export function createRenewalPacket(sourcePacketId: string): LeasePacket {
       currency: "PEN",
       paidAt: now,
       paymentMethodPlaceholder: "Renovación demo",
-      invoiceStatus: "issued",
     },
     documentHashes: [
       {
@@ -455,12 +446,6 @@ export function createRenewalPacket(sourcePacketId: string): LeasePacket {
         "Enlaces enviados a firmantes",
       ),
     ],
-    factura: {
-      status: "issued",
-      numberPlaceholder: `F001-${String(Date.now()).slice(-8)}`,
-      issuedAt: now,
-      downloadUrlPlaceholder: `/demo/facturas/F001-${String(Date.now()).slice(-8)}.pdf`,
-    },
     renewalEligibility: { eligible: false },
   };
 

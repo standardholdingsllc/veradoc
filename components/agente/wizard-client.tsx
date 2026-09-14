@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import Script from "next/script";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -27,13 +26,11 @@ import {
 } from "@/lib/actions/agente-actions";
 import {
   preparePaymentAction,
-  processPaymentAction,
-  completePayment3DSAction,
+  previewPrivatePromoAction,
+  type PromoPreviewResult,
 } from "@/lib/actions/payment-actions";
-import { useCulqiCheckout } from "@/components/culqi/use-culqi-checkout";
-import type { CheckoutConfig } from "@/components/culqi/use-culqi-checkout";
-import { useCulqi3DS } from "@/components/culqi/use-culqi-3ds";
-import type { ThreeDSParams } from "@/components/culqi/use-culqi-3ds";
+import { lookupRucAction } from "@/lib/actions/ruc-lookup-actions";
+import { PaymentMethodSelector } from "@/components/payment/payment-method-selector";
 import { formatCurrency, formatDate, truncateHash } from "@/lib/formatters";
 import {
   ACTIONS,
@@ -69,7 +66,30 @@ const DISTRICTS = [
   "La Molina",
 ] as const;
 
-const FEE_AMOUNT = 89;
+const COMMERCIAL_SERVICE_LABELS: Record<string, string> = {
+  packet_processing: "Creación y procesamiento del paquete",
+  identity_and_evidence: "Identidad y expediente de evidencia",
+  firmeasy_signing: "Firmas electrónicas FirmEasy",
+  routine_messages: "Mensajes operativos estándar",
+  evidence_report: "Informe de evidencia",
+  notary_processing_when_accepted: "Trámite notarial cuando sea aceptado",
+  standard_corrections: "Correcciones estándar del flujo",
+  cpe: "Comprobante de pago electrónico",
+  standard_storage: "Almacenamiento durante la ventana de servicio",
+  workflow_support: "Soporte estándar del flujo",
+  additional_primary_documents: "Documentos principales adicionales",
+  additional_notarial_acts: "Actos notariales adicionales",
+  certified_copies: "Copias certificadas",
+  translation_or_interpreter: "Traducción o intérprete",
+  legalization_or_apostille: "Legalización o apostilla",
+  public_registry_fees: "Tasas de registros públicos",
+  physical_delivery: "Entrega física",
+  extraordinary_verification: "Verificación extraordinaria",
+};
+
+function commercialServiceLabel(key: string): string {
+  return COMMERCIAL_SERVICE_LABELS[key] ?? key.replaceAll("_", " ");
+}
 
 interface SignerFormEntry {
   localId: string;
@@ -160,12 +180,25 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
 
 interface WizardClientProps {
   coveredProvinces: string[];
-  culqiPublicKey?: string;
-  userEmail?: string;
+  feeAmount: number;
+  serviceWindowDays: number;
+  includedServices: string[];
+  excludedServices: string[];
   demoPaymentsEnabled?: boolean;
+  mercadoPagoPublicKey?: string;
+  realtorEmail?: string;
 }
 
-export function WizardClient({ coveredProvinces, culqiPublicKey, userEmail, demoPaymentsEnabled }: WizardClientProps) {
+export function WizardClient({
+  coveredProvinces,
+  feeAmount,
+  serviceWindowDays,
+  includedServices,
+  excludedServices,
+  demoPaymentsEnabled,
+  mercadoPagoPublicKey,
+  realtorEmail,
+}: WizardClientProps) {
   const [step, setStep] = useState(1);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -201,118 +234,59 @@ export function WizardClient({ coveredProvinces, culqiPublicKey, userEmail, demo
     createSignerEntry("renter"),
   ]);
 
+  const [paymentStatus, setPaymentStatus] = useState<
+    "idle" | "preparing" | "completed"
+  >("idle");
+
   const [preparedPayment, setPreparedPayment] = useState<{
     paymentId: string;
     amountCentimos: number;
-    currency: string;
-    description: string;
-    challengeNonce: string;
+    standardAmountCentimos: number;
+    discountCentimos: number;
   } | null>(null);
-  const [paymentStatus, setPaymentStatus] = useState<
-    "idle" | "preparing" | "prepared" | "charging" | "challenging" | "completed" | "failed"
-  >("idle");
-  const [threeDSTokenId, setThreeDSTokenId] = useState<string | null>(null);
-  const [threeDSChallengeNonce, setThreeDSChallengeNonce] = useState<string | null>(null);
 
-  const { generateDevice, initAuthentication, reset: reset3DS } = useCulqi3DS({
-    publicKey: culqiPublicKey ?? "",
-    onResult: async (params: ThreeDSParams) => {
-      if (!preparedPayment || !threeDSTokenId || !threeDSChallengeNonce) {
-        toast.error("Estado 3DS inválido. Intente nuevamente.");
-        setPaymentStatus("prepared");
-        return;
-      }
-      setPaymentStatus("charging");
+  const [promoCode, setPromoCode] = useState("");
+  const [promoPreview, setPromoPreview] = useState<PromoPreviewResult | null>(null);
+  const [promoLoading, setPromoLoading] = useState(false);
+
+  // Purchaser / comprobante state
+  const [comprobanteType, setComprobanteType] = useState<"01" | "03">("03");
+  const [purchaserNumDoc, setPurchaserNumDoc] = useState("");
+  const [purchaserRazonSocial, setPurchaserRazonSocial] = useState("");
+  const [purchaserConfirmed, setPurchaserConfirmed] = useState(false);
+  const [rucLookupLoading, setRucLookupLoading] = useState(false);
+
+  useEffect(() => {
+    if (comprobanteType !== "01" || purchaserNumDoc.length !== 11) {
+      setRucLookupLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      setRucLookupLoading(true);
       try {
-        const result = await completePayment3DSAction({
-          paymentId: preparedPayment.paymentId,
-          tokenId: threeDSTokenId,
-          challengeNonce: threeDSChallengeNonce,
-          authentication3DS: params,
-        });
-        if (result.error) {
-          toast.error(result.error);
-          setPaymentStatus("prepared");
-          return;
+        const result = await lookupRucAction(purchaserNumDoc);
+        if (cancelled) return;
+        if (result.data) {
+          setPurchaserRazonSocial((current) =>
+            current.trim() === "" ? result.data!.razonSocial : current,
+          );
         }
-        if (result.data?.kind === "succeeded") {
-          setPaymentStatus("completed");
-          toast.success(TOAST.pagoConfirmado);
-          setStep(6);
-        } else if (result.data?.kind === "declined") {
-          toast.error(result.data.message);
-          setPaymentStatus("prepared");
-        } else if (result.data?.kind === "uncertain") {
-          toast.warning(result.data.message);
-          setPaymentStatus("prepared");
-        } else {
-          toast.error(TOAST.errorGenerico);
-          setPaymentStatus("prepared");
-        }
-      } catch {
-        toast.error(TOAST.errorGenerico);
-        setPaymentStatus("prepared");
       } finally {
-        reset3DS();
-        setThreeDSTokenId(null);
-        setThreeDSChallengeNonce(null);
-      }
-    },
-    onError: (message: string) => {
-      toast.error(message);
-      reset3DS();
-      setThreeDSTokenId(null);
-      setThreeDSChallengeNonce(null);
-      setPaymentStatus("prepared");
-    },
-  });
-
-  const { open: openCheckout } = useCulqiCheckout({
-    onToken: async (tokenId: string) => {
-      if (!preparedPayment || !userEmail) return;
-      setPaymentStatus("charging");
-      try {
-        // Generate device fingerprint before processing (for antifraud)
-        const deviceFingerPrintId = await generateDevice() ?? undefined;
-
-        const result = await processPaymentAction({
-          paymentId: preparedPayment.paymentId,
-          tokenId,
-          deviceFingerPrintId,
-        });
-        if (result.error) {
-          toast.error(result.error);
-          setPaymentStatus("prepared");
-          return;
+        if (!cancelled) {
+          setRucLookupLoading(false);
         }
-        if (result.data?.kind === "succeeded") {
-          setPaymentStatus("completed");
-          toast.success(TOAST.pagoConfirmado);
-          setStep(6);
-        } else if (result.data?.kind === "declined") {
-          toast.error(result.data.message);
-          setPaymentStatus("prepared");
-        } else if (result.data?.kind === "uncertain") {
-          toast.warning(result.data.message);
-          setPaymentStatus("prepared");
-        } else if (result.data?.kind === "requires_3ds") {
-          // Enter 3DS challenge flow
-          setThreeDSTokenId(tokenId);
-          setThreeDSChallengeNonce(result.data.challengeNonce);
-          setPaymentStatus("challenging");
-          toast.info("Se requiere autenticación 3DS. Procesando...");
-          await initAuthentication(tokenId, preparedPayment.amountCentimos, userEmail);
-        }
-      } catch {
-        toast.error(TOAST.errorGenerico);
-        setPaymentStatus("prepared");
       }
-    },
-    onError: (message: string) => {
-      toast.error(message);
-      setPaymentStatus("prepared");
-    },
-  });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [comprobanteType, purchaserNumDoc]);
+
+  const mercadoPagoConfigured = !!mercadoPagoPublicKey;
 
   const coveredProvince = findCoveredProvince(
     contractForm.province,
@@ -395,13 +369,13 @@ export function WizardClient({ coveredProvinces, culqiPublicKey, userEmail, demo
       case 4:
         return true;
       case 5:
-        return createdPacketId !== null;
+        return createdPacketId !== null && purchaserConfirmed;
       case 6:
         return true;
       default:
         return false;
     }
-  }, [step, documentUploaded, contractForm, signers, createdPacketId, provinceHasCoverage]);
+  }, [step, documentUploaded, contractForm, signers, createdPacketId, provinceHasCoverage, purchaserConfirmed]);
 
   const ensurePacketCreated = async (): Promise<string | null> => {
     if (createdPacketId) return createdPacketId;
@@ -461,39 +435,43 @@ export function WizardClient({ coveredProvinces, culqiPublicKey, userEmail, demo
       const pId = await ensurePacketCreated();
       if (!pId) { setPaymentStatus("idle"); return; }
 
-      // If Culqi is configured, use real checkout
-      if (culqiPublicKey && userEmail) {
-        const prepareResult = await preparePaymentAction(pId);
-        if (prepareResult.error) {
-          toast.error(prepareResult.error);
-          setPaymentStatus("idle");
-          return;
-        }
-
-        const prepared = prepareResult.data!;
-        setPreparedPayment(prepared);
-        setPaymentStatus("prepared");
-
-        openCheckout({
-          publicKey: culqiPublicKey,
-          paymentId: prepared.paymentId,
-          amountCentimos: prepared.amountCentimos,
-          currency: prepared.currency,
-          email: userEmail,
+      if (demoPaymentsEnabled || mercadoPagoConfigured) {
+        const prepareResult = await preparePaymentAction({
+          packetId: pId,
+          comprobanteType,
+          purchaserTipoDoc: comprobanteType === "01" ? "6" : "1",
+          purchaserNumDoc,
+          purchaserRazonSocial: purchaserRazonSocial || undefined,
+          promoCode: promoPreview ? promoCode : undefined,
         });
-      } else if (demoPaymentsEnabled) {
-        // Demo mode: use legacy stub payment
-        const paymentResult = await confirmPacketPayment(pId);
-        if (paymentResult.error) {
-          toast.error(paymentResult.error);
+        if (prepareResult.error || !prepareResult.data) {
+          toast.error(prepareResult.error ?? "No se pudo preparar el pago.");
           setPaymentStatus("idle");
           return;
         }
-        setPaymentStatus("completed");
-        toast.success(TOAST.pagoConfirmado);
-        setStep(6);
+
+        if (demoPaymentsEnabled) {
+          const paymentResult = await confirmPacketPayment(prepareResult.data.paymentId);
+          if (paymentResult.error) {
+            toast.error(paymentResult.error);
+            setPaymentStatus("idle");
+            return;
+          }
+          setPaymentStatus("completed");
+          toast.success(TOAST.pagoConfirmado);
+          setStep(6);
+          return;
+        }
+
+        setPreparedPayment({
+          paymentId: prepareResult.data.paymentId,
+          amountCentimos: prepareResult.data.amountCentimos,
+          standardAmountCentimos: prepareResult.data.standardAmountCentimos,
+          discountCentimos: prepareResult.data.discountCentimos,
+        });
+        setPaymentStatus("idle");
       } else {
-        toast.error("Pagos no configurados. Contacte al administrador.");
+        toast.error("Proveedor de pago pendiente de integración.");
         setPaymentStatus("idle");
       }
     } catch {
@@ -502,17 +480,6 @@ export function WizardClient({ coveredProvinces, culqiPublicKey, userEmail, demo
     } finally {
       setProcessing(false);
     }
-  };
-
-  const handleRetryPayment = () => {
-    if (!preparedPayment || !culqiPublicKey || !userEmail) return;
-    openCheckout({
-      publicKey: culqiPublicKey,
-      paymentId: preparedPayment.paymentId,
-      amountCentimos: preparedPayment.amountCentimos,
-      currency: preparedPayment.currency,
-      email: userEmail,
-    });
   };
 
   const handleSendLinks = async () => {
@@ -541,12 +508,6 @@ export function WizardClient({ coveredProvinces, culqiPublicKey, userEmail, demo
 
   return (
     <div className="mx-auto w-full max-w-[900px] px-4 py-8 md:px-8">
-      {culqiPublicKey && (
-        <>
-          <Script src="https://js.culqi.com/checkout-js" strategy="afterInteractive" />
-          <Script src="https://3ds.culqi.com" strategy="afterInteractive" />
-        </>
-      )}
       <header className="mb-6">
         <Link
           href="/agente"
@@ -1091,21 +1052,243 @@ export function WizardClient({ coveredProvinces, culqiPublicKey, userEmail, demo
             <CardTitle className="text-base">{WIZARD.pago}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="rounded-md border border-border bg-surface/50 p-6 text-center">
-              <p className="text-xs uppercase tracking-wide text-muted">
-                {WIZARD.tarifaVeradoc}
-              </p>
-              <p className="mt-2 font-mono text-3xl font-semibold text-primary">
-                {preparedPayment
-                  ? formatCurrency(preparedPayment.amountCentimos / 100)
-                  : formatCurrency(FEE_AMOUNT)}
-              </p>
-            </div>
+            {!preparedPayment && (
+              <>
+                <div className="rounded-md border border-border bg-surface/50 p-6 text-center">
+                  <p className="text-xs uppercase tracking-wide text-muted">
+                    {WIZARD.tarifaVeradoc}
+                  </p>
+                  {promoPreview && (
+                    <p className="mt-2 text-sm text-muted line-through">
+                      {formatCurrency(promoPreview.standardAmountCentimos / 100)}
+                    </p>
+                  )}
+                  <p className="mt-2 font-mono text-3xl font-semibold text-primary">
+                    {formatCurrency(
+                      promoPreview ? promoPreview.amountCentimos / 100 : feeAmount,
+                    )}
+                  </p>
+                  <p className="mt-1 text-xs text-muted">Precio final por documento, IGV incluido.</p>
+                  {promoPreview && (
+                    <p className="mt-2 text-sm font-medium text-success">
+                      Promoción {promoPreview.codeHint}: ahorro de{" "}
+                      {formatCurrency(promoPreview.discountCentimos / 100)}
+                    </p>
+                  )}
+                </div>
 
-            <p className="text-sm text-muted">
-              Al confirmar el pago se creará el paquete de arrendamiento y se
-              bloqueará la versión del documento.
-            </p>
+                <section className="space-y-3 rounded-md border border-border p-4">
+                  <h3 className="text-sm font-medium">Código promocional privado</h3>
+                  <p className="text-xs text-muted">
+                    VeraDoc no mantiene saldos ni créditos. Los códigos se validan caso por caso.
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      value={promoCode}
+                      onChange={(event) => {
+                        setPromoCode(event.target.value);
+                        setPromoPreview(null);
+                      }}
+                      maxLength={64}
+                      placeholder="Código promocional"
+                      className="min-w-0 flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm uppercase"
+                      autoComplete="off"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={promoLoading || !promoCode.trim()}
+                      onClick={async () => {
+                        setPromoLoading(true);
+                        const result = await previewPrivatePromoAction(promoCode);
+                        setPromoLoading(false);
+                        if (result.error || !result.data) {
+                          setPromoPreview(null);
+                          toast.error(result.error ?? "Código promocional inválido.");
+                          return;
+                        }
+                        setPromoPreview(result.data);
+                        toast.success("Código promocional aplicado.");
+                      }}
+                    >
+                      {promoLoading && <Loader2 className="size-4 animate-spin" />}
+                      Aplicar
+                    </Button>
+                  </div>
+                </section>
+
+                <section className="space-y-3 rounded-md border border-border p-4 text-sm">
+                  <h3 className="font-medium">Qué incluye</h3>
+                  <ul className="grid gap-1 text-muted sm:grid-cols-2">
+                    {includedServices.map((service) => (
+                      <li key={service}>• {commercialServiceLabel(service)}</li>
+                    ))}
+                  </ul>
+                  {excludedServices.length > 0 && (
+                    <details className="text-xs text-muted">
+                      <summary className="cursor-pointer font-medium text-foreground">
+                        Servicios y gastos no incluidos
+                      </summary>
+                      <ul className="mt-2 grid gap-1 sm:grid-cols-2">
+                        {excludedServices.map((service) => (
+                          <li key={service}>• {commercialServiceLabel(service)}</li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                  <p className="border-t border-border pt-3 text-xs text-muted">
+                    El pago activa una ventana de servicio de {serviceWindowDays} días. La tarifa se
+                    devenga cuando la transacción se confirma y no depende del resultado notarial.
+                    Los reembolsos no se ofrecen de forma rutinaria; solo proceden por errores de cobro,
+                    fallas atribuibles a VeraDoc o una obligación legal.
+                  </p>
+                </section>
+
+                {/* Comprobante type and purchaser data capture */}
+                <section className="space-y-4 rounded-md border border-border p-4">
+                  <h3 className="text-sm font-medium">Datos de facturación</h3>
+
+                  <div className="flex gap-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="comprobanteType"
+                        value="03"
+                        checked={comprobanteType === "03"}
+                        onChange={() => {
+                          setComprobanteType("03");
+                          setPurchaserConfirmed(false);
+                          setPurchaserNumDoc("");
+                          setPurchaserRazonSocial("");
+                        }}
+                        className="accent-primary"
+                      />
+                      <span className="text-sm">Boleta de venta</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="comprobanteType"
+                        value="01"
+                        checked={comprobanteType === "01"}
+                        onChange={() => {
+                          setComprobanteType("01");
+                          setPurchaserConfirmed(false);
+                          setPurchaserNumDoc("");
+                          setPurchaserRazonSocial("");
+                        }}
+                        className="accent-primary"
+                      />
+                      <span className="text-sm">Factura</span>
+                    </label>
+                  </div>
+
+                  {comprobanteType === "03" && (
+                    <>
+                      <label className="block space-y-1">
+                        <span className="text-xs font-medium text-muted">DNI (8 dígitos)</span>
+                        <input
+                          type="text"
+                          maxLength={8}
+                          value={purchaserNumDoc}
+                          onChange={(e) => {
+                            setPurchaserNumDoc(e.target.value.replace(/\D/g, ""));
+                            setPurchaserConfirmed(false);
+                          }}
+                          className="w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-sm"
+                          placeholder="12345678"
+                        />
+                      </label>
+                      <label className="block space-y-1">
+                        <span className="text-xs font-medium text-muted">Nombre completo del comprador</span>
+                        <input
+                          type="text"
+                          value={purchaserRazonSocial}
+                          onChange={(e) => {
+                            setPurchaserRazonSocial(e.target.value);
+                            setPurchaserConfirmed(false);
+                          }}
+                          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                          placeholder="JUAN PÉREZ GARCÍA"
+                        />
+                      </label>
+                    </>
+                  )}
+
+                  {comprobanteType === "01" && (
+                    <>
+                      <label className="block space-y-1">
+                        <span className="text-xs font-medium text-muted">RUC (11 dígitos)</span>
+                        <input
+                          type="text"
+                          maxLength={11}
+                          value={purchaserNumDoc}
+                          onChange={(e) => {
+                            setPurchaserNumDoc(e.target.value.replace(/\D/g, ""));
+                            setPurchaserConfirmed(false);
+                          }}
+                          className="w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-sm"
+                          placeholder="20123456789"
+                        />
+                        {rucLookupLoading && (
+                          <span className="text-xs text-muted">Consultando SUNAT...</span>
+                        )}
+                      </label>
+                      <label className="block space-y-1">
+                        <span className="text-xs font-medium text-muted">Razón social</span>
+                        <input
+                          type="text"
+                          value={purchaserRazonSocial}
+                          onChange={(e) => {
+                            setPurchaserRazonSocial(e.target.value);
+                            setPurchaserConfirmed(false);
+                          }}
+                          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                          placeholder="EMPRESA S.A.C."
+                        />
+                      </label>
+                    </>
+                  )}
+
+                  {/* Confirmation */}
+                  {((comprobanteType === "03" && purchaserNumDoc.length === 8) ||
+                    (comprobanteType === "01" && purchaserNumDoc.length === 11 && purchaserRazonSocial.trim())) && (
+                    <div className="space-y-3">
+                      <div className="rounded-md border border-warning/30 bg-warning/5 p-3 text-xs text-warning">
+                        <p className="flex items-center gap-1 font-medium">
+                          <AlertTriangle className="size-3 shrink-0" />
+                          Verificar datos antes de continuar
+                        </p>
+                        <p className="mt-1">
+                          {comprobanteType === "01"
+                            ? `Se emitirá una factura a nombre de ${purchaserRazonSocial.trim().toUpperCase()} (RUC ${purchaserNumDoc}). El RUC y razón social deben coincidir exactamente con los registrados en SUNAT.`
+                            : `Se emitirá una boleta de venta para DNI ${purchaserNumDoc}.`}
+                        </p>
+                        <p className="mt-1">Una vez emitido el comprobante, no se puede modificar.</p>
+                      </div>
+
+                      <label className="flex items-start gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={purchaserConfirmed}
+                          onChange={(e) => setPurchaserConfirmed(e.target.checked)}
+                          className="mt-0.5 accent-primary"
+                        />
+                        <span className="text-xs text-muted">
+                          Confirmo que los datos de facturación son correctos y
+                          entiendo que el comprobante no se puede modificar después de emitido.
+                        </span>
+                      </label>
+                    </div>
+                  )}
+                </section>
+
+                <p className="text-sm text-muted">
+                  Al confirmar el pago se creará el paquete de arrendamiento y se
+                  bloqueará la versión del documento.
+                </p>
+              </>
+            )}
 
             {paymentStatus === "completed" && (
               <div className="rounded-md border border-success/30 bg-success/5 p-4 text-center text-sm text-success">
@@ -1114,42 +1297,55 @@ export function WizardClient({ coveredProvinces, culqiPublicKey, userEmail, demo
               </div>
             )}
 
-            {(paymentStatus === "idle" || paymentStatus === "preparing") && (
+            {preparedPayment && paymentStatus !== "completed" && mercadoPagoPublicKey && (
+              <PaymentMethodSelector
+                publicKey={mercadoPagoPublicKey}
+                paymentId={preparedPayment.paymentId}
+                amountCentimos={preparedPayment.amountCentimos}
+                payerEmail={realtorEmail}
+                onCompleted={() => {
+                  setPaymentStatus("completed");
+                  toast.success(TOAST.pagoConfirmado);
+                  setStep(6);
+                }}
+                onRetryPrepare={async () => {
+                  const pId = createdPacketId;
+                  if (!pId) return null;
+                  const r = await preparePaymentAction({
+                    packetId: pId,
+                    comprobanteType,
+                    purchaserTipoDoc: comprobanteType === "01" ? "6" : "1",
+                    purchaserNumDoc,
+                    purchaserRazonSocial: purchaserRazonSocial || undefined,
+                    promoCode: promoPreview ? promoCode : undefined,
+                  });
+                  if (r.error || !r.data) {
+                    toast.error(r.error ?? "Error preparando nuevo intento de pago.");
+                    return null;
+                  }
+                  setPreparedPayment({
+                    paymentId: r.data.paymentId,
+                    amountCentimos: r.data.amountCentimos,
+                    standardAmountCentimos: r.data.standardAmountCentimos,
+                    discountCentimos: r.data.discountCentimos,
+                  });
+                  return { paymentId: r.data.paymentId, existingStatus: r.data.existingStatus };
+                }}
+              />
+            )}
+
+            {!preparedPayment && (paymentStatus === "idle" || paymentStatus === "preparing") && (
               <Button
                 className="w-full"
                 size="lg"
                 onClick={handlePayment}
-                disabled={processing || paymentStatus === "preparing"}
+                disabled={processing || paymentStatus === "preparing" || !purchaserConfirmed}
               >
                 {(processing || paymentStatus === "preparing") && <Loader2 className="size-4 animate-spin" />}
-                {demoPaymentsEnabled && !culqiPublicKey ? "Simular pago" : ACTIONS.pagarYCrear}
+                {demoPaymentsEnabled ? "Simular pago" : mercadoPagoConfigured ? ACTIONS.pagarYCrear : ACTIONS.pagarYCrear}
               </Button>
             )}
 
-            {paymentStatus === "prepared" && (
-              <Button
-                className="w-full"
-                size="lg"
-                onClick={handleRetryPayment}
-                disabled={processing}
-              >
-                Reintentar pago
-              </Button>
-            )}
-
-            {paymentStatus === "charging" && (
-              <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted">
-                <Loader2 className="size-4 animate-spin" />
-                Procesando pago...
-              </div>
-            )}
-
-            {paymentStatus === "challenging" && (
-              <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted">
-                <Loader2 className="size-4 animate-spin" />
-                Autenticación 3DS en progreso...
-              </div>
-            )}
           </CardContent>
         </Card>
       )}

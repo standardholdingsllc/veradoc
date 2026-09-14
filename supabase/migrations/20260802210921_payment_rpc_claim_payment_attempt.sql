@@ -1,0 +1,2 @@
+-- Historical remote migration marker.
+-- Canonical provider-neutral effects are represented by 00013_payment_infrastructure.sql.

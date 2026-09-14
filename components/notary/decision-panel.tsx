@@ -33,6 +33,7 @@ import { Card, CardContent } from "@/components/ui/card";
 type DialogType =
   | "certify"
   | "certify_observations"
+  | "approve_seal"
   | "return"
   | "reject"
   | null;
@@ -40,6 +41,7 @@ type DialogType =
 interface DecisionPanelProps {
   packetId: string;
   className?: string;
+  workflowVersion?: string;
 }
 
 function ConfirmDialog({
@@ -404,15 +406,19 @@ import {
   returnForCorrectionAction,
   rejectAction,
 } from "@/lib/actions/notary";
+import { approveEvidenceForSealAction } from "@/lib/actions/notary-seal";
+import { Stamp } from "lucide-react";
 
 interface ProductionDecisionPanelProps {
   packetId: string;
   className?: string;
+  workflowVersion?: string;
 }
 
 export function ProductionDecisionPanel({
   packetId,
   className,
+  workflowVersion,
 }: ProductionDecisionPanelProps) {
   const router = useRouter();
   const [dialog, setDialog] = useState<DialogType>(null);
@@ -441,10 +447,10 @@ export function ProductionDecisionPanel({
   const handleCertify = useCallback(async () => {
     setProcessing(true);
     try {
-      await certifyAction(packetId);
-      handleSuccess(TOAST.paqueteCertificado);
-    } catch {
-      toast.error(TOAST.errorGenerico);
+      const result = await certifyAction(packetId);
+      handleSuccess(result.queued ? "Certificación encolada para procesamiento" : TOAST.paqueteCertificado);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : TOAST.errorGenerico);
     } finally {
       setProcessing(false);
     }
@@ -457,14 +463,16 @@ export function ProductionDecisionPanel({
     }
     setProcessing(true);
     try {
-      await certifyWithObservationsAction(
+      const result = await certifyWithObservationsAction(
         packetId,
         {},
         observations.trim(),
       );
-      handleSuccess(TOAST.paqueteCertificadoConObservaciones);
-    } catch {
-      toast.error(TOAST.errorGenerico);
+      handleSuccess(result.queued
+        ? "Certificación con observaciones encolada"
+        : TOAST.paqueteCertificadoConObservaciones);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : TOAST.errorGenerico);
     } finally {
       setProcessing(false);
     }
@@ -477,14 +485,14 @@ export function ProductionDecisionPanel({
     }
     setProcessing(true);
     try {
-      await returnForCorrectionAction(packetId, reason.trim());
+      await returnForCorrectionAction(packetId, reason.trim(), correctionScope);
       handleSuccess(TOAST.devueltoCorreccion);
-    } catch {
-      toast.error(TOAST.errorGenerico);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : TOAST.errorGenerico);
     } finally {
       setProcessing(false);
     }
-  }, [handleSuccess, packetId, reason]);
+  }, [correctionScope, handleSuccess, packetId, reason]);
 
   const handleReject = useCallback(async () => {
     if (!reason.trim()) {
@@ -495,12 +503,26 @@ export function ProductionDecisionPanel({
     try {
       await rejectAction(packetId, reason.trim());
       handleSuccess(TOAST.paqueteRechazado);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : TOAST.errorGenerico);
+    } finally {
+      setProcessing(false);
+    }
+  }, [handleSuccess, packetId, reason]);
+
+  const isPhysicalSeal = workflowVersion === "physical_seal_v1";
+
+  const handleApproveSeal = useCallback(async () => {
+    setProcessing(true);
+    try {
+      await approveEvidenceForSealAction(packetId);
+      handleSuccess(TOAST.evidenciaAprobadaParaSello);
     } catch {
       toast.error(TOAST.errorGenerico);
     } finally {
       setProcessing(false);
     }
-  }, [handleSuccess, packetId, reason]);
+  }, [handleSuccess, packetId]);
 
   return (
     <>
@@ -510,24 +532,38 @@ export function ProductionDecisionPanel({
           className,
         )}
       >
-        <Button
-          type="button"
-          variant="secondary"
-          className="h-auto flex-col gap-2 py-4"
-          onClick={() => setDialog("certify")}
-        >
-          <ShieldCheck className="size-5" aria-hidden="true" />
-          {ACTIONS.certificar}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-auto flex-col gap-2 py-4"
-          onClick={() => setDialog("certify_observations")}
-        >
-          <AlertTriangle className="size-5" aria-hidden="true" />
-          {ACTIONS.certificarConObservaciones}
-        </Button>
+        {isPhysicalSeal ? (
+          <Button
+            type="button"
+            variant="secondary"
+            className="h-auto flex-col gap-2 py-4 sm:col-span-2"
+            onClick={() => setDialog("approve_seal")}
+          >
+            <Stamp className="size-5" aria-hidden="true" />
+            {ACTIONS.aprobarEvidenciaParaSello}
+          </Button>
+        ) : (
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              className="h-auto flex-col gap-2 py-4"
+              onClick={() => setDialog("certify")}
+            >
+              <ShieldCheck className="size-5" aria-hidden="true" />
+              {ACTIONS.certificar}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-auto flex-col gap-2 py-4"
+              onClick={() => setDialog("certify_observations")}
+            >
+              <AlertTriangle className="size-5" aria-hidden="true" />
+              {ACTIONS.certificarConObservaciones}
+            </Button>
+          </>
+        )}
         <Button
           type="button"
           variant="outline"
@@ -547,6 +583,17 @@ export function ProductionDecisionPanel({
           {ACTIONS.rechazar}
         </Button>
       </div>
+
+      <ConfirmDialog
+        open={dialog === "approve_seal"}
+        title={CONFIRM.aprobarEvidenciaTitulo}
+        message={CONFIRM.aprobarEvidenciaMensaje}
+        confirmLabel={ACTIONS.aprobarEvidenciaParaSello}
+        confirmVariant="secondary"
+        onConfirm={handleApproveSeal}
+        onCancel={closeDialog}
+        disabled={processing}
+      />
 
       <ConfirmDialog
         open={dialog === "certify"}

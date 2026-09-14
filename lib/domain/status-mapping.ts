@@ -1,15 +1,17 @@
 import type { PacketStatus, SignerStatus } from "./types";
 
-// DB lease_packets.status values (8 total)
+// DB lease_packets.status values
 export const DB_PACKET_STATUSES = [
   "draft",
   "signing",
   "all_signed",
   "pending_notary",
   "under_review",
+  "awaiting_notary_seal",
   "needs_correction",
   "certified",
   "rejected",
+  "archived",
 ] as const;
 
 export type DbPacketStatus = (typeof DB_PACKET_STATUSES)[number];
@@ -34,9 +36,11 @@ const PACKET_DB_TO_DISPLAY: Record<DbPacketStatus, PacketStatus> = {
   all_signed: "all_signers_complete",
   pending_notary: "ready_for_notary",
   under_review: "under_notary_review",
+  awaiting_notary_seal: "awaiting_notary_seal",
   needs_correction: "needs_correction",
   certified: "certified",
   rejected: "rejected",
+  archived: "archived",
 };
 
 const PACKET_DISPLAY_TO_DB: Partial<Record<PacketStatus, DbPacketStatus>> = {
@@ -49,10 +53,12 @@ const PACKET_DISPLAY_TO_DB: Partial<Record<PacketStatus, DbPacketStatus>> = {
   evidence_report_generated: "all_signed",
   ready_for_notary: "pending_notary",
   under_notary_review: "under_review",
+  awaiting_notary_seal: "awaiting_notary_seal",
   needs_correction: "needs_correction",
   certified: "certified",
   certified_with_observations: "certified",
   rejected: "rejected",
+  archived: "archived",
 };
 
 /**
@@ -73,6 +79,9 @@ export function dbStatusToDisplay(
     context?.certType === "certified_with_observations"
   ) {
     return "certified_with_observations";
+  }
+  if (dbStatus === "awaiting_notary_seal") {
+    return "awaiting_notary_seal";
   }
   return (
     PACKET_DB_TO_DISPLAY[dbStatus as DbPacketStatus] ?? (dbStatus as PacketStatus)
@@ -110,6 +119,7 @@ export function dbSignerStatusToDisplay(dbStatus: string): SignerStatus {
 export const TERMINAL_DB_STATUSES: DbPacketStatus[] = [
   "certified",
   "rejected",
+  "archived",
 ];
 
 export function isTerminalDbStatus(status: string): boolean {

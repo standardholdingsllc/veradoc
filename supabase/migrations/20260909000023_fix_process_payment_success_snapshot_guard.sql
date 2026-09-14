@@ -1,0 +1,2 @@
+-- Historical remote migration marker.
+-- Canonical effects are represented by 20260908200000_cpe_hardening_v2.sql.

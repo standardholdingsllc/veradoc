@@ -347,7 +347,6 @@ export const MOCK_PACKETS: LeasePacket[] = [
       currency: "PEN",
       paidAt: "2024-04-10T10:05:00.000Z",
       paymentMethodPlaceholder: "Tarjeta Visa •••• 4242",
-      invoiceStatus: "issued",
     },
     documentHashes: [
       {
@@ -364,12 +363,6 @@ export const MOCK_PACKETS: LeasePacket[] = [
       audit("aud-001-p-2", "pkt-2024-001", "system", "system", "payment_confirmed", "Pago confirmado", "2024-04-10T10:05:00.000Z"),
       audit("aud-001-p-3", "pkt-2024-001", USER_IDS.realtor, "realtor", "send_to_signers", "Enlaces enviados a firmantes", "2024-04-11T08:30:00.000Z"),
     ],
-    factura: {
-      status: "issued",
-      numberPlaceholder: "F001-00012345",
-      issuedAt: "2024-04-10T10:10:00.000Z",
-      downloadUrlPlaceholder: "/demo/facturas/F001-00012345.pdf",
-    },
     renewalEligibility: { eligible: false },
   },
 
@@ -465,7 +458,6 @@ export const MOCK_PACKETS: LeasePacket[] = [
         currency: "PEN",
         paidAt: "2024-04-28T14:30:00.000Z",
         paymentMethodPlaceholder: "Transferencia BCP",
-        invoiceStatus: "issued",
       },
       documentHashes: [
         {
@@ -592,7 +584,6 @@ export const MOCK_PACKETS: LeasePacket[] = [
         currency: "PEN",
         paidAt: "2024-05-15T10:30:00.000Z",
         paymentMethodPlaceholder: "Tarjeta Mastercard •••• 5555",
-        invoiceStatus: "issued",
       },
       documentHashes: [
         {
@@ -750,7 +741,6 @@ export const MOCK_PACKETS: LeasePacket[] = [
         currency: "PEN",
         paidAt: "2024-03-01T08:30:00.000Z",
         paymentMethodPlaceholder: "Yape",
-        invoiceStatus: "issued",
       },
       documentHashes: [
         {
@@ -918,7 +908,6 @@ export const MOCK_PACKETS: LeasePacket[] = [
         currency: "PEN",
         paidAt: "2024-06-01T11:30:00.000Z",
         paymentMethodPlaceholder: "Tarjeta Visa •••• 4242",
-        invoiceStatus: "issued",
       },
       documentHashes: [
         {
@@ -1078,7 +1067,6 @@ export const MOCK_PACKETS: LeasePacket[] = [
         currency: "PEN",
         paidAt: "2024-02-10T09:30:00.000Z",
         paymentMethodPlaceholder: "Transferencia Interbank",
-        invoiceStatus: "issued",
       },
       documentHashes: [
         {
@@ -1241,7 +1229,6 @@ export const MOCK_PACKETS: LeasePacket[] = [
         currency: "PEN",
         paidAt: "2023-02-15T10:30:00.000Z",
         paymentMethodPlaceholder: "Tarjeta Visa •••• 4242",
-        invoiceStatus: "issued",
       },
       documentHashes: [
         {

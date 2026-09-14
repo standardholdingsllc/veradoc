@@ -5,24 +5,54 @@ export interface PricingInfo {
   amountCentimos: number;
   currency: string;
   description: string;
+  policyVersion: string;
+  taxIncluded: boolean;
+  taxRateBps: number;
+  serviceWindowDays: number;
+  includedServices: string[];
+  excludedServices: string[];
 }
 
 export async function getPacketPricing(): Promise<PricingInfo> {
   const admin = createAdminClient();
+  const now = new Date().toISOString();
   const { data, error } = await admin
     .from("pricing_config")
-    .select("amount_centimos, currency, description")
+    .select("*")
     .eq("product_code", "lease_packet_standard")
     .eq("active", true)
+    .lte("effective_from", now)
+    .or(`effective_to.is.null,effective_to.gt.${now}`)
+    .order("effective_from", { ascending: false })
+    .limit(1)
     .single();
 
   if (error || !data) {
     throw new Error("No active pricing configuration found. Payment cannot proceed.");
   }
 
-  return {
-    amountCentimos: data.amount_centimos,
-    currency: data.currency,
-    description: data.description,
+  const row = data as typeof data & {
+    policy_version?: string;
+    tax_included?: boolean;
+    tax_rate_bps?: number;
+    service_window_days?: number;
+    included_services?: unknown;
+    excluded_services?: unknown;
   };
+
+  return {
+    amountCentimos: row.amount_centimos,
+    currency: row.currency,
+    description: row.description,
+    policyVersion: row.policy_version ?? "legacy_v1",
+    taxIncluded: row.tax_included ?? true,
+    taxRateBps: row.tax_rate_bps ?? 1_800,
+    serviceWindowDays: row.service_window_days ?? 90,
+    includedServices: toStringArray(row.included_services),
+    excludedServices: toStringArray(row.excluded_services),
+  };
+}
+
+function toStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }

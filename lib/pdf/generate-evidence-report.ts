@@ -1,17 +1,26 @@
 import "server-only";
 
 import React from "react";
+import crypto from "node:crypto";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { EvidenceReportDocument } from "./evidence-report-template";
 import { computeSha256 } from "@/lib/utils/document-hash";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { EvidenceReportData } from "./types";
 
+interface ReplaceDocumentResult {
+  old_document_id: string | null;
+  new_document_id: string;
+  idempotent: boolean;
+  storage_path_to_delete?: string;
+  accepted_storage_path?: string;
+}
+
 export async function generateAndStoreEvidenceReport(
   packetId: string,
   reportData: EvidenceReportData,
   actorId: string,
-): Promise<{ storagePath: string; fileHash: string }> {
+): Promise<{ storagePath: string; fileHash: string; documentId: string }> {
   const element = React.createElement(EvidenceReportDocument, {
     data: reportData,
   });
@@ -20,7 +29,9 @@ export async function generateAndStoreEvidenceReport(
 
   const buffer = Buffer.from(pdfBuffer);
   const fileHash = computeSha256(buffer);
-  const storagePath = `packets/${packetId}/evidence_report.pdf`;
+
+  const documentId = crypto.randomUUID();
+  const storagePath = `packets/${packetId}/evidence_reports/${documentId}.pdf`;
 
   const admin = createAdminClient();
 
@@ -28,7 +39,7 @@ export async function generateAndStoreEvidenceReport(
     .from("documents")
     .upload(storagePath, buffer, {
       contentType: "application/pdf",
-      upsert: true,
+      upsert: false,
     });
 
   if (uploadError) {
@@ -37,22 +48,40 @@ export async function generateAndStoreEvidenceReport(
     );
   }
 
-  const { error: docError } = await admin.from("packet_documents").upsert({
-    packet_id: packetId,
-    document_type: "evidence_report",
-    storage_path: storagePath,
-    file_hash: fileHash,
-    uploaded_by: actorId,
-  }, {
-    onConflict: "packet_id,document_type",
-    ignoreDuplicates: false,
-  });
-
-  if (docError) {
-    throw new Error(
-      `Error al registrar informe de evidencia: ${docError.message}`,
+  try {
+    const { data: rpcResult, error: rpcError } = await admin.rpc(
+      "replace_packet_document",
+      {
+        p_packet_id: packetId,
+        p_document_type: "evidence_report",
+        p_storage_path: storagePath,
+        p_file_hash: fileHash,
+        p_uploaded_by: actorId,
+        p_document_id: documentId,
+      },
     );
-  }
 
-  return { storagePath, fileHash };
+    if (rpcError) {
+      throw new Error(
+        `Error al registrar informe de evidencia: ${rpcError.message}`,
+      );
+    }
+
+    const result = rpcResult as unknown as ReplaceDocumentResult;
+
+    if (result.idempotent && result.storage_path_to_delete) {
+      await admin.storage.from("documents").remove([result.storage_path_to_delete]);
+    }
+
+    return {
+      storagePath: result.idempotent && result.accepted_storage_path
+        ? result.accepted_storage_path
+        : storagePath,
+      fileHash,
+      documentId: result.new_document_id,
+    };
+  } catch (err) {
+    await admin.storage.from("documents").remove([storagePath]);
+    throw err;
+  }
 }

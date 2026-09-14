@@ -12,28 +12,46 @@ export async function assembleSignedDocument(
 ): Promise<{ storagePath: string; fileHash: string }> {
   const admin = createAdminClient();
   const fileHash = computeSha256(signedPdfBuffer);
+
+  const { data: existing } = await admin
+    .from("packet_documents")
+    .select("id, file_hash, storage_path, status")
+    .eq("packet_id", packetId)
+    .eq("document_type", "signed_pdf")
+    .eq("status", "accepted")
+    .maybeSingle();
+
+  if (existing?.file_hash === fileHash) {
+    return { storagePath: existing.storage_path, fileHash };
+  }
+
+  if (existing && existing.file_hash !== fileHash) {
+    throw new Error(
+      "Accepted signed_pdf already exists with a different hash. " +
+      "Cannot overwrite an immutable signed original.",
+    );
+  }
+
   const storagePath = `packets/${packetId}/signed_lease.pdf`;
 
   const { error: uploadError } = await admin.storage
     .from("documents")
     .upload(storagePath, signedPdfBuffer, {
       contentType: "application/pdf",
-      upsert: true,
+      upsert: false,
     });
 
-  if (uploadError) {
+  if (uploadError && !uploadError.message?.includes("already exists")) {
     throw new Error(`Error al subir documento firmado: ${uploadError.message}`);
   }
 
-  const { error: docError } = await admin.from("packet_documents").upsert({
+  const { error: docError } = await admin.from("packet_documents").insert({
     packet_id: packetId,
     document_type: "signed_pdf",
     storage_path: storagePath,
     file_hash: fileHash,
     uploaded_by: actorId as string,
-  }, {
-    onConflict: "packet_id,document_type",
-    ignoreDuplicates: false,
+    status: "accepted",
   });
 
   if (docError) {

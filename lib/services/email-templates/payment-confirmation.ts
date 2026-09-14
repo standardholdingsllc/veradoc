@@ -4,7 +4,7 @@ export function paymentConfirmationHtml(params: {
   realtorName: string;
   packetCode: string;
   amount: string;
-  chargeId: string;
+  providerPaymentId: string;
   propertyAddress: string;
 }): string {
   return emailLayout(`
@@ -15,7 +15,7 @@ export function paymentConfirmationHtml(params: {
       ["Paquete", params.packetCode],
       ["Propiedad", params.propertyAddress],
       ["Monto", `S/ ${params.amount}`],
-      ["Referencia", params.chargeId],
+      ["Referencia", params.providerPaymentId],
     ])}
   `, { preheader: `Pago confirmado — S/ ${params.amount}` });
 }

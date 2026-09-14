@@ -58,9 +58,7 @@ export async function submitComplaint(
 
   const supabase = createAdminClient();
 
-  // Use type assertion because `complaints` table is new and not yet
-  // in the generated database.types.ts (regenerate with `npm run db:types`)
-  const { data: row, error } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
+  const { data: row, error } = await supabase
     .from("complaints")
     .insert({
       consumer_name: parsed.data.consumerName,
@@ -92,7 +90,7 @@ export async function submitComplaint(
     };
   }
 
-  const code = (row as { code: string }).code;
+  const code = row.code;
 
   // DS 011-2011-PCM requires sending an immediate email confirmation
   try {

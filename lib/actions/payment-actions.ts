@@ -1,421 +1,537 @@
 "use server";
 
-import crypto from "crypto";
-import { revalidatePath } from "next/cache";
+import { randomUUID } from "node:crypto";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { shouldUseMockPayment, requireCulqiReady } from "@/lib/env/server";
-import { createCharge } from "@/lib/services/culqi-service";
-import { createMockCharge } from "@/lib/services/culqi-mock";
-import { getPacketPricing } from "@/lib/services/pricing-service";
-import { notifyPaymentConfirmation } from "@/lib/services/notifications";
-import { ProcessPaymentInputSchema, Complete3DSInputSchema } from "@/lib/services/culqi-types";
-import type { CreateChargeResult } from "@/lib/services/culqi-types";
+import { hashPrivatePromoCode } from "@/lib/services/commercial-service";
+import { isDemoPaymentsEnabled } from "@/lib/env/server";
+import {
+  createPayment,
+  getPayment,
+  recordPaymentResult,
+  MercadoPagoAPIError,
+} from "@/lib/services/mercadopago";
+import type { PreparePaymentResult, ProcessPaymentResult } from "@/lib/services/mercadopago";
+import { isValidRuc, isValidDni, normalizeDocNumber, normalizeRazonSocial } from "@/lib/utils/ruc-validation";
 
 type ActionResult<T = null> = { error?: string; data?: T };
 
-async function getAuthUser() {
+async function getAuthenticatedUserId(): Promise<string | null> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
-}
-
-function derivePaymentMethod(source: { type: string; id: string }): string {
-  if (source.type === "yape" || source.id.startsWith("ype")) return "yape";
-  return "card";
-}
-
-function hashToken(tokenId: string): string {
-  return crypto.createHash("sha256").update(tokenId).digest("hex");
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user?.id ?? null;
 }
 
 // ---------------------------------------------------------------------------
-// preparePaymentAction — call BEFORE opening Checkout
+// preparePaymentAction
 // ---------------------------------------------------------------------------
 
-interface PreparePaymentResult {
-  paymentId: string;
+const preparePaymentSchema = z.object({
+  packetId: z.string().uuid(),
+  comprobanteType: z.enum(["01", "03"]),
+  purchaserTipoDoc: z.enum(["6", "1"]),
+  purchaserNumDoc: z.string().min(1),
+  purchaserRazonSocial: z.string().optional(),
+  purchaserAddress: z
+    .object({
+      direccion: z.string().optional(),
+      provincia: z.string().optional(),
+      departamento: z.string().optional(),
+      distrito: z.string().optional(),
+      ubigueo: z.string().optional(),
+    })
+    .optional(),
+  promoCode: z.string().trim().max(64).optional(),
+});
+
+const promoPreviewSchema = z.object({
+  code: z.string().trim().min(1).max(64),
+});
+
+export interface PromoPreviewResult {
+  codeHint: string;
+  standardAmountCentimos: number;
+  discountCentimos: number;
   amountCentimos: number;
+  subtotalCentimos: number;
+  igvCentimos: number;
   currency: string;
-  description: string;
-  challengeNonce: string;
+  validUntil: string;
+}
+
+export async function previewPrivatePromoAction(
+  code: string,
+): Promise<ActionResult<PromoPreviewResult>> {
+  const userId = await getAuthenticatedUserId();
+  if (!userId) return { error: "No autenticado." };
+
+  const parsed = promoPreviewSchema.safeParse({ code });
+  if (!parsed.success) return { error: "Ingresa un código promocional válido." };
+
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("preview_private_promo", {
+    p_realtor_id: userId,
+    p_code_hash: hashPrivatePromoCode(parsed.data.code),
+  });
+
+  if (error) return { error: "El código promocional no es válido o ya expiró." };
+  const result = data as {
+    code_hint: string;
+    standard_amount_centimos: number;
+    discount_centimos: number;
+    amount_centimos: number;
+    subtotal_centimos: number;
+    igv_centimos: number;
+    currency: string;
+    valid_until: string;
+  } | null;
+  if (!result) return { error: "No se pudo validar el código promocional." };
+
+  return {
+    data: {
+      codeHint: result.code_hint,
+      standardAmountCentimos: result.standard_amount_centimos,
+      discountCentimos: result.discount_centimos,
+      amountCentimos: result.amount_centimos,
+      subtotalCentimos: result.subtotal_centimos,
+      igvCentimos: result.igv_centimos,
+      currency: result.currency,
+      validUntil: result.valid_until,
+    },
+  };
 }
 
 export async function preparePaymentAction(
-  packetId: string
+  params: z.infer<typeof preparePaymentSchema>,
 ): Promise<ActionResult<PreparePaymentResult>> {
-  const user = await getAuthUser();
-  if (!user) return { error: "No autenticado." };
-  if (!user.email) return { error: "Cuenta sin correo electrónico." };
+  const userId = await getAuthenticatedUserId();
+  if (!userId) return { error: "No autenticado." };
 
-  const admin = createAdminClient();
-  const pricing = await getPacketPricing();
+  const parsed = preparePaymentSchema.safeParse(params);
+  if (!parsed.success) return { error: "Datos de facturación inválidos." };
 
-  const idempotencyKey = crypto
-    .createHash("sha256")
-    .update(`${packetId}:${user.id}`)
-    .digest("hex");
+  const packetId = parsed.data.packetId;
+  const comprobanteType = parsed.data.comprobanteType;
+  const purchaserTipoDoc = parsed.data.purchaserTipoDoc;
+  const purchaserNumDoc = normalizeDocNumber(parsed.data.purchaserNumDoc);
+  const purchaserRazonSocial = parsed.data.purchaserRazonSocial
+    ? normalizeRazonSocial(parsed.data.purchaserRazonSocial)
+    : null;
+  const purchaserAddress = parsed.data.purchaserAddress as Record<string, string> ?? null;
 
-  const challengeNonce = crypto.randomUUID();
-
-  const { data: claimResult, error: claimError } = await admin.rpc("claim_payment_attempt", {
-    p_packet_id: packetId,
-    p_realtor_id: user.id,
-    p_amount_centimos: pricing.amountCentimos,
-    p_currency: pricing.currency,
-    p_idempotency_key: idempotencyKey,
-    p_challenge_nonce: challengeNonce,
-  });
-
-  if (claimError) {
-    console.error("[preparePayment] Claim RPC failed:", claimError);
-    const msg = claimError.message ?? "";
-    if (msg.includes("not owned")) return { error: "No tiene acceso a este paquete." };
-    if (msg.includes("not in draft")) return { error: "El paquete ya no está en borrador." };
-    return { error: "Error al preparar el pago." };
-  }
-  if (!claimResult) return { error: "Error al preparar el pago." };
-
-  if (!claimResult.claimed) {
-    const s = claimResult.existing_status;
-    if (s === "prepared") {
-      return { data: {
-        paymentId: claimResult.payment_id!,
-        amountCentimos: claimResult.amount_centimos!,
-        currency: claimResult.currency!,
-        description: pricing.description,
-        challengeNonce: claimResult.challenge_nonce!,
-      }};
+  // Validate document number
+  if (comprobanteType === "01") {
+    if (!isValidRuc(purchaserNumDoc)) {
+      return { error: "RUC inválido. Verifica el número e intenta de nuevo." };
     }
-    if (s === "completed") return { error: "Este paquete ya tiene un pago confirmado." };
-    return { error: "Hay un intento de pago en proceso. Espere un momento." };
+    if (!purchaserRazonSocial || purchaserRazonSocial.trim() === "") {
+      return { error: "La razón social es obligatoria para facturas." };
+    }
+  } else if (comprobanteType === "03") {
+    if (!isValidDni(purchaserNumDoc)) {
+      return { error: "DNI inválido. Debe tener exactamente 8 dígitos." };
+    }
+    if (!purchaserRazonSocial || purchaserRazonSocial.trim() === "") {
+      return { error: "El nombre completo del comprador es obligatorio para boletas." };
+    }
   }
 
-  return { data: {
-    paymentId: claimResult.payment_id!,
-    amountCentimos: claimResult.amount_centimos!,
-    currency: claimResult.currency!,
-    description: pricing.description,
-    challengeNonce: claimResult.challenge_nonce!,
-  }};
-}
-
-// ---------------------------------------------------------------------------
-// processPaymentAction — process token from Checkout
-// ---------------------------------------------------------------------------
-
-type ProcessPaymentResult =
-  | { kind: "succeeded"; chargeId: string }
-  | { kind: "requires_3ds"; challengeNonce: string }
-  | { kind: "declined"; message: string }
-  | { kind: "uncertain"; message: string };
-
-export async function processPaymentAction(
-  rawInput: unknown
-): Promise<ActionResult<ProcessPaymentResult>> {
-  const parsed = ProcessPaymentInputSchema.safeParse(rawInput);
-  if (!parsed.success) return { error: "Datos de pago inválidos." };
-  const input = parsed.data;
-
-  const user = await getAuthUser();
-  if (!user) return { error: "No autenticado." };
-  if (!user.email) return { error: "Cuenta sin correo electrónico." };
-
+  const idempotencyKey = randomUUID();
   const admin = createAdminClient();
+  const paymentProvider = isDemoPaymentsEnabled() ? "demo" : "mercadopago";
 
-  const readiness = requireCulqiReady();
-  if (!readiness.ok) return { error: readiness.reason };
-
-  const tokenHash = hashToken(input.tokenId);
-  const { data: claimed, error: claimErr } = await admin.rpc("claim_charging", {
-    p_payment_id: input.paymentId,
-    p_realtor_id: user.id,
-    p_from_status: "prepared",
-    p_device_finger_print_id: input.deviceFingerPrintId ?? null,
-    p_source_token_hash: tokenHash,
-  });
-
-  if (claimErr || !claimed?.payment_id) {
-    return { error: "El pago ya está siendo procesado o no le pertenece." };
-  }
-
-  const useMock = shouldUseMockPayment();
-  const chargeResult: CreateChargeResult = useMock
-    ? createMockCharge({
-        amount: claimed.amount_centimos!,
-        currency_code: claimed.currency as "PEN",
-        source_id: input.tokenId,
-        email: user.email,
-        metadata: { packet_id: claimed.packet_id!, payment_id: input.paymentId },
-      })
-    : await createCharge({
-        amount: claimed.amount_centimos!,
-        currency_code: claimed.currency as "PEN",
-        source_id: input.tokenId,
-        email: user.email,
-        metadata: { packet_id: claimed.packet_id!, payment_id: input.paymentId },
-        antifraud_details: input.deviceFingerPrintId
-          ? { device_finger_print_id: input.deviceFingerPrintId, email: user.email }
-          : undefined,
-      });
-
-  return handleChargeResult(chargeResult, input.paymentId, claimed.packet_id!,
-    claimed.amount_centimos!, claimed.currency!, user.id, user.email);
-}
-
-// ---------------------------------------------------------------------------
-// completePayment3DSAction — retry with 3DS authentication fields
-// ---------------------------------------------------------------------------
-
-export async function completePayment3DSAction(
-  rawInput: unknown
-): Promise<ActionResult<ProcessPaymentResult>> {
-  const parsed = Complete3DSInputSchema.safeParse(rawInput);
-  if (!parsed.success) return { error: "Datos de autenticación 3DS inválidos." };
-  const input = parsed.data;
-
-  const user = await getAuthUser();
-  if (!user) return { error: "No autenticado." };
-  if (!user.email) return { error: "Cuenta sin correo electrónico." };
-
-  const admin = createAdminClient();
-
-  const readiness = requireCulqiReady();
-  if (!readiness.ok) return { error: readiness.reason };
-
-  const { data: claimed, error: claimErr } = await admin.rpc("claim_charging", {
-    p_payment_id: input.paymentId,
-    p_realtor_id: user.id,
-    p_from_status: "requires_3ds",
-  });
-
-  if (claimErr || !claimed?.payment_id) {
-    return { error: "La autenticación 3DS ya fue completada o el pago no le pertenece." };
-  }
-
-  if (claimed.challenge_nonce !== input.challengeNonce) {
-    await safeTransition(admin, input.paymentId, "charging", "requires_3ds");
-    return { error: "Nonce de autenticación no coincide." };
-  }
-
-  if (!claimed.source_token_hash || hashToken(input.tokenId) !== claimed.source_token_hash) {
-    await safeTransition(admin, input.paymentId, "charging", "requires_3ds");
-    return { error: "El token de pago no coincide con el intento original." };
-  }
-
-  const chargeResult = await createCharge({
-    amount: claimed.amount_centimos!,
-    currency_code: claimed.currency as "PEN",
-    source_id: input.tokenId,
-    email: user.email,
-    metadata: { packet_id: claimed.packet_id!, payment_id: input.paymentId },
-    antifraud_details: claimed.device_finger_print_id
-      ? { device_finger_print_id: claimed.device_finger_print_id, email: user.email }
+  const { data, error } = await admin.rpc("claim_commercial_payment_attempt", {
+    p_packet_id: packetId,
+    p_realtor_id: userId,
+    p_payment_provider: paymentProvider,
+    p_idempotency_key: idempotencyKey,
+    p_comprobante_type: comprobanteType ?? undefined,
+    p_purchaser_tipo_doc: purchaserTipoDoc ?? undefined,
+    p_purchaser_num_doc: purchaserNumDoc ?? undefined,
+    p_purchaser_razon_social: purchaserRazonSocial!,
+    p_purchaser_address: purchaserAddress ?? undefined,
+    p_promo_code_hash: parsed.data.promoCode
+      ? hashPrivatePromoCode(parsed.data.promoCode)
       : undefined,
-    authentication_3DS: input.authentication3DS,
   });
 
-  return handleChargeResult(chargeResult, input.paymentId, claimed.packet_id!,
-    claimed.amount_centimos!, claimed.currency!, user.id, user.email);
+  if (error) {
+    console.error("[preparePaymentAction] RPC error:", error.message);
+    return { error: error.message };
+  }
+
+  const result = data as {
+    payment_id: string;
+    existing_status: string;
+    amount_centimos: number;
+    standard_amount_centimos: number;
+    discount_centimos: number;
+    promo_code_hint: string | null;
+    currency: string;
+    claimed: boolean;
+  } | null;
+
+  if (!result?.payment_id) {
+    return { error: "No se pudo preparar el intento de pago." };
+  }
+
+  if (result.existing_status === "completed") {
+    return { error: "Este paquete ya tiene un pago completado." };
+  }
+
+  return {
+    data: {
+      paymentId: result.payment_id,
+      amountCentimos: result.amount_centimos,
+      standardAmountCentimos: result.standard_amount_centimos,
+      discountCentimos: result.discount_centimos,
+      promoCodeHint: result.promo_code_hint,
+      currency: result.currency,
+      idempotencyKey: result.claimed ? idempotencyKey : "",
+      existingStatus: result.claimed ? "prepared" : result.existing_status,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// processCardPaymentAction
+// ---------------------------------------------------------------------------
+
+const processCardSchema = z.object({
+  paymentId: z.string().uuid(),
+  token: z.string().min(1),
+  paymentMethodId: z.string().min(1),
+  issuerId: z.string().optional(),
+  installments: z.number().int().positive(),
+  payerEmail: z.string().email(),
+  payerIdentificationType: z.string().min(1),
+  payerIdentificationNumber: z.string().min(1),
+  deviceSessionId: z.string().optional(),
+});
+
+export async function processCardPaymentAction(
+  params: z.infer<typeof processCardSchema>,
+): Promise<ActionResult<ProcessPaymentResult>> {
+  const userId = await getAuthenticatedUserId();
+  if (!userId) return { error: "No autenticado." };
+
+  const parsed = processCardSchema.safeParse(params);
+  if (!parsed.success) return { error: "Datos de pago inválidos." };
+
+  const admin = createAdminClient();
+  const payment = await loadAndVerifyPayment(admin, parsed.data.paymentId, userId);
+  if ("error" in payment) return { error: payment.error };
+
+  const externalReference = `veradoc_pkt_${payment.packet_id}_pay_${payment.id}`;
+
+  try {
+    const mpResponse = await createPayment({
+      token: parsed.data.token,
+      transactionAmount: payment.amount_centimos / 100,
+      description: `VeraDoc — Paquete de arrendamiento`,
+      paymentMethodId: parsed.data.paymentMethodId,
+      issuerId: parsed.data.issuerId,
+      installments: parsed.data.installments,
+      payerEmail: parsed.data.payerEmail,
+      payerIdentificationType: parsed.data.payerIdentificationType,
+      payerIdentificationNumber: parsed.data.payerIdentificationNumber,
+      externalReference,
+      metadata: {
+        packet_id: payment.packet_id,
+        payment_id: payment.id,
+        realtor_id: userId,
+      },
+      idempotencyKey: payment.idempotency_key,
+      deviceSessionId: parsed.data.deviceSessionId,
+    });
+
+    const transition = await recordPaymentResult(admin, payment.id, mpResponse, userId, { awaitEmail: true });
+    return { data: transitionToResult(transition, String(mpResponse.id)) };
+  } catch (err) {
+    return handlePaymentError(err, admin, payment.id);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// processYapePaymentAction
+// ---------------------------------------------------------------------------
+
+const processYapeSchema = z.object({
+  paymentId: z.string().uuid(),
+  token: z.string().min(1),
+  payerEmail: z.string().email(),
+  deviceSessionId: z.string().optional(),
+});
+
+export async function processYapePaymentAction(
+  params: z.infer<typeof processYapeSchema>,
+): Promise<ActionResult<ProcessPaymentResult>> {
+  const userId = await getAuthenticatedUserId();
+  if (!userId) return { error: "No autenticado." };
+
+  const parsed = processYapeSchema.safeParse(params);
+  if (!parsed.success) return { error: "Datos de pago inválidos." };
+
+  const admin = createAdminClient();
+  const payment = await loadAndVerifyPayment(admin, parsed.data.paymentId, userId);
+  if ("error" in payment) return { error: payment.error };
+
+  const externalReference = `veradoc_pkt_${payment.packet_id}_pay_${payment.id}`;
+
+  try {
+    const mpResponse = await createPayment({
+      token: parsed.data.token,
+      transactionAmount: payment.amount_centimos / 100,
+      description: `VeraDoc — Paquete de arrendamiento`,
+      paymentMethodId: "yape",
+      installments: 1,
+      payerEmail: parsed.data.payerEmail,
+      payerIdentificationType: "DNI",
+      payerIdentificationNumber: "00000000",
+      externalReference,
+      metadata: {
+        packet_id: payment.packet_id,
+        payment_id: payment.id,
+        realtor_id: userId,
+      },
+      idempotencyKey: payment.idempotency_key,
+      deviceSessionId: parsed.data.deviceSessionId,
+    });
+
+    const transition = await recordPaymentResult(admin, payment.id, mpResponse, userId, { awaitEmail: true });
+    return { data: transitionToResult(transition, String(mpResponse.id)) };
+  } catch (err) {
+    return handlePaymentError(err, admin, payment.id);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// pollPaymentStatusAction
+// ---------------------------------------------------------------------------
+
+export async function pollPaymentStatusAction(
+  paymentId: string,
+): Promise<ActionResult<ProcessPaymentResult>> {
+  const userId = await getAuthenticatedUserId();
+  if (!userId) return { error: "No autenticado." };
+
+  const admin = createAdminClient();
+
+  const { data, error } = await admin
+    .from("payments")
+    .select(
+      "id, packet_id, realtor_id, amount_centimos, currency, status, payment_provider, payment_provider_ref, idempotency_key, updated_at",
+    )
+    .eq("id", paymentId)
+    .single();
+
+  if (error || !data) return { error: "Pago no encontrado." };
+  if (data.realtor_id !== userId) return { error: "No autorizado." };
+  if (data.payment_provider !== "mercadopago") return { error: "Proveedor de pago incorrecto." };
+
+  if (data.status === "completed") {
+    return { data: { status: "completed" } };
+  }
+  if (data.status === "failed" || data.status === "cancelled") {
+    return { data: { status: "rejected", errorDetail: "El pago fue rechazado." } };
+  }
+  if (data.status !== "processing" && data.status !== "requires_action") {
+    return { error: `Estado de pago no permite consulta: ${data.status}` };
+  }
+
+  if (!data.payment_provider_ref) {
+    // No provider reference means createPayment never returned a response.
+    // If the row has been in this state for over 5 minutes, it's stale --
+    // mark as failed so the user can re-prepare. Any actual success will
+    // arrive via webhook and be caught by the convergent transition service.
+    const updatedAt = new Date(data.updated_at ?? 0).getTime();
+    const staleThresholdMs = 5 * 60 * 1000;
+    if (Date.now() - updatedAt > staleThresholdMs) {
+      const { data: updated } = await admin
+        .from("payments")
+        .update({
+          status: "failed",
+          error_message: "Payment stuck without provider reference",
+          updated_at: new Date().toISOString(),
+        } as never)
+        .eq("id", paymentId)
+        .eq("status", "processing")
+        .select("id")
+        .maybeSingle();
+
+      if (updated) {
+        return { data: { status: "rejected", errorDetail: "El pago no pudo ser verificado. Intenta de nuevo." } };
+      }
+      // Another process already advanced the state -- re-read and return.
+      const { data: fresh } = await admin.from("payments").select("status").eq("id", paymentId).single();
+      if (fresh?.status === "completed") return { data: { status: "completed" } };
+      if (fresh?.status === "failed" || fresh?.status === "cancelled") {
+        return { data: { status: "rejected", errorDetail: "El pago fue rechazado." } };
+      }
+      return { data: { status: "processing" } };
+    }
+    return { data: { status: "processing" } };
+  }
+
+  try {
+    const mpResponse = await getPayment(data.payment_provider_ref);
+    const transition = await recordPaymentResult(admin, data.id, mpResponse, userId, { awaitEmail: true });
+    return { data: transitionToResult(transition, String(mpResponse.id)) };
+  } catch (err) {
+    if (err instanceof MercadoPagoAPIError) {
+      return { data: { status: "error", errorDetail: "Error consultando estado del pago." } };
+    }
+    throw err;
+  }
 }
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function safeTransition(
+type PaymentRow = {
+  id: string;
+  packet_id: string;
+  realtor_id: string;
+  amount_centimos: number;
+  currency: string;
+  status: string;
+  payment_provider: string;
+  payment_provider_ref: string | null;
+  idempotency_key: string;
+};
+
+async function loadAndVerifyPayment(
   admin: ReturnType<typeof createAdminClient>,
   paymentId: string,
-  fromStatus: string,
-  toStatus: string,
-  extra?: Record<string, unknown>,
-): Promise<boolean> {
+  userId: string,
+  allowedStatuses: string[] = ["prepared"],
+): Promise<PaymentRow | { error: string }> {
   const { data, error } = await admin
     .from("payments")
-    .update({ status: toStatus, updated_at: new Date().toISOString(), ...extra } as never)
+    .select(
+      "id, packet_id, realtor_id, amount_centimos, currency, status, payment_provider, payment_provider_ref, idempotency_key",
+    )
     .eq("id", paymentId)
-    .eq("status", fromStatus)
-    .select("id")
-    .maybeSingle();
+    .single();
 
-  if (error) {
-    console.error(`[safeTransition] Failed ${fromStatus}→${toStatus} for ${paymentId}:`, error);
-    return false;
+  if (error || !data) return { error: "Pago no encontrado." };
+  if (data.realtor_id !== userId) return { error: "No autorizado." };
+  if (data.payment_provider !== "mercadopago") return { error: "Proveedor de pago incorrecto." };
+  if (!allowedStatuses.includes(data.status)) {
+    if (data.status === "completed") return { error: "El pago ya fue completado." };
+    return { error: `Estado de pago no permite esta operación: ${data.status}` };
   }
-  return !!data;
+
+  return data as PaymentRow;
 }
 
-async function handleChargeResult(
-  result: CreateChargeResult,
-  paymentId: string,
-  packetId: string,
-  amountCentimos: number,
-  currency: string,
-  userId: string,
-  userEmail: string,
-): Promise<ActionResult<ProcessPaymentResult>> {
-  const admin = createAdminClient();
-
-  switch (result.kind) {
-    case "succeeded": {
-      const charge = result.charge;
-      const method = derivePaymentMethod(charge.source);
-      const chargeCurrency = (charge as Record<string, unknown>).currency_code as string
-        ?? (charge as Record<string, unknown>).currency as string
-        ?? currency;
-
-      const { data: rpcResult, error: rpcError } = await admin.rpc("process_payment_success", {
-        p_payment_id: paymentId,
-        p_charge_id: charge.id,
-        p_charge_amount_centimos: charge.amount,
-        p_charge_currency: chargeCurrency,
-        p_payment_method: method,
-        p_actor_id: userId,
-      });
-
-      if (rpcError) {
-        console.error("[handleChargeResult] RPC failed:", rpcError);
-        return { error: "Pago procesado pero error al registrar. Contacte soporte." };
-      }
-
-      const outcome = rpcResult?.outcome;
-
-      switch (outcome) {
-        case "completed": {
-          void sendPaymentConfirmation(admin, paymentId, packetId, amountCentimos, userEmail, charge.id);
-          revalidatePath("/agente");
-          return { data: { kind: "succeeded", chargeId: charge.id } };
-        }
-        case "already_completed_same_charge": {
-          revalidatePath("/agente");
-          return { data: { kind: "succeeded", chargeId: charge.id } };
-        }
-        case "already_completed_conflict": {
-          console.error("[handleChargeResult] CRITICAL: Different charge for payment:", paymentId);
-          return { error: "Error crítico: existe un cargo diferente para este pago. Contacte soporte." };
-        }
-        case "amount_mismatch": {
-          console.error("[handleChargeResult] Amount mismatch:", { expected: amountCentimos, got: charge.amount });
-          return { error: "Discrepancia en el monto cobrado. Contacte soporte." };
-        }
-        case "currency_mismatch": {
-          return { error: "Discrepancia en la moneda. Contacte soporte." };
-        }
-        case "invalid_status": {
-          return { error: "Estado de pago inesperado. Contacte soporte." };
-        }
-        default: {
-          console.error("[handleChargeResult] Unknown RPC outcome:", outcome);
-          return { error: "Error inesperado al completar el pago. Contacte soporte." };
-        }
-      }
-    }
-
-    case "requires_3ds": {
-      await safeTransition(admin, paymentId, "charging", "requires_3ds");
-
-      const { data: paymentRow } = await admin.from("payments")
-        .select("challenge_nonce")
-        .eq("id", paymentId)
-        .single();
-
-      return { data: { kind: "requires_3ds", challengeNonce: paymentRow?.challenge_nonce ?? "" } };
-    }
-
-    case "declined": {
-      const msg = result.error.user_message || "El pago fue rechazado.";
-      await safeTransition(admin, paymentId, "charging", "failed", {
-        error_code: result.error.code, error_message: msg,
-      });
-
-      await admin.from("packet_audit_log").insert({
-        packet_id: packetId, actor_id: userId, action: "payment_failed",
-        metadata: { error_code: result.error.code, message: msg },
-      });
-
-      revalidatePath("/agente");
-      return { data: { kind: "declined", message: msg } };
-    }
-
-    case "uncertain": {
-      await safeTransition(admin, paymentId, "charging", "verifying", {
-        error_message: result.reason,
-      });
-
-      await admin.from("packet_audit_log").insert({
-        packet_id: packetId, actor_id: userId, action: "payment_verifying",
-        metadata: { reason: result.reason },
-      });
-
-      revalidatePath("/agente");
-      return { data: { kind: "uncertain", message: result.userMessage } };
-    }
+function transitionToResult(
+  transition: Awaited<ReturnType<typeof recordPaymentResult>>,
+  providerPaymentId: string,
+): ProcessPaymentResult {
+  switch (transition.outcome) {
+    case "completed":
+      return { status: "completed", providerPaymentId };
+    case "already_completed":
+      return { status: "completed" };
+    case "requires_action":
+      return {
+        status: "requires_action",
+        threeDSInfo: transition.threeDSInfo,
+      };
+    case "processing":
+      return { status: "processing" };
+    case "rejected":
+      return { status: "rejected", errorDetail: transition.statusDetail };
+    case "cancelled":
+      return { status: "rejected", errorDetail: "Pago cancelado por el proveedor." };
+    case "terminal_dispute":
+      return { status: "error", errorDetail: transition.message };
+    case "error":
+      return { status: "error", errorDetail: transition.message };
   }
 }
 
-const CONFIRMATION_RECLAIM_THRESHOLD_MS = 5 * 60 * 1000;
-
-export async function sendPaymentConfirmation(
+async function handlePaymentError(
+  err: unknown,
   admin: ReturnType<typeof createAdminClient>,
   paymentId: string,
-  packetId: string,
-  amountCentimos: number,
-  realtorEmail: string,
-  chargeId: string,
-) {
-  const { data: existing } = await admin
-    .from("payments")
-    .select("payment_confirmation_sent_at, payment_confirmation_claimed_at, payment_confirmation_attempts")
-    .eq("id", paymentId)
-    .single();
+): Promise<ActionResult<ProcessPaymentResult>> {
+  if (err instanceof MercadoPagoAPIError) {
+    console.error("[Payment Action] MP API error:", err.message);
 
-  if (existing?.payment_confirmation_sent_at) return;
+    // Definitive client errors mean the request was unambiguously rejected
+    // and will never succeed. Safe to mark as failed.
+    // Exclude 408 (timeout) and 409 (conflict) as ambiguous.
+    const isDefinitiveFailure = err.httpStatus >= 400
+      && err.httpStatus < 500
+      && err.httpStatus !== 408
+      && err.httpStatus !== 409
+      && err.httpStatus !== 429;
 
-  const now = new Date().toISOString();
-  const staleThreshold = new Date(Date.now() - CONFIRMATION_RECLAIM_THRESHOLD_MS).toISOString();
+    if (isDefinitiveFailure) {
+      await admin
+        .from("payments")
+        .update({
+          status: "failed",
+          error_code: String(err.httpStatus),
+          error_message: err.message,
+          updated_at: new Date().toISOString(),
+        } as never)
+        .eq("id", paymentId);
 
-  const { data: claimed } = await admin
-    .from("payments")
-    .update({
-      payment_confirmation_claimed_at: now,
-      payment_confirmation_attempts: (existing?.payment_confirmation_attempts ?? 0) + 1,
-      payment_confirmation_error: null,
-    } as never)
-    .eq("id", paymentId)
-    .is("payment_confirmation_sent_at", null)
-    .or(`payment_confirmation_claimed_at.is.null,payment_confirmation_claimed_at.lt.${staleThreshold}`)
-    .select("id")
-    .maybeSingle();
+      return {
+        data: {
+          status: "rejected",
+          errorDetail: "Error procesando el pago. Intenta de nuevo.",
+        },
+      };
+    }
 
-  if (!claimed) return;
-
-  const { data: fullPacket } = await admin
-    .from("lease_packets")
-    .select("packet_code, property_address")
-    .eq("id", packetId)
-    .single();
-
-  if (!fullPacket) return;
-
-  try {
-    await notifyPaymentConfirmation({
-      realtorEmail,
-      realtorName: "",
-      packetCode: fullPacket.packet_code ?? "",
-      propertyAddress: fullPacket.property_address ?? "",
-      amount: (amountCentimos / 100).toFixed(2),
-      chargeId,
-    });
-
-    await admin.from("payments")
-      .update({ payment_confirmation_sent_at: new Date().toISOString() } as never)
-      .eq("id", paymentId);
-  } catch (err) {
-    console.error("[sendPaymentConfirmation] Failed:", err);
-    await admin.from("payments")
+    // Ambiguous errors (5xx, 408, 409, 429): MP may have processed the
+    // payment. Mark as processing so the UI can poll and the five-minute
+    // timeout recovery is reachable.
+    await admin
+      .from("payments")
       .update({
-        payment_confirmation_error: err instanceof Error ? err.message : "Unknown error",
+        status: "processing",
+        error_message: `Ambiguous provider error (${err.httpStatus}): ${err.message}`,
+        updated_at: new Date().toISOString(),
       } as never)
-      .eq("id", paymentId);
+      .eq("id", paymentId)
+      .in("status", ["prepared", "processing"]);
+
+    return {
+      data: { status: "processing" },
+    };
   }
+
+  // Network failures (AbortError from timeout, TypeError from fetch, etc.)
+  // are ambiguous -- MP may have received and processed the request.
+  if (
+    err instanceof Error &&
+    (err.name === "AbortError" || err.name === "TypeError" || err.message.includes("fetch"))
+  ) {
+    console.error("[Payment Action] Network error:", err.message);
+
+    await admin
+      .from("payments")
+      .update({
+        status: "processing",
+        error_message: `Network error: ${err.message}`,
+        updated_at: new Date().toISOString(),
+      } as never)
+      .eq("id", paymentId)
+      .in("status", ["prepared", "processing"]);
+
+    return {
+      data: { status: "processing" },
+    };
+  }
+
+  throw err;
 }

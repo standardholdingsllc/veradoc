@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:watch": "vitest",
     "postinstall": "node scripts/copy-pdf-worker.mjs",
     "db:types": "npx supabase gen types typescript --local --schema public > lib/supabase/database.types.ts",

@@ -9,6 +9,7 @@ export type PacketStatus =
   | "evidence_report_generated"
   | "ready_for_notary"
   | "under_notary_review"
+  | "awaiting_notary_seal"
   | "certified"
   | "certified_with_observations"
   | "needs_correction"
@@ -82,17 +83,32 @@ export interface LeasePacket {
   notaryReview?: NotaryReview;
   registryCheck: { status: string; matchFound: boolean; matchDetails?: string };
   auditEvents: AuditEvent[];
-  factura?: Factura;
   renewalEligibility: { eligible: boolean; availableAfter?: string };
 }
 
 export interface DocumentHashEntry {
   hash: string;
-  stage: "initial_upload" | "post_signatures" | "final_certified";
+  stage: "initial_upload" | "post_signatures" | "final_certified" | "notarial_scan" | "certification_report";
   algorithm: "SHA-256";
   timestamp: string;
   actorId?: string;
 }
+
+export type NotaryWorkflowVersion = "legacy_v1" | "physical_seal_v1";
+
+export type DocumentArtifactType =
+  | "lease_original"
+  | "signed_pdf"
+  | "evidence_report"
+  | "certified_lease"
+  | "notarial_scan"
+  | "certification_report";
+
+export type DocumentArtifactStatus =
+  | "pending_validation"
+  | "accepted"
+  | "rejected"
+  | "superseded";
 
 export interface Property {
   address: string;
@@ -253,12 +269,55 @@ export interface Payment {
   currency: "PEN";
   paidAt?: string;
   paymentMethodPlaceholder: string;
-  invoiceStatus: "pending" | "issued" | "na";
 }
 
-export interface Factura {
-  status: "pending" | "issued";
-  numberPlaceholder?: string;
-  issuedAt?: string;
-  downloadUrlPlaceholder?: string;
+// ---------------------------------------------------------------------------
+// CPE (Comprobante de Pago Electrónico) types
+// ---------------------------------------------------------------------------
+
+export type CpeTipoDoc = "01" | "03" | "07";
+
+export type CpeStatus =
+  | "pending"
+  | "submitted"
+  | "accepted"
+  | "available"
+  | "rejected"
+  | "manual_review";
+
+export type CpeOperation =
+  | "prepare"
+  | "submit"
+  | "status_check"
+  | "pdf"
+  | "none";
+
+export type CpeOperationStatus = "ready" | "processing" | "error" | "done";
+
+export function cpeTipoDocLabel(tipoDoc: CpeTipoDoc): string {
+  switch (tipoDoc) {
+    case "01":
+      return "Factura";
+    case "03":
+      return "Boleta de venta";
+    case "07":
+      return "Nota de crédito";
+  }
+}
+
+export function cpeStatusLabel(status: CpeStatus): string {
+  switch (status) {
+    case "pending":
+      return "Preparando comprobante";
+    case "submitted":
+      return "Enviado; esperando confirmación";
+    case "accepted":
+      return "Aceptado; preparando PDF";
+    case "available":
+      return "Disponible para descarga";
+    case "rejected":
+      return "Rechazado por SUNAT";
+    case "manual_review":
+      return "En revisión manual";
+  }
 }
