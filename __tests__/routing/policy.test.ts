@@ -62,6 +62,15 @@ describe("hostname route policy", () => {
     expect(decision).toMatchObject({ kind: "reject", status: 404 });
   });
 
+  it("rejects token-bearing auth callbacks on the admin surface", () => {
+    const decision = decideRoute({
+      surface: "admin",
+      pathname: "/auth/callback",
+      method: "GET",
+    });
+    expect(decision).toMatchObject({ kind: "reject", status: 404 });
+  });
+
   it("allows infrastructure only on apex and exact Vercel deployment hosts", () => {
     expect(
       decideRoute({

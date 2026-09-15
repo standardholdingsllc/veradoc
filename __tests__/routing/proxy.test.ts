@@ -105,6 +105,14 @@ describe("Proxy hostname routing", () => {
     );
   });
 
+  it("rejects auth callbacks on the admin hostname", async () => {
+    const response = await proxy(
+      new NextRequest("https://admin.veradoc.pe/auth/callback?code=secret"),
+    );
+    expect(response.status).toBe(404);
+    expect(response.headers.get("location")).toBeNull();
+  });
+
   it("rewrites demo signing routes only into the demo tree", async () => {
     const response = await proxy(
       new NextRequest("https://demo.veradoc.pe/firma/t"),

@@ -209,6 +209,13 @@ export function decideRoute(input: RouteDecisionInput): RouteDecision {
     if (legacyTarget && legacyTarget.surface !== "admin") {
       return redirectOrReject(legacyTarget, method);
     }
+    if (matchesPrefix(pathname, "/auth")) {
+      return {
+        kind: "reject",
+        reason: "HOST_PATH_WRONG_SURFACE",
+        status: 404,
+      };
+    }
     return {
       kind: "rewrite",
       reason: "HOST_PATH_REWRITE",
