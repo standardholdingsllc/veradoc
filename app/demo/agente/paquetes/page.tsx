@@ -77,7 +77,7 @@ export default function AgentePaquetesPage() {
                 >
                   <td className="px-3 py-3">
                     <Link
-                      href={`/demo/agente/paquetes/${packet.id}`}
+                      href={`/agente/paquetes/${packet.id}`}
                       className="font-mono text-sm font-medium text-secondary hover:underline"
                     >
                       {packet.packetCode}

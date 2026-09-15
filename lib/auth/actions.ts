@@ -1,9 +1,15 @@
 "use server";
 
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeCoverageText } from "@/lib/coverage/normalize";
 import { getDashboardForRole } from "@/lib/auth/constants";
+import { buildAbsoluteUrl } from "@/lib/routing/origins";
+import { classifyHost } from "@/lib/routing/surfaces";
+import { getPublicTargetForRole } from "@/lib/routing/targets";
+import type { CanonicalSurface, Surface } from "@/lib/routing/types";
+import { hasRequiredAdminMfa } from "@/lib/auth/mfa";
 import {
   approveRealtorSchema,
   createSignerAccountSchema,
@@ -51,6 +57,22 @@ export async function login(
     return { redirect: "/auth/pending-approval" };
   }
 
+  const currentSurface = await getRequestSurface();
+  const target = getPublicTargetForRole(role);
+  if (
+    currentSurface !== "local" &&
+    currentSurface !== "preview" &&
+    currentSurface !== target.surface
+  ) {
+    await supabase.auth.signOut();
+    return {
+      redirect: buildAbsoluteUrl(
+        { surface: target.surface, path: "/auth/login" },
+        { error: "wrong-surface" },
+      ),
+    };
+  }
+
   if (meta.status === "pending_approval") {
     return { redirect: "/auth/pending-approval" };
   }
@@ -96,6 +118,10 @@ export async function signupRealtor(
   }
   const v = parsed.data;
 
+  if (!(await isAllowedRequestSurface(["app"]))) {
+    return { error: "El registro de agentes solo está disponible en app.veradoc.pe." };
+  }
+
   const supabase = await createClient();
   const admin = createAdminClient();
 
@@ -103,7 +129,10 @@ export async function signupRealtor(
     email: v.email,
     password: v.password,
     options: {
-      emailRedirectTo: `${getBaseUrl()}/auth/callback`,
+      emailRedirectTo: buildAbsoluteUrl({
+        surface: "app",
+        path: "/auth/callback",
+      }),
     },
   });
 
@@ -168,12 +197,16 @@ export async function acceptNotaryInvite(
     department?: string;
     phone?: string;
   },
-): Promise<{ error?: string }> {
+): Promise<{ error?: string; redirect?: string }> {
   const parsed = notaryInviteSchema.safeParse(data);
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
   }
   const v = parsed.data;
+
+  if (!(await isAllowedRequestSurface(["notary", "marketing"]))) {
+    return { error: "La invitación debe abrirse en notario.veradoc.pe." };
+  }
 
   const supabase = await createClient();
   const admin = createAdminClient();
@@ -248,7 +281,7 @@ export async function acceptNotaryInvite(
     console.error("Failed to mark invitation as accepted:", acceptError);
   }
 
-  return {};
+  return { redirect: buildAbsoluteUrl(getPublicTargetForRole("notary")) };
 }
 
 // ---------------------------------------------------------------------------
@@ -284,6 +317,10 @@ export async function approveRealtor(
 
   if (callerProfile?.role !== "admin" || callerProfile?.status !== "active") {
     return { error: "No autorizado." };
+  }
+
+  if (!(await isAllowedRequestSurface(["admin"])) || !(await hasRequiredAdminMfa())) {
+    return { error: "Se requiere acceso administrativo con MFA." };
   }
 
   const { error: profileError } = await admin
@@ -368,6 +405,10 @@ export async function rejectRealtor(
     return { error: "No autorizado." };
   }
 
+  if (!(await isAllowedRequestSurface(["admin"])) || !(await hasRequiredAdminMfa())) {
+    return { error: "Se requiere acceso administrativo con MFA." };
+  }
+
   const { error: profileError } = await admin
     .from("profiles")
     .update({
@@ -427,6 +468,10 @@ export async function createSignerAccount(
     return { error: parsed.error.issues[0].message };
   }
   const v = parsed.data;
+
+  if (!(await isAllowedRequestSurface(["app"]))) {
+    return { error: "Este enlace debe abrirse en app.veradoc.pe." };
+  }
 
   const supabase = await createClient();
   const admin = createAdminClient();
@@ -549,11 +594,14 @@ export async function createSignerAccount(
 // ---------------------------------------------------------------------------
 
 export async function loginWithGoogle(): Promise<{ url?: string; error?: string }> {
+  if (!(await isAllowedRequestSurface(["app"]))) {
+    return { error: "El acceso con Google está disponible en app.veradoc.pe." };
+  }
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${getBaseUrl()}/auth/callback`,
+      redirectTo: buildAbsoluteUrl({ surface: "app", path: "/auth/callback" }),
       queryParams: { access_type: "offline", prompt: "consent" },
     },
   });
@@ -663,14 +711,22 @@ export async function completeGoogleSignup(
 // Helpers
 // ---------------------------------------------------------------------------
 
-function getBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_SITE_URL) {
-    return process.env.NEXT_PUBLIC_SITE_URL;
-  }
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-  return "http://localhost:3000";
+async function getRequestSurface(): Promise<Surface> {
+  const requestHeaders = await headers();
+  return classifyHost(requestHeaders.get("host"), {
+    vercelEnvironment: process.env.VERCEL_ENV,
+    vercelHostname: [
+      process.env.VERCEL_URL ?? "",
+      process.env.VERCEL_PROJECT_PRODUCTION_URL ?? "",
+    ],
+  }).surface;
+}
+
+async function isAllowedRequestSurface(
+  allowed: CanonicalSurface[],
+): Promise<boolean> {
+  const surface = await getRequestSurface();
+  return surface === "local" || surface === "preview" || allowed.includes(surface as CanonicalSurface);
 }
 
 async function hashToken(token: string): Promise<string> {

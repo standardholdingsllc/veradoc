@@ -308,7 +308,7 @@ export default function NotarioDashboardPage() {
                     >
                       <td className="px-4 py-3">
                         <Link
-                          href={`/demo/notario/paquetes/${packet.id}`}
+                          href={`/notario/paquetes/${packet.id}`}
                           className="font-mono text-sm font-semibold text-secondary hover:underline"
                         >
                           {packet.packetCode}

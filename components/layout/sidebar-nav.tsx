@@ -14,32 +14,32 @@ interface NavItem {
 
 const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
   realtor: [
-    { label: SIDEBAR.panel, href: "/demo/agente", exact: true },
-    { label: SIDEBAR.paquetes, href: "/demo/agente/paquetes" },
-    { label: SIDEBAR.nuevoPaquete, href: "/demo/agente/nuevo-paquete" },
-    { label: SIDEBAR.registro, href: "/demo/registro" },
+    { label: SIDEBAR.panel, href: "/agente", exact: true },
+    { label: SIDEBAR.paquetes, href: "/agente/paquetes" },
+    { label: SIDEBAR.nuevoPaquete, href: "/agente/nuevo-paquete" },
+    { label: SIDEBAR.registro, href: "/registro" },
   ],
   notary: [
-    { label: SIDEBAR.panel, href: "/demo/notario", exact: true },
-    { label: SIDEBAR.colaNotarial, href: "/demo/notario/cola" },
-    { label: SIDEBAR.registro, href: "/demo/registro" },
+    { label: SIDEBAR.panel, href: "/notario", exact: true },
+    { label: SIDEBAR.colaNotarial, href: "/notario/cola" },
+    { label: SIDEBAR.registro, href: "/registro" },
   ],
   landlord: [
-    { label: SIDEBAR.panel, href: "/demo/arrendador", exact: true },
-    { label: SIDEBAR.contratos, href: "/demo/arrendador/contratos" },
+    { label: SIDEBAR.panel, href: "/arrendador", exact: true },
+    { label: SIDEBAR.contratos, href: "/arrendador/contratos" },
   ],
   renter: [
-    { label: SIDEBAR.panel, href: "/demo/arrendatario", exact: true },
-    { label: SIDEBAR.contratos, href: "/demo/arrendatario/contratos" },
+    { label: SIDEBAR.panel, href: "/arrendatario", exact: true },
+    { label: SIDEBAR.contratos, href: "/arrendatario/contratos" },
   ],
 };
 
 const ROUTE_ROLE_MAP: { prefix: string; role: UserRole }[] = [
-  { prefix: "/demo/agente", role: "realtor" },
-  { prefix: "/demo/notario", role: "notary" },
-  { prefix: "/demo/arrendador", role: "landlord" },
-  { prefix: "/demo/arrendatario", role: "renter" },
-  { prefix: "/demo/registro", role: "realtor" },
+  { prefix: "/agente", role: "realtor" },
+  { prefix: "/notario", role: "notary" },
+  { prefix: "/arrendador", role: "landlord" },
+  { prefix: "/arrendatario", role: "renter" },
+  { prefix: "/registro", role: "realtor" },
 ];
 
 function roleFromPathname(pathname: string): UserRole {

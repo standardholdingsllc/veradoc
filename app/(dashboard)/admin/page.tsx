@@ -1,4 +1,4 @@
-import { requireApproved } from "@/lib/auth/guards";
+import { requireAdminMfa } from "@/lib/auth/mfa";
 import {
   getPendingRealtors,
   getInvitations,
@@ -21,7 +21,7 @@ interface AdminDashboardPageProps {
 export default async function AdminDashboardPage({
   searchParams,
 }: AdminDashboardPageProps) {
-  const profile = await requireApproved("admin");
+  const profile = await requireAdminMfa();
   const params = (await searchParams) ?? {};
   const usersPage = Number(params.usersPage ?? "1");
 

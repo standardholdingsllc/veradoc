@@ -9,7 +9,13 @@ const booleanFromString = z
 
 const schema = z.object({
   SUPABASE_SECRET_KEY: z.string().min(1),
-  SITE_URL: z.string().url().default("https://veradoc.pe"),
+  PUBLIC_ORIGIN: z.string().url().default("https://veradoc.pe"),
+  APP_ORIGIN: z.string().url().default("https://app.veradoc.pe"),
+  NOTARY_ORIGIN: z.string().url().default("https://notario.veradoc.pe"),
+  ADMIN_ORIGIN: z.string().url().default("https://admin.veradoc.pe"),
+  DEMO_ORIGIN: z.string().url().default("https://demo.veradoc.pe"),
+  HOST_ROUTING_MODE: z.enum(["off", "shadow", "enforce"]).default("off"),
+  ADMIN_MFA_REQUIRED: booleanFromString,
   WHATSAPP_API_TOKEN: z.string().optional(),
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
   EMAIL_API_KEY: z.string().optional(),

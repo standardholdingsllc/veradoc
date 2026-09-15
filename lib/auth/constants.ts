@@ -1,4 +1,5 @@
 import type { ProfileRole } from "./types";
+import { ROLE_TARGETS } from "@/lib/routing/types";
 
 export const AUTH_ROUTES = {
   login: "/auth/login",
@@ -7,6 +8,7 @@ export const AUTH_ROUTES = {
   pendingApproval: "/auth/pending-approval",
   rejected: "/auth/rejected",
   invitePrefix: "/auth/invite",
+  mfa: "/auth/mfa",
 } as const;
 
 /** Maps each role to its production dashboard root path. */
@@ -29,4 +31,8 @@ export const ROUTE_ROLE_MAP: { prefix: string; role: ProfileRole }[] = [
 
 export function getDashboardForRole(role: ProfileRole): string {
   return ROLE_DASHBOARD_MAP[role];
+}
+
+export function getPublicDashboardPathForRole(role: ProfileRole): string {
+  return ROLE_TARGETS[role].path;
 }

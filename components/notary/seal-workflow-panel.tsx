@@ -182,7 +182,7 @@ export function SealWorkflowPanel({ packetId, workflowState }: SealWorkflowPanel
           workflowState.preparedCertification!.id,
         );
         toast.success("Publicación encolada. Puede consultar el avance en la cola.");
-        router.push("/notario");
+        router.push("/");
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Error al publicar");
       }
@@ -200,7 +200,7 @@ export function SealWorkflowPanel({ packetId, workflowState }: SealWorkflowPanel
           correctionScope,
         );
         toast.success(TOAST.devueltoCorreccion);
-        router.push("/notario");
+        router.push("/");
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Error");
       }
@@ -213,7 +213,7 @@ export function SealWorkflowPanel({ packetId, workflowState }: SealWorkflowPanel
       try {
         await rejectFromSealAction(packetId, rejectionReason.trim());
         toast.success(TOAST.paqueteRechazado);
-        router.push("/notario");
+        router.push("/");
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Error");
       }

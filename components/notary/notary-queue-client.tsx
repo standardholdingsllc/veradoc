@@ -217,7 +217,7 @@ export function NotaryQueueClient({
                   >
                     <td className="px-3 py-3">
                       <Link
-                        href={`/notario/paquetes/${item.packetId}`}
+                        href={`/paquetes/${item.packetId}`}
                         className="font-mono text-xs font-medium text-secondary underline-offset-2 hover:underline"
                       >
                         {item.packetCode}

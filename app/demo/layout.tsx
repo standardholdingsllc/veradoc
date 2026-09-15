@@ -10,10 +10,10 @@ import type { UserRole } from "@/lib/domain/types";
 import { useCurrentRole, useSetCurrentRole } from "@/lib/services/hooks";
 
 function shouldShowDashboardShell(pathname: string): boolean {
-  if (pathname === "/demo") {
+  if (pathname === "/") {
     return false;
   }
-  if (pathname.startsWith("/demo/firma")) {
+  if (pathname.startsWith("/firma")) {
     return false;
   }
   return true;
@@ -31,10 +31,10 @@ export default function DemoLayout({
 
   useEffect(() => {
     const routeRoleMap: { prefix: string; role: UserRole }[] = [
-      { prefix: "/demo/agente", role: "realtor" },
-      { prefix: "/demo/notario", role: "notary" },
-      { prefix: "/demo/arrendador", role: "landlord" },
-      { prefix: "/demo/arrendatario", role: "renter" },
+      { prefix: "/agente", role: "realtor" },
+      { prefix: "/notario", role: "notary" },
+      { prefix: "/arrendador", role: "landlord" },
+      { prefix: "/arrendatario", role: "renter" },
     ];
 
     const match = routeRoleMap.find((entry) => pathname.startsWith(entry.prefix));

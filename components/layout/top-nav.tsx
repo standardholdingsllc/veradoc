@@ -17,7 +17,7 @@ const MARKETING_LINKS = [
   { href: "/precios", label: NAV.precios },
 ] as const;
 
-export function TopNav() {
+export function TopNav({ demoUrl }: { demoUrl: string }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const isDemoMode = pathname.startsWith("/demo");
@@ -76,7 +76,7 @@ export function TopNav() {
             <RoleSwitcher />
           ) : (
             <Link
-              href="/demo"
+              href={demoUrl}
               className="inline-flex h-10 items-center justify-center border border-primary bg-primary px-4 text-sm font-semibold text-surface transition-colors hover:bg-accent"
             >
               {NAV.verDemostracion}
@@ -127,7 +127,7 @@ export function TopNav() {
                 <RoleSwitcher />
               ) : (
                 <Link
-                  href="/demo"
+                  href={demoUrl}
                   className="inline-flex h-10 w-full items-center justify-center border border-primary bg-primary px-4 text-sm font-semibold text-surface transition-colors hover:bg-accent"
                 >
                   {NAV.verDemostracion}

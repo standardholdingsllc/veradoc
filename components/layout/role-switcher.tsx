@@ -10,10 +10,10 @@ import { useCurrentRole, useSetCurrentRole } from "@/lib/services/hooks";
 import { cn } from "@/lib/utils";
 
 const ROLE_DASHBOARD_PATHS: Record<UserRole, string> = {
-  realtor: "/demo/agente",
-  notary: "/demo/notario",
-  landlord: "/demo/arrendador",
-  renter: "/demo/arrendatario",
+  realtor: "/agente",
+  notary: "/notario",
+  landlord: "/arrendador",
+  renter: "/arrendatario",
 };
 
 const ROLES_ORDER: UserRole[] = ["realtor", "notary", "landlord", "renter"];

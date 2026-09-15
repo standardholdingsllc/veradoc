@@ -502,7 +502,7 @@ export function WizardClient({
   };
 
   const copyLink = (url: string) => {
-    void navigator.clipboard.writeText(`${window.location.origin}${url}`);
+    void navigator.clipboard.writeText(url);
     toast.success(TOAST.copiadoPortapapeles);
   };
 

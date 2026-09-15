@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { HOMEPAGE, META, PAGE_TITLES, PRECIOS } from "@/lib/i18n/labels";
+import { buildAbsoluteUrl } from "@/lib/routing/origins";
 
 export const metadata: Metadata = {
   title: `${PAGE_TITLES.precios} — ${META.siteName}`,
@@ -8,6 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default function PreciosPage() {
+  const demoUrl = buildAbsoluteUrl({ surface: "demo", path: "/" });
   return (
     <div className="mx-auto w-full max-w-[1200px] px-4 py-12">
       <header className="max-w-2xl">
@@ -23,7 +25,7 @@ export default function PreciosPage() {
         </p>
         <p className="mt-4">
           <Link
-            href="/demo"
+            href={demoUrl}
             className="text-sm font-medium text-secondary underline-offset-4 hover:underline"
           >
             {HOMEPAGE.ctaDemo}

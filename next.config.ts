@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Proxy bundles do not receive arbitrary runtime environment variables under
+  // `next start`. Make the non-secret rollout gate an explicit build setting.
+  env: {
+    HOST_ROUTING_MODE: process.env.HOST_ROUTING_MODE ?? "off",
+  },
   experimental: {
     serverActions: {
       // Required for notarial scan uploads (up to 50 MB).

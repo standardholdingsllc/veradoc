@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createRefund, getPayment, MercadoPagoAPIError } from "@/lib/services/mercadopago/service";
 import { recordPaymentResult } from "@/lib/services/mercadopago/transition";
+import { hasRequiredAdminMfa } from "@/lib/auth/mfa";
 
 type ActionResult<T = null> = { error?: string; data?: T };
 
@@ -26,6 +27,7 @@ async function requireAdmin(): Promise<string | null> {
     .single();
 
   if (profile?.role !== "admin" || profile?.status !== "active") return null;
+  if (!(await hasRequiredAdminMfa())) return null;
   return user.id;
 }
 

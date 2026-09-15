@@ -416,8 +416,7 @@ export async function sendSigningLinksAction(
 
   if (firmeasyClient) {
     const { parseWhatsappForFirmEasy } = await import("@/lib/services/firmeasy/normalize");
-    const { serverEnv } = await import("@/lib/env/server");
-    const baseUrl = serverEnv.SITE_URL;
+    const { buildSigningCompletionUrl } = await import("@/lib/routing/origins");
 
     // Download the lease PDF from storage
     const { data: leaseDoc } = await admin
@@ -452,7 +451,7 @@ export async function sendSigningLinksAction(
         phone,
         external_id: s.id,
         standard_flow: ["holographic_signature" as const, "otp_whatsapp" as const],
-        redirect_link: `${baseUrl}/firma/${rawToken}/completado`,
+        redirect_link: buildSigningCompletionUrl(rawToken),
       };
     });
 

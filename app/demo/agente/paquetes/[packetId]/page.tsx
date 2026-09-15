@@ -124,7 +124,7 @@ export default function PaqueteDetallePage() {
         <div className="mx-auto w-full max-w-[900px] px-4 py-8 md:px-8">
           <p className="text-sm text-muted">Paquete no encontrado.</p>
           <Link
-            href="/demo/agente"
+            href="/agente"
             className="mt-4 inline-flex items-center gap-1 text-sm text-secondary hover:underline"
           >
             <ArrowLeft className="size-4" />
@@ -151,7 +151,7 @@ export default function PaqueteDetallePage() {
       className="mx-auto w-full max-w-[1000px] px-4 py-8 md:px-8"
     >
       <Link
-        href="/demo/agente"
+        href="/agente"
         className="mb-4 inline-flex items-center gap-1 text-sm text-muted hover:text-primary"
       >
         <ArrowLeft className="size-4" />
@@ -417,7 +417,7 @@ export default function PaqueteDetallePage() {
               </Button>
 
               {currentPacket.status === "ready_to_send" ? (
-                <Link href="/demo/agente/nuevo-paquete">
+                <Link href="/agente/nuevo-paquete">
                   <Button variant="outline" className="mt-2 w-full justify-start">
                     <Send className="size-4" />
                     {ACTIONS.enviarEnlaces}

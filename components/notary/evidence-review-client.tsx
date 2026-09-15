@@ -197,7 +197,7 @@ export function EvidenceReviewClient({ data }: EvidenceReviewClientProps) {
       <div className="sticky top-0 z-10 border-b border-border bg-background px-4 py-3 md:px-6">
         <div className="flex flex-wrap items-center gap-3">
           <Link
-            href="/notario"
+            href="/"
             className="inline-flex items-center gap-1 text-sm text-muted hover:text-primary"
           >
             <ArrowLeft className="size-4" />

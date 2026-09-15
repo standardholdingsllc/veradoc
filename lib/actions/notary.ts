@@ -767,7 +767,7 @@ export async function toggleChecklistItemAction(
   const requestHeaders = await headers();
   const context: Json = {
     source: "notary_dashboard",
-    route: `/notario/paquetes/${packetId}`,
+    route: `/paquetes/${packetId}`,
     ip_address: requestHeaders.get("x-real-ip")
       ?? requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim()
       ?? null,

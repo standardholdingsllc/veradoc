@@ -2,7 +2,7 @@
 
 import { type FormEvent, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,6 @@ const inputClassName = cn(
 );
 
 export default function InviteAcceptPage() {
-  const router = useRouter();
   const params = useParams<{ token: string }>();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -62,7 +61,7 @@ export default function InviteAcceptPage() {
       setLoading(false);
     } else {
       toast.success("Cuenta de notario configurada correctamente.");
-      router.push("/notario");
+      window.location.href = result.redirect ?? "/";
     }
   }
 

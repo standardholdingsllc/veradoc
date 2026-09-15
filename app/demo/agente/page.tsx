@@ -146,7 +146,7 @@ export default function AgenteDashboardPage() {
             {DASHBOARD.agenteInmobiliario} · {packets.length} {UI.paquetes.toLowerCase()}
           </p>
         </div>
-        <Link href="/demo/agente/nuevo-paquete">
+        <Link href="/agente/nuevo-paquete">
           <Button>
             <Plus className="size-4" aria-hidden="true" />
             {ACTIONS.crearPaquete}
@@ -200,7 +200,7 @@ export default function AgenteDashboardPage() {
                 >
                   <td className="px-3 py-3">
                     <Link
-                      href={`/demo/agente/paquetes/${packet.id}`}
+                      href={`/agente/paquetes/${packet.id}`}
                       className="font-mono text-sm font-medium text-secondary hover:underline"
                     >
                       {packet.packetCode}

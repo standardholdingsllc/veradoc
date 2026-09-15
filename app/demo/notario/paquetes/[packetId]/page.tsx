@@ -235,7 +235,7 @@ export default function NotaryEvidenceReviewPage() {
         <div className="px-6 py-8">
           <p className="text-sm text-muted">Paquete no encontrado.</p>
           <Link
-            href="/demo/notario"
+            href="/notario"
             className="mt-4 inline-flex items-center gap-1 text-sm text-secondary hover:underline"
           >
             <ArrowLeft className="size-4" />
@@ -260,7 +260,7 @@ export default function NotaryEvidenceReviewPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-6">
           <div className="min-w-0 flex-1">
             <Link
-              href="/demo/notario"
+              href="/notario"
               className="mb-1 inline-flex items-center gap-1 text-xs text-muted hover:text-secondary"
             >
               <ArrowLeft className="size-3" />

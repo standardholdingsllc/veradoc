@@ -14,16 +14,8 @@ import {
   hashPrivatePromoCode,
   promoCodeHint,
 } from "@/lib/services/commercial-service";
-
-function getBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_SITE_URL) {
-    return process.env.NEXT_PUBLIC_SITE_URL;
-  }
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-  return "http://localhost:3000";
-}
+import { buildNotaryInvitationCallbackUrl } from "@/lib/routing/origins";
+import { hasRequiredAdminMfa } from "@/lib/auth/mfa";
 
 async function verifyAdmin() {
   const supabase = await createClient();
@@ -45,6 +37,14 @@ async function verifyAdmin() {
   if (callerProfile?.role !== "admin" || callerProfile?.status !== "active") {
     return {
       error: "No autorizado." as const,
+      admin: null!,
+      callerId: null!,
+    };
+  }
+
+  if (!(await hasRequiredAdminMfa())) {
+    return {
+      error: "Se requiere verificación MFA para esta acción." as const,
       admin: null!,
       callerId: null!,
     };
@@ -93,7 +93,7 @@ export async function createNotaryInvitation(
     return { error: "Error al crear la invitación." };
   }
 
-  const redirectUrl = `${getBaseUrl()}/auth/callback?invitation=${invitation.token}`;
+  const redirectUrl = buildNotaryInvitationCallbackUrl(invitation.token);
 
   const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(
     v.email,
@@ -163,7 +163,7 @@ export async function resendInvitation(
     return { error: "La invitación ha expirado." };
   }
 
-  const redirectUrl = `${getBaseUrl()}/auth/callback?invitation=${invitation.token}`;
+  const redirectUrl = buildNotaryInvitationCallbackUrl(invitation.token);
 
   const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(
     invitation.email,

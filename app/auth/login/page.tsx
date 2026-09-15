@@ -36,7 +36,11 @@ function LoginForm() {
       toast.error(result.error);
       setLoading(false);
     } else if (result?.redirect) {
-      router.push(result.redirect);
+      if (result.redirect.startsWith("http")) {
+        window.location.href = result.redirect;
+      } else {
+        router.push(result.redirect);
+      }
     }
   }
 
@@ -61,6 +65,11 @@ function LoginForm() {
         {errorParam === "auth" && (
           <div className="mb-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
             Error de autenticación. Intente nuevamente.
+          </div>
+        )}
+        {errorParam === "wrong-surface" && (
+          <div className="mb-4 rounded-md bg-secondary/10 p-3 text-sm text-primary">
+            Esta cuenta pertenece a otro portal. Inicie sesión nuevamente aquí.
           </div>
         )}
 

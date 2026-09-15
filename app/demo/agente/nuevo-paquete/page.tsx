@@ -328,7 +328,7 @@ export default function NuevoPaquetePage() {
             signer.roleInLease === "landlord"
               ? ROLES.landlord
               : ROLES.renter,
-          url: `/demo/firma/${signer.secureLinkToken}`,
+          url: `/firma/${signer.secureLinkToken}`,
         })),
       );
       toast.success(TOAST.pagoConfirmado);
@@ -355,7 +355,7 @@ export default function NuevoPaquetePage() {
             signer.roleInLease === "landlord"
               ? ROLES.landlord
               : ROLES.renter,
-          url: `/demo/firma/${signer.secureLinkToken}`,
+          url: `/firma/${signer.secureLinkToken}`,
         })),
       );
       toast.success(TOAST.enlacesEnviados);
@@ -377,7 +377,7 @@ export default function NuevoPaquetePage() {
     <div className="mx-auto w-full max-w-[900px] px-4 py-8 md:px-8">
       <header className="mb-6">
         <Link
-          href="/demo/agente"
+          href="/agente"
           className="mb-4 inline-flex items-center gap-1 text-sm text-muted hover:text-primary"
         >
           <ArrowLeft className="size-4" />
@@ -948,7 +948,7 @@ export default function NuevoPaquetePage() {
             {createdPacketId ? (
               <div className="pt-2 text-center">
                 <Link
-                  href={`/demo/agente/paquetes/${createdPacketId}`}
+                  href={`/agente/paquetes/${createdPacketId}`}
                   className="text-sm text-secondary hover:underline"
                 >
                   {UI.verDetalle}
@@ -978,7 +978,7 @@ export default function NuevoPaquetePage() {
             <ArrowRight className="size-4" />
           </Button>
         ) : step === 5 && createdPacketId ? (
-          <Link href={`/demo/agente/paquetes/${createdPacketId}`}>
+          <Link href={`/agente/paquetes/${createdPacketId}`}>
             <Button>
               {UI.verDetalle}
               <ArrowRight className="size-4" />

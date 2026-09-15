@@ -8,7 +8,7 @@ export default function CertificarRedirectPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace(`/demo/notario/paquetes/${params.packetId}#decision`);
+    router.replace(`/notario/paquetes/${params.packetId}#decision`);
   }, [params.packetId, router]);
 
   return null;

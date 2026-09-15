@@ -60,7 +60,7 @@ interface PartyPacket {
 }
 
 function rolePath(role: PartyRole): string {
-  return role === "landlord" ? "/demo/arrendador" : "/demo/arrendatario";
+  return role === "landlord" ? "/arrendador" : "/arrendatario";
 }
 
 function dashboardTitle(role: PartyRole): string {
@@ -198,7 +198,7 @@ function ContractRow({
       <td className="px-3 py-3">
         {pending ? (
           <Link
-            href={`/demo/firma/${signer.secureLinkToken}`}
+            href={`/firma/${signer.secureLinkToken}`}
             className="text-sm font-medium text-secondary hover:underline"
           >
             {PARTY_ACCOUNT.verFlujoFirma}
@@ -456,7 +456,7 @@ export function PartyContractDetail({
     try {
       const renewal = createRenewalPacket(packet.id);
       toast.success(PARTY_ACCOUNT.renovacionCreada);
-      router.push(`/demo/arrendador/contratos/${renewal.id}`);
+      router.push(`/arrendador/contratos/${renewal.id}`);
     } catch {
       toast.error(TOAST.errorGenerico);
       setRenewing(false);
@@ -626,7 +626,7 @@ export function PartyContractDetail({
             </CardHeader>
             <CardContent className="space-y-2">
               {isPendingSigner(signer) ? (
-                <Link href={`/demo/firma/${signer.secureLinkToken}`}>
+                <Link href={`/firma/${signer.secureLinkToken}`}>
                   <Button className="w-full justify-start">
                     <Fingerprint className="size-4" aria-hidden="true" />
                     {PARTY_ACCOUNT.iniciarNuevaFirma}

@@ -21,10 +21,10 @@ const AGENT_NAV: NavItem[] = [
 ];
 
 const NOTARY_NAV: NavItem[] = [
-  { label: "Cola", href: "/notario", exact: true },
-  { label: "Historial", href: "/notario/historial" },
-  { label: "Ganancias", href: "/notario/ganancias" },
-  { label: "Perfil", href: "/notario/perfil" },
+  { label: "Cola", href: "/", exact: true },
+  { label: "Historial", href: "/historial" },
+  { label: "Ganancias", href: "/ganancias" },
+  { label: "Perfil", href: "/perfil" },
 ];
 
 function isActive(pathname: string, href: string, exact = false): boolean {
@@ -54,7 +54,7 @@ export function ProductionSidebarNav({
 
   const navItems = role === "notary" ? NOTARY_NAV : AGENT_NAV;
   const defaultDisplayName = role === "notary" ? "Notario" : "Agente";
-  const badgeHref = role === "notary" ? "/notario" : "/agente";
+  const badgeHref = role === "notary" ? "/" : "/agente";
   const notificationLabel =
     notificationCount > 0
       ? `${notificationCount} notificaciones pendientes`

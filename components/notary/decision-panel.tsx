@@ -127,7 +127,7 @@ export function DecisionPanel({ packetId, className }: DecisionPanelProps) {
     (message: string) => {
       toast.success(message);
       closeDialog();
-      router.push("/demo/notario");
+      router.push("/notario");
     },
     [closeDialog, router],
   );
@@ -439,7 +439,7 @@ export function ProductionDecisionPanel({
     (message: string) => {
       toast.success(message);
       closeDialog();
-      router.push("/notario");
+      router.push("/");
     },
     [closeDialog, router],
   );

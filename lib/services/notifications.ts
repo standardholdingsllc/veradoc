@@ -16,12 +16,7 @@ import {
   packetArchivedHtml,
   packetServiceWindowReminderHtml,
 } from "./email-templates/packet-service-window";
-
-function getSiteUrl(): string {
-  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "http://localhost:3000";
-}
+import { buildAbsoluteUrl, buildNotaryPacketUrl } from "@/lib/routing/origins";
 
 export async function notifyPacketServiceWindow(params: {
   email: string;
@@ -38,7 +33,7 @@ export async function notifyPacketServiceWindow(params: {
     recipientName: params.recipientName,
     packetCode: params.packetCode,
     propertyAddress: params.propertyAddress,
-    dashboardUrl: `${getSiteUrl()}/agente/paquetes/${params.packetId}`,
+    dashboardUrl: buildAbsoluteUrl({ surface: "app", path: `/agente/paquetes/${params.packetId}` }),
   };
   return sendEmail({
     to: params.email,
@@ -83,7 +78,7 @@ export async function notifyRealtorApproved(params: {
     subject: "¡Tu cuenta ha sido aprobada! — VeraDoc",
     html: realtorApprovedHtml({
       realtorName: params.fullName,
-      loginUrl: `${getSiteUrl()}/auth/login`,
+      loginUrl: buildAbsoluteUrl({ surface: "app", path: "/auth/login" }),
     }),
   }).catch((err) => {
     console.error("[notifications] realtorApproved failed:", err);
@@ -129,7 +124,7 @@ export async function notifySignerCompletion(params: {
     html: signerCompletionHtml({
       signerName: params.signerName,
       propertyAddress: params.propertyAddress,
-      dashboardUrl: `${getSiteUrl()}${dashPath}`,
+      dashboardUrl: buildAbsoluteUrl({ surface: "app", path: dashPath }),
     }),
   }).catch((err) => {
     console.error("[notifications] signerCompletion failed:", err);
@@ -153,7 +148,7 @@ export async function notifySignerRejectedFirmEasy(params: {
       signerName: params.signerName,
       packetCode: params.packetCode,
       propertyAddress: params.propertyAddress,
-      dashboardUrl: `${getSiteUrl()}/agente/paquetes/${params.packetId}`,
+      dashboardUrl: buildAbsoluteUrl({ surface: "app", path: `/agente/paquetes/${params.packetId}` }),
     }),
   }).catch((err) => {
     console.error("[notifications] signerRejectedFirmEasy failed:", err);
@@ -179,7 +174,7 @@ export async function notifyAllSignersComplete(params: {
       realtorName: params.realtorName,
       packetCode: params.packetCode,
       propertyAddress: params.propertyAddress,
-      packetUrl: `${getSiteUrl()}/agente/paquetes/${params.packetId}`,
+      packetUrl: buildAbsoluteUrl({ surface: "app", path: `/agente/paquetes/${params.packetId}` }),
     }),
   }).catch((err) => {
     console.error("[notifications] allSignersComplete failed:", err);
@@ -204,7 +199,7 @@ export async function notifyPacketNeedsCorrection(params: {
       packetCode: params.packetCode,
       propertyAddress: params.propertyAddress,
       reason: params.reason,
-      packetUrl: `${getSiteUrl()}/agente/paquetes/${params.packetId}`,
+      packetUrl: buildAbsoluteUrl({ surface: "app", path: `/agente/paquetes/${params.packetId}` }),
     }),
   }).catch((err) => {
     console.error("[notifications] packetNeedsCorrection failed:", err);
@@ -300,7 +295,7 @@ export async function notifyPacketNeedsCorrectionRecipient(params: {
           packetCode: params.packetCode,
           propertyAddress: params.propertyAddress,
           reason: params.reason,
-          packetUrl: `${getSiteUrl()}/agente/paquetes/${params.packetId}`,
+          packetUrl: buildAbsoluteUrl({ surface: "app", path: `/agente/paquetes/${params.packetId}` }),
         })
       : packetNeedsCorrectionPartyHtml({
           partyName: params.recipientName,
@@ -365,7 +360,7 @@ export async function notifyPacketSubmittedToNotary(params: {
       packetCode: params.packetCode,
       propertyAddress: params.propertyAddress,
       realtorName: params.realtorName,
-      reviewUrl: `${getSiteUrl()}/notario/paquetes/${params.packetId}`,
+      reviewUrl: buildNotaryPacketUrl(params.packetId),
     }),
   }).catch((err) => {
     console.error("[notifications] packetSubmittedToNotary failed:", err);
@@ -389,7 +384,7 @@ export async function notifyPacketCertified(params: {
   idempotencyKey?: string;
 }) {
   const emails = params.recipients.map((r) => {
-    const dashPath = r.role === "realtor"
+    const dashPath: `/${string}` = r.role === "realtor"
       ? `/agente/paquetes/${params.packetId}`
       : r.role === "landlord"
         ? `/arrendador/contratos/${params.packetId}`
@@ -402,7 +397,7 @@ export async function notifyPacketCertified(params: {
         recipientName: r.name,
         packetCode: params.packetCode,
         propertyAddress: params.propertyAddress,
-        dashboardUrl: `${getSiteUrl()}${dashPath}`,
+        dashboardUrl: buildAbsoluteUrl({ surface: "app", path: dashPath }),
       }),
       tags: [
         { name: "event", value: "packet_certified" },
@@ -431,7 +426,7 @@ export async function notifyPacketCertifiedRecipient(params: {
   propertyAddress: string;
   idempotencyKey: string;
 }): Promise<{ id: string }> {
-  const dashPath = params.role === "realtor"
+  const dashPath: `/${string}` = params.role === "realtor"
     ? `/agente/paquetes/${params.packetId}`
     : params.role === "landlord"
       ? `/arrendador/contratos/${params.packetId}`
@@ -444,7 +439,7 @@ export async function notifyPacketCertifiedRecipient(params: {
       recipientName: params.name,
       packetCode: params.packetCode,
       propertyAddress: params.propertyAddress,
-      dashboardUrl: `${getSiteUrl()}${dashPath}`,
+      dashboardUrl: buildAbsoluteUrl({ surface: "app", path: dashPath }),
     }),
     tags: [
       { name: "event", value: "packet_certified" },
@@ -479,8 +474,6 @@ export async function notifyComprobanteAvailable(params: {
   propertyAddress: string;
   idempotencyKey?: string;
 }): Promise<{ id: string }> {
-  const siteUrl = getSiteUrl();
-
   return sendEmail({
     to: params.realtorEmail,
     subject: `Comprobante disponible — ${params.documentNumber} — VeraDoc`,
@@ -490,7 +483,7 @@ export async function notifyComprobanteAvailable(params: {
       documentNumber: params.documentNumber,
       packetCode: params.packetCode,
       propertyAddress: params.propertyAddress,
-      dashboardUrl: `${siteUrl}/agente/paquetes/${params.packetId}`,
+      dashboardUrl: buildAbsoluteUrl({ surface: "app", path: `/agente/paquetes/${params.packetId}` }),
     }),
     idempotencyKey: params.idempotencyKey,
   });

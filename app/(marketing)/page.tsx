@@ -22,6 +22,7 @@ import {
   META,
 } from "@/lib/i18n/labels";
 import { cn } from "@/lib/utils";
+import { buildAbsoluteUrl } from "@/lib/routing/origins";
 
 export const metadata: Metadata = {
   title: META.title,
@@ -108,6 +109,7 @@ function buttonLinkClass(variant: "primary" | "outline" = "primary") {
 }
 
 export default function HomePage() {
+  const demoUrl = buildAbsoluteUrl({ surface: "demo", path: "/" });
   return (
     <div className="flex flex-col">
       <section className="relative overflow-hidden border-b border-border/70">
@@ -123,7 +125,7 @@ export default function HomePage() {
               {HOMEPAGE.heroSubtitle}
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <Link href="/demo" className={buttonLinkClass("primary")}>
+              <Link href={demoUrl} className={buttonLinkClass("primary")}>
                 {HOMEPAGE.ctaDemo}
               </Link>
               <Link
@@ -251,7 +253,7 @@ export default function HomePage() {
             </h2>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row md:flex-col">
-            <Link href="/demo" className={buttonLinkClass("primary")}>
+            <Link href={demoUrl} className={buttonLinkClass("primary")}>
               {HOMEPAGE.ctaDemo}
             </Link>
             <Link href="/como-funciona" className={buttonLinkClass("outline")}>

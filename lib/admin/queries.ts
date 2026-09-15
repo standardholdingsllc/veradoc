@@ -1,8 +1,10 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdminMfa } from "@/lib/auth/mfa";
 
 export async function getPendingRealtors() {
+  await requireAdminMfa();
   const admin = createAdminClient();
   const { data } = await admin
     .from("profiles")
@@ -16,6 +18,7 @@ export async function getPendingRealtors() {
 }
 
 export async function getInvitations() {
+  await requireAdminMfa();
   const admin = createAdminClient();
   const { data } = await admin
     .from("invitations")
@@ -27,6 +30,7 @@ export async function getInvitations() {
 }
 
 export async function getCoverage() {
+  await requireAdminMfa();
   const admin = createAdminClient();
   const { data } = await admin
     .from("notary_coverage")
@@ -38,6 +42,7 @@ export async function getCoverage() {
 }
 
 export async function getActiveNotaries() {
+  await requireAdminMfa();
   const admin = createAdminClient();
   const { data } = await admin
     .from("profiles")
@@ -49,6 +54,7 @@ export async function getActiveNotaries() {
 }
 
 export async function getNotaryPayoutAdminData() {
+  await requireAdminMfa();
   const admin = createAdminClient();
   const [rates, payouts] = await Promise.all([
     admin
@@ -94,6 +100,7 @@ export interface PacketFinancialSummaryRow {
 }
 
 export async function getCommercialFinanceData(): Promise<PacketFinancialSummaryRow[]> {
+  await requireAdminMfa();
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("packet_financial_summary")
@@ -105,6 +112,7 @@ export async function getCommercialFinanceData(): Promise<PacketFinancialSummary
 }
 
 export async function getMetrics() {
+  await requireAdminMfa();
   const admin = createAdminClient();
 
   const [realtors, notaries, signers] = await Promise.all([
@@ -166,6 +174,7 @@ export async function getMetrics() {
 }
 
 export async function getUsers(page = 1, pageSize = 50) {
+  await requireAdminMfa();
   const admin = createAdminClient();
   const safePage = Math.max(1, Math.floor(page));
   const safePageSize = Math.min(100, Math.max(10, Math.floor(pageSize)));

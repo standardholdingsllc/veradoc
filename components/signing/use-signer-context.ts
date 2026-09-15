@@ -37,7 +37,7 @@ export function useSignerContext(): SignerContext | undefined {
 
     return {
       token,
-      basePath: `/demo/firma/${token}`,
+      basePath: `/firma/${token}`,
       packet,
       signer,
       signerIndex,

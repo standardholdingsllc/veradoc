@@ -39,7 +39,7 @@ export default function SignerCompletadoPage() {
           </div>
 
           <Link
-            href="/demo"
+            href="/"
             className={cn(
               "mt-4 inline-flex h-12 min-h-12 w-full items-center justify-center rounded-md",
               "border border-border bg-transparent px-6 text-base font-medium text-primary",

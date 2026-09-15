@@ -23,25 +23,25 @@ const ROLE_OPTIONS: {
     role: "realtor",
     icon: Building2,
     description: ROLE_CARD_DESCRIPTIONS.realtor,
-    href: "/demo/agente",
+    href: "/agente",
   },
   {
     role: "landlord",
     icon: Home,
     description: ROLE_CARD_DESCRIPTIONS.landlord,
-    href: "/demo/arrendador",
+    href: "/arrendador",
   },
   {
     role: "renter",
     icon: User,
     description: ROLE_CARD_DESCRIPTIONS.renter,
-    href: "/demo/arrendatario",
+    href: "/arrendatario",
   },
   {
     role: "notary",
     icon: Scale,
     description: ROLE_CARD_DESCRIPTIONS.notary,
-    href: "/demo/notario",
+    href: "/notario",
   },
 ];
 

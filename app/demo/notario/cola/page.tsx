@@ -7,7 +7,7 @@ export default function ColaNotarialRedirectPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/demo/notario");
+    router.replace("/notario");
   }, [router]);
 
   return null;
