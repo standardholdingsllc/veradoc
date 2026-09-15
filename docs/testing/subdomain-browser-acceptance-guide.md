@@ -16,6 +16,8 @@ This guide does not authorize changes to code, Vercel, DNS, Supabase, OAuth, pay
 
 The migration remains **partial** until every applicable completion gate in the normative transition guide has passed.
 
+Record browser runs in `docs/testing/subdomain-browser-acceptance-report.md`. Keep the execution guide reusable; put environment-specific results and reconciliations in the report.
+
 ## 2. Release baseline to confirm
 
 The expected production release at the time this guide was written is:
@@ -59,6 +61,7 @@ The browser agent MUST follow all of these rules:
 10. Use a clean browser context for each role and another clean context for anonymous checks. Do not reuse a context across roles.
 11. Stop immediately if a test appears capable of charging money, contacting a real person, signing with a production provider, certifying a real document, or changing non-test data.
 12. A check is `PASS` only with observable evidence. Otherwise use `FAIL`, `BLOCKED`, or `NOT RUN`.
+13. Do not use `PASS*` or hide a caveat inside a passing result. Split the satisfied and unsatisfied claims into separate rows.
 
 ## 5. One-question-at-a-time protocol
 
@@ -231,7 +234,8 @@ These checks are read-only and may run against production.
 
 - `A-MKT-01`: Open `https://veradoc.pe/` and at least `/precios`, `/como-funciona`, `/privacidad`, and `/terminos`. Expect successful marketing pages.
 - `A-MKT-02`: Open `https://www.veradoc.pe/` with a harmless query. Expect one temporary canonical redirect to `https://veradoc.pe/` with the query preserved and no loop.
-- `A-MKT-03`: Inspect canonical metadata. Marketing pages must identify public marketing URLs, never internal application paths.
+- `A-MKT-03a`: Inspect canonical metadata. No canonical value may identify an internal path or a nonmarketing origin.
+- `A-MKT-03b`: Confirm each tested marketing page declares the approved public canonical URL. If no canonical tag is present, record `FAIL` unless the documented SEO policy explicitly approves omission.
 - `A-MKT-04`: Confirm marketing is not marked `noindex` unless a separate SEO policy says otherwise.
 
 ### A2. Surface isolation
@@ -263,8 +267,8 @@ Record whether a wrong-surface GET is rejected or canonically redirected. Both m
 - `A-HDR-01`: App, notary, admin, and demo page responses include `X-Robots-Tag: noindex, nofollow` or equivalent page metadata.
 - `A-HDR-02`: Token-bearing and privileged surfaces use `Referrer-Policy: no-referrer` where implemented.
 - `A-HDR-03`: Admin and notary deny framing with `frame-ancestors 'none'` or equivalent.
-- `A-HDR-04`: Confirm HSTS and `X-Content-Type-Options: nosniff` on all production hosts.
-- `A-HDR-05`: Confirm ordinary page responses do not expose permissive wildcard credentialed CORS.
+- `A-HDR-04`: Confirm HSTS and `X-Content-Type-Options: nosniff` on the main document response for all production hosts. Do not infer absence from a browser summary panel; inspect the document response headers directly.
+- `A-HDR-05`: Confirm ordinary HTML page responses do not emit wildcard `Access-Control-Allow-Origin: *`. The absence of `Access-Control-Allow-Credentials` reduces exposure but does not justify a global wildcard header on pages. Document narrowly scoped endpoint-specific CORS separately.
 
 ### A5. Safe mutation-routing observation
 
