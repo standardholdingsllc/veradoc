@@ -46,6 +46,8 @@ const schema = z.object({
   FIRMEASY_ALLOW_DEV_STUB: booleanFromString,
   // Physical-sello notary workflow
   NOTARY_SEAL_WORKFLOW_ENABLED: booleanFromString,
+  // Commercial accounting rollout (requires migration 20260910160000)
+  COMMERCIAL_ACCOUNTING_ENABLED: booleanFromString,
   COMMERCIAL_ARCHIVAL_MUTATIONS_ENABLED: booleanFromString,
   OUTBOX_CRON_SECRET: z.string().optional(),
   CRON_SECRET: z.string().optional(),
@@ -160,6 +162,10 @@ export function isFirmEasyConfigured(): boolean {
 
 export function isNotarySealWorkflowGloballyEnabled(): boolean {
   return serverEnv.NOTARY_SEAL_WORKFLOW_ENABLED;
+}
+
+export function isCommercialAccountingEnabled(): boolean {
+  return serverEnv.COMMERCIAL_ACCOUNTING_ENABLED;
 }
 
 // ---------------------------------------------------------------------------

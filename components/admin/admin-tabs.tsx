@@ -11,17 +11,7 @@ import { NotaryPayouts } from "./notary-payouts";
 import { RefundPanel } from "./refund-panel";
 import { CommercialFinance } from "./commercial-finance";
 import type { PacketFinancialSummaryRow } from "@/lib/admin/queries";
-
-const TABS = [
-  { id: "overview", label: "Resumen" },
-  { id: "realtors", label: "Agentes" },
-  { id: "invitations", label: "Invitaciones" },
-  { id: "coverage", label: "Cobertura" },
-  { id: "payouts", label: "Pagos notariales" },
-  { id: "finance", label: "Finanzas" },
-  { id: "refunds", label: "Reembolsos" },
-  { id: "users", label: "Usuarios" },
-] as const;
+import { getAdminTabs } from "./admin-tab-definitions";
 
 interface AdminTabsProps {
   pendingRealtors: {
@@ -119,6 +109,7 @@ interface AdminTabsProps {
     notes: string | null;
   }[];
   financeRows: PacketFinancialSummaryRow[];
+  commercialAccountingEnabled: boolean;
   initialTab?: string;
 }
 
@@ -133,14 +124,16 @@ export function AdminTabs({
   payoutRates,
   payouts,
   financeRows,
+  commercialAccountingEnabled,
   initialTab,
 }: AdminTabsProps) {
+  const tabs = getAdminTabs(commercialAccountingEnabled);
   const [activeTab, setActiveTab] = useState(
-    TABS.some((tab) => tab.id === initialTab) ? initialTab! : "overview",
+    tabs.some((tab) => tab.id === initialTab) ? initialTab! : "overview",
   );
 
   return (
-    <Tabs tabs={[...TABS]} activeTab={activeTab} onTabChange={setActiveTab}>
+    <Tabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab}>
       {activeTab === "overview" && <OverviewMetrics metrics={metrics} />}
       {activeTab === "realtors" && (
         <RealtorQueue pendingRealtors={pendingRealtors} />
@@ -151,11 +144,13 @@ export function AdminTabs({
       {activeTab === "coverage" && (
         <NotaryCoverage coverage={coverage} notaries={notaries} />
       )}
-      {activeTab === "payouts" && (
+      {commercialAccountingEnabled && activeTab === "payouts" && (
         <NotaryPayouts notaries={notaries} rates={payoutRates} payouts={payouts} />
       )}
-      {activeTab === "finance" && <CommercialFinance rows={financeRows} />}
-      {activeTab === "refunds" && <RefundPanel />}
+      {commercialAccountingEnabled && activeTab === "finance" && (
+        <CommercialFinance rows={financeRows} />
+      )}
+      {commercialAccountingEnabled && activeTab === "refunds" && <RefundPanel />}
       {activeTab === "users" && (
         <UserManagement users={users} pageInfo={usersPageInfo} />
       )}

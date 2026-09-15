@@ -2,6 +2,7 @@ import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminMfa } from "@/lib/auth/mfa";
+import { isCommercialAccountingEnabled } from "@/lib/env/server";
 
 export async function getPendingRealtors() {
   await requireAdminMfa();
@@ -55,6 +56,9 @@ export async function getActiveNotaries() {
 
 export async function getNotaryPayoutAdminData() {
   await requireAdminMfa();
+  if (!isCommercialAccountingEnabled()) {
+    return { rates: [], payouts: [] };
+  }
   const admin = createAdminClient();
   const [rates, payouts] = await Promise.all([
     admin
@@ -101,6 +105,7 @@ export interface PacketFinancialSummaryRow {
 
 export async function getCommercialFinanceData(): Promise<PacketFinancialSummaryRow[]> {
   await requireAdminMfa();
+  if (!isCommercialAccountingEnabled()) return [];
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("packet_financial_summary")

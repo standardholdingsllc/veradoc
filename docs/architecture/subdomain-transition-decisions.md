@@ -89,3 +89,21 @@
 - Rollback: Set `HOST_ROUTING_MODE=off`.
 - Required tests: Role-to-surface routing and host-only browser-cookie checks.
 - Follow-up trigger: Any SSO request requires a separate reviewed security design.
+
+## SD-DEC-006 — Commercial accounting remains gated until its schema rollout
+
+- Date: 2026-09-15
+- Owner: VeraDoc engineering
+- Work package: WP-5
+- Problem: The production admin dashboard loaded commercial-accounting queries whose required migration was not applied, causing the entire post-MFA Server Component to fail.
+- Chosen option: Add a server-only, default-off `COMMERCIAL_ACCOUNTING_ENABLED` gate. While disabled, the admin dashboard skips the unsupported payout and finance queries, hides payout, finance, and refund controls, and rejects their Server Actions after admin/MFA authorization but before any RPC or provider call.
+- Rejected options: Applying `20260910160000_commercial_accounting.sql` as an emergency admin fix, because it changes pricing, production data, refund and payout behavior, finance authority, and archival policy.
+- Security impact: Hiding controls is not treated as authorization; every dependent Server Action independently fails closed while the gate is disabled.
+- Authentication/cookie impact: None. The existing active-admin and TOTP AAL2 requirements remain unchanged.
+- Generated-link impact: None.
+- External-system impact: None while disabled. The migration and enabling the flag require a separate approved production rollout.
+- Migration compatibility: The gate may be enabled only after the migration is deliberately reviewed, applied, and verified in the target environment.
+- Observability: Disabled actions return a stable non-sensitive unavailable message. No schema error details or provider credentials are exposed.
+- Rollback: Promote the preceding application deployment. No database rollback is needed because this decision does not apply the migration.
+- Required tests: Default-off environment parsing, hidden commercial tabs, skipped schema queries, and fail-closed payout, finance, refund, and reconciliation actions.
+- Follow-up trigger: Review the full migration with database backup, data-impact validation, provider safety, and a forward-recovery plan before enabling commercial accounting.

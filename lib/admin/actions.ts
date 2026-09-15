@@ -16,6 +16,7 @@ import {
 } from "@/lib/services/commercial-service";
 import { buildNotaryInvitationCallbackUrl } from "@/lib/routing/origins";
 import { hasRequiredAdminMfa } from "@/lib/auth/mfa";
+import { getCommercialAccountingUnavailableError } from "@/lib/admin/commercial-accounting";
 
 async function verifyAdmin() {
   const supabase = await createClient();
@@ -413,6 +414,8 @@ export async function setNotaryContractedRate(
 ): Promise<{ error?: string }> {
   const { error: authError } = await verifyAdmin();
   if (authError) return { error: authError };
+  const unavailableError = getCommercialAccountingUnavailableError();
+  if (unavailableError) return { error: unavailableError };
   if (!notaryId || !Number.isFinite(participationPercent) || participationPercent <= 0 || participationPercent > 100) {
     return { error: "Ingrese un porcentaje contractual válido." };
   }
@@ -443,6 +446,8 @@ export async function confirmNotaryMonthlyPayout(
 ): Promise<{ error?: string }> {
   const { error: authError } = await verifyAdmin();
   if (authError) return { error: authError };
+  const unavailableError = getCommercialAccountingUnavailableError();
+  if (unavailableError) return { error: unavailableError };
   const monthDate = `${periodMonth}-01`;
   if (!/^\d{4}-\d{2}$/.test(periodMonth) || !isIsoDate(monthDate)) {
     return { error: "Seleccione un mes válido." };
@@ -469,6 +474,8 @@ export async function approveNotaryMonthlyPayout(
 ): Promise<{ error?: string }> {
   const { error: authError } = await verifyAdmin();
   if (authError) return { error: authError };
+  const unavailableError = getCommercialAccountingUnavailableError();
+  if (unavailableError) return { error: unavailableError };
   if (!payoutId || !notaryComprobanteReference.trim()) {
     return { error: "Ingrese el comprobante emitido por el notario." };
   }
@@ -497,6 +504,8 @@ export async function markNotaryPayoutPaid(
 ): Promise<{ error?: string }> {
   const { error: authError } = await verifyAdmin();
   if (authError) return { error: authError };
+  const unavailableError = getCommercialAccountingUnavailableError();
+  if (unavailableError) return { error: unavailableError };
   if (!payoutId || !paymentReference.trim()) {
     return { error: "Ingrese la referencia del desembolso." };
   }
@@ -528,6 +537,8 @@ export async function createPrivatePromoCodeAction(params: {
 }): Promise<{ error?: string }> {
   const { error: authError } = await verifyAdmin();
   if (authError) return { error: authError };
+  const unavailableError = getCommercialAccountingUnavailableError();
+  if (unavailableError) return { error: unavailableError };
   if (!params.code.trim() || params.description.trim().length < 3) {
     return { error: "Ingrese el código y el motivo de la promoción." };
   }
@@ -566,6 +577,8 @@ export async function recordPacketDirectCostAction(params: {
 }): Promise<{ error?: string }> {
   const { error: authError } = await verifyAdmin();
   if (authError) return { error: authError };
+  const unavailableError = getCommercialAccountingUnavailableError();
+  if (unavailableError) return { error: unavailableError };
   if (!params.packetId || !params.sourceId.trim() || params.evidenceReference.trim().length < 3) {
     return { error: "Paquete, identificador de origen y evidencia son obligatorios." };
   }
@@ -597,6 +610,8 @@ export async function setPacketArchivalHoldAction(params: {
 }): Promise<{ error?: string }> {
   const { error: authError } = await verifyAdmin();
   if (authError) return { error: authError };
+  const unavailableError = getCommercialAccountingUnavailableError();
+  if (unavailableError) return { error: unavailableError };
   if (!params.packetId || params.reason.trim().length < 5) {
     return { error: "Ingrese el paquete y el motivo de la retención." };
   }

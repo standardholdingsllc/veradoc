@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createRefund, getPayment, MercadoPagoAPIError } from "@/lib/services/mercadopago/service";
 import { recordPaymentResult } from "@/lib/services/mercadopago/transition";
 import { hasRequiredAdminMfa } from "@/lib/auth/mfa";
+import { getCommercialAccountingUnavailableError } from "@/lib/admin/commercial-accounting";
 
 type ActionResult<T = null> = { error?: string; data?: T };
 
@@ -56,6 +57,8 @@ export async function refundPaymentAction(
 ): Promise<ActionResult<{ refundId: string; refundedAmount: number }>> {
   const adminUserId = await requireAdmin();
   if (!adminUserId) return { error: "No autorizado." };
+  const unavailableError = getCommercialAccountingUnavailableError();
+  if (unavailableError) return { error: unavailableError };
 
   const admin = createAdminClient();
 
@@ -213,6 +216,8 @@ export async function reconcilePaymentAction(
 ): Promise<ActionResult<{ outcome: string; providerStatus: string }>> {
   const adminUserId = await requireAdmin();
   if (!adminUserId) return { error: "No autorizado." };
+  const unavailableError = getCommercialAccountingUnavailableError();
+  if (unavailableError) return { error: unavailableError };
 
   const admin = createAdminClient();
 

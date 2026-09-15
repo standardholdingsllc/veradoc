@@ -10,6 +10,7 @@ import {
   getCommercialFinanceData,
 } from "@/lib/admin/queries";
 import { AdminTabs } from "@/components/admin/admin-tabs";
+import { isCommercialAccountingEnabled } from "@/lib/env/server";
 
 interface AdminDashboardPageProps {
   searchParams?: Promise<{
@@ -24,18 +25,28 @@ export default async function AdminDashboardPage({
   const profile = await requireAdminMfa();
   const params = (await searchParams) ?? {};
   const usersPage = Number(params.usersPage ?? "1");
+  const commercialAccountingEnabled = isCommercialAccountingEnabled();
 
-  const [pendingRealtors, rawInvitations, coverage, notaries, metrics, users, payoutData, financeData] =
-    await Promise.all([
-      getPendingRealtors(),
-      getInvitations(),
-      getCoverage(),
-      getActiveNotaries(),
-      getMetrics(),
-      getUsers(Number.isFinite(usersPage) ? usersPage : 1),
-      getNotaryPayoutAdminData(),
-      getCommercialFinanceData(),
-    ]);
+  const coreDataPromise = Promise.all([
+    getPendingRealtors(),
+    getInvitations(),
+    getCoverage(),
+    getActiveNotaries(),
+    getMetrics(),
+    getUsers(Number.isFinite(usersPage) ? usersPage : 1),
+  ]);
+  const commercialDataPromise = commercialAccountingEnabled
+    ? Promise.all([getNotaryPayoutAdminData(), getCommercialFinanceData()])
+    : Promise.resolve(null);
+
+  const [coreData, commercialData] = await Promise.all([
+    coreDataPromise,
+    commercialDataPromise,
+  ]);
+  const [pendingRealtors, rawInvitations, coverage, notaries, metrics, users] =
+    coreData;
+  const payoutData = commercialData?.[0] ?? { rates: [], payouts: [] };
+  const financeData = commercialData?.[1] ?? [];
 
   const invitations = rawInvitations.map(
     (inv) => {
@@ -78,6 +89,7 @@ export default async function AdminDashboardPage({
           payoutRates={payoutData.rates}
           payouts={payoutData.payouts}
           financeRows={financeData}
+          commercialAccountingEnabled={commercialAccountingEnabled}
           initialTab={params.adminTab}
         />
       </div>

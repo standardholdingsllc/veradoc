@@ -4,6 +4,8 @@ vi.mock("server-only", () => ({}));
 
 const originalSupabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
 const originalMercadoPagoEnvironment = process.env.MERCADOPAGO_ENVIRONMENT;
+const originalCommercialAccountingEnabled =
+  process.env.COMMERCIAL_ACCOUNTING_ENABLED;
 
 afterEach(() => {
   if (originalSupabaseSecretKey === undefined) {
@@ -16,6 +18,13 @@ afterEach(() => {
     delete process.env.MERCADOPAGO_ENVIRONMENT;
   } else {
     process.env.MERCADOPAGO_ENVIRONMENT = originalMercadoPagoEnvironment;
+  }
+
+  if (originalCommercialAccountingEnabled === undefined) {
+    delete process.env.COMMERCIAL_ACCOUNTING_ENABLED;
+  } else {
+    process.env.COMMERCIAL_ACCOUNTING_ENABLED =
+      originalCommercialAccountingEnabled;
   }
 
   vi.resetModules();
@@ -34,5 +43,23 @@ describe("server environment", () => {
     const { serverEnv } = await import("@/lib/env/server");
 
     expect(serverEnv.MERCADOPAGO_ENVIRONMENT).toBe(expected);
+  });
+
+  it("keeps commercial accounting disabled by default", async () => {
+    process.env.SUPABASE_SECRET_KEY = "test-secret";
+    delete process.env.COMMERCIAL_ACCOUNTING_ENABLED;
+
+    const { isCommercialAccountingEnabled } = await import("@/lib/env/server");
+
+    expect(isCommercialAccountingEnabled()).toBe(false);
+  });
+
+  it("enables commercial accounting only for the exact true value", async () => {
+    process.env.SUPABASE_SECRET_KEY = "test-secret";
+    process.env.COMMERCIAL_ACCOUNTING_ENABLED = "true";
+
+    const { isCommercialAccountingEnabled } = await import("@/lib/env/server");
+
+    expect(isCommercialAccountingEnabled()).toBe(true);
   });
 });
