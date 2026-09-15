@@ -19,7 +19,17 @@ const schema = z.object({
   // Mercado Pago Checkout API (Payments API)
   MERCADOPAGO_ACCESS_TOKEN: z.string().optional(),
   MERCADOPAGO_WEBHOOK_SECRET: z.string().optional(),
-  MERCADOPAGO_ENVIRONMENT: z.enum(["test", "production"]).default("test"),
+  MERCADOPAGO_ENVIRONMENT: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .transform((value) => {
+      if (value === "live") return "production";
+      if (value === "sandbox") return "test";
+      return value;
+    })
+    .pipe(z.enum(["test", "production"]))
+    .default("test"),
   // FirmEasy digital signature (firmeasy.legal)
   FIRMEASY_API_BASE_URL: z.string().url().optional(),
   FIRMEASY_USER_INTEGRATION_TOKEN: z.string().optional(),
