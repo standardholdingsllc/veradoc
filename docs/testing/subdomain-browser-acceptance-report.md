@@ -4,7 +4,7 @@ Overall status: **PARTIAL — authenticated and workflow gates blocked**
 
 Report date: 2026-09-15
 
-Source evidence: Browser-agent safe anonymous interim report supplied by the release owner, plus independent read-only HTTP and Vercel CLI verification.
+Source evidence: Browser-agent safe anonymous interim report supplied by the release owner, independent read-only HTTP and Vercel CLI verification, and a production Supabase QA Auth fixture bootstrap authorized on 2026-09-15.
 
 ## 1. Environment and release
 
@@ -24,7 +24,29 @@ Source evidence: Browser-agent safe anonymous interim report supplied by the rel
 
 The Vercel CLI independently confirmed that the deployment is Ready and has all six aliases: apex, `www`, app, notary, admin, and demo. The browser agent's final report still needs its browser version, profile labels, timestamps, and sanitized evidence references.
 
-## 2. Reconciliation of interim findings
+## 2. QA Auth fixture readiness
+
+Nine dedicated production QA Auth fixtures were created with confirmed emails, passwords, email confirmation, trusted metadata, and matching profile rows where applicable. Password authentication and expected role/status metadata were independently verified through the ordinary public Supabase Auth path.
+
+| Fixture label | Role | Status | Readiness |
+| --- | --- | --- | --- |
+| `qa-active-realtor` | realtor | active | Ready |
+| `qa-active-landlord` | landlord | active | Ready |
+| `qa-active-renter` | renter | active | Ready |
+| `qa-active-notary` | notary | active | Ready |
+| `qa-active-admin` | admin | active | Ready; no TOTP factor enrolled yet |
+| `qa-pending-realtor` | realtor | pending approval | Ready |
+| `qa-rejected-realtor` | realtor | rejected | Ready |
+| `qa-suspended-realtor` | realtor | suspended | Ready |
+| `qa-missing-role` | intentionally absent | intentionally absent | Ready; no profile row by design |
+
+All fixtures carry a trusted QA label and a review date of 2026-09-22. Credentials exist only in the local Git-ignored `.env.qa-test-credentials.local.md` handoff and are not included in this report or source control.
+
+A temporary, uniquely named Supabase secret API key was created only for the bootstrap operation, held in process memory, and revoked immediately after fixture verification. A subsequent key inventory confirmed that only the project's pre-existing keys remain.
+
+These accounts authorize authentication testing only. They do not make production payments, signing, messaging, certification, tax, packet, upload, or admin mutations provider-safe.
+
+## 3. Reconciliation of interim findings
 
 ### HSTS
 
@@ -57,7 +79,7 @@ No credentialed wildcard behavior was reported, which limits immediate exposure.
 
 A repository search found no application-owned `Access-Control-Allow-Origin` configuration. The header therefore needs tracing at the deployment/platform response layer before a remediation owner is assigned.
 
-## 3. Safe anonymous results
+## 4. Safe anonymous results
 
 These are interim results. Rows reported by the browser agent remain subject to the final evidence requirements in the execution guide.
 
@@ -93,20 +115,26 @@ These are interim results. Rows reported by the browser agent remain subject to 
 | F-DEMO-08 | PASS | Demo is `noindex, nofollow`. |
 | Unknown host | PASS | An unassigned test subdomain failed closed at Vercel. |
 
-## 4. Blocked and not-run phases
+## 5. Remaining phase readiness
 
 | Area | Status | Missing prerequisite |
 | --- | --- | --- |
-| B2–B5: login, cookie isolation, role/status matrix | BLOCKED | Secure synthetic role credentials and state fixtures |
+| B2–B4: login, cookie isolation, wrong-role matrix | READY TO TEST | Dedicated credentials now available |
+| B5: pending, rejected, suspended, and missing-role states | READY TO TEST | Dedicated state fixtures now available |
+| B5: expired-but-refreshable and invalid session | PARTIAL | Invalid session can be browser-created safely; expired/refreshable timing still needs a controlled fixture |
 | C: customer packet/upload/signing workflow | BLOCKED | Provider-safe environment, synthetic packet/signing links, safe OTP sink, and mutation authorization |
+| C: read-only role dashboard/navigation checks | READY TO TEST | Active realtor, landlord, and renter credentials available |
+| D: read-only notary dashboard/navigation checks | READY TO TEST | Active notary credential available |
 | D: notary invitation/certification workflow | BLOCKED | Synthetic notary invitation/packet and stubbed provider path |
-| E: admin MFA and audit | BLOCKED | Dedicated synthetic admin, secure TOTP access, harmless synthetic target, and audit visibility |
+| E: admin login, MFA enrollment/AAL2, wrong-role denial | READY TO TEST | Clean active admin and wrong-role fixtures available |
+| E: privileged mutation and audit | BLOCKED | Harmless synthetic target, mutation authorization, and audit visibility |
 | F-DEMO-05/06/07: side-effect and token separation | BLOCKED | Network evidence plus safe demo/production-shaped synthetic tokens |
-| G: authenticated navigation and negative security | BLOCKED | Role/status fixtures and provider-safe mutation targets |
+| G: authenticated navigation | READY TO TEST | Role/status fixtures available |
+| G: negative privileged mutations | BLOCKED | Provider-safe mutation targets and explicit mutation authorization |
 | H1: telemetry | BLOCKED | Approved read-only telemetry access |
 | H2: rollback exercise | BLOCKED | Production-like environment, named operator, and explicit exercise authorization |
 
-## 5. Completion-condition standing
+## 6. Completion-condition standing
 
 | # | Completion condition | Standing |
 | --- | --- | --- |
@@ -126,14 +154,14 @@ These are interim results. Rows reported by the browser agent remain subject to 
 | 14 | Production telemetry shows no material regression | BLOCKED |
 | 15 | Rollback exercised or proven production-like | BLOCKED |
 
-## 6. Current release assessment
+## 7. Current release assessment
 
 The production hostname transition is functioning for the anonymous routing surface. There is no evidence in this run of redirect loops, wrong-surface rendering, demo authentication exposure, or wrong-host mutation replay.
 
-The migration cannot be called complete. There are two newly documented response/metadata gaps and eight authenticated, workflow, telemetry, or rollback areas still blocked.
+The migration cannot be called complete. There are two documented response/metadata gaps, while the newly provisioned QA suite now unblocks role login, host-scoped cookie, account-state, read-only dashboard, and admin MFA browser checks. Provider-backed workflows, telemetry, and rollback remain blocked.
 
-The next one-question-at-a-time prompt remains:
+The browser agent may proceed immediately with B2–B4, the provisioned portions of B5, read-only C/D checks, E-ADMIN-01–05, and authenticated navigation in G. The next blocking question after those checks is:
 
-> Should the authenticated and workflow tests run in a provider-safe staging environment or against dedicated synthetic data in production?
+> Which provider-safe environment and synthetic packet/signing fixtures should be used for the state-changing customer workflow?
 
-Provider-safe staging is the recommended choice. Production is read-only by default, and MercadoPago is known to be configured for production.
+Provider-safe staging remains the recommended choice. Production is read-only by default, and MercadoPago is known to be configured for production.
