@@ -1,10 +1,10 @@
 # VeraDoc Subdomain Browser Acceptance Report
 
-Overall status: **PARTIAL — provider workflows and the admin AAL2 remediation retest remain blocked**
+Overall status: **PARTIAL — admin AAL2 is verified; provider workflows, telemetry, rollback, and remaining authenticated matrices are incomplete**
 
 Report date: 2026-09-15
 
-Source evidence: Browser-agent safe anonymous and authenticated reports supplied by the release owner, independent read-only HTTP and Vercel CLI verification, a production Supabase QA Auth fixture bootstrap authorized on 2026-09-15, and the post-remediation AAL1 browser check recorded in section 8.
+Source evidence: Browser-agent safe anonymous and authenticated reports supplied by the release owner, independent read-only HTTP and Vercel CLI verification, a production Supabase QA Auth fixture bootstrap authorized on 2026-09-15, and the post-remediation AAL1/AAL2 browser checks recorded in section 8.
 
 ## 1. Environment and release
 
@@ -20,9 +20,9 @@ Source evidence: Browser-agent safe anonymous and authenticated reports supplied
 | Deployment status | Ready, production |
 | Current remediation commit | `b4dad37` |
 | Post-remediation browser/version | Headless Chrome `152.0.7977.83` |
-| Post-remediation browser timestamp | `2026-09-15T21:50:13Z` |
+| Post-remediation browser timestamp | `2026-09-15T23:34:44Z` |
 
-The Vercel CLI independently confirmed that the deployment is Ready and has all six aliases: apex, `www`, app, notary, admin, and demo. Earlier browser evidence was collected against `dpl_52hALsJfRggB56ejjwcMRagH8VQZ`; only the sanitized admin AAL1 follow-up in section 8 was repeated against the current remediation deployment.
+The Vercel CLI independently confirmed that the deployment is Ready and has all six aliases: apex, `www`, app, notary, admin, and demo. Earlier browser evidence was collected against `dpl_52hALsJfRggB56ejjwcMRagH8VQZ`; the sanitized admin AAL1 and AAL2 follow-ups in section 8 were repeated against the current remediation deployment.
 
 ## 2. QA Auth fixture readiness
 
@@ -34,7 +34,7 @@ Nine dedicated production QA Auth fixtures were created with confirmed emails, p
 | `qa-active-landlord` | landlord | active | Ready |
 | `qa-active-renter` | renter | active | Ready |
 | `qa-active-notary` | notary | active | Ready |
-| `qa-active-admin` | admin | active | Password login ready; TOTP factor is enrolled, but its secret was not retained |
+| `qa-active-admin` | admin | active | Password login ready; replacement TOTP factor enrolled and AAL2 verified; secret retained only in the ignored local QA handoff |
 | `qa-pending-realtor` | realtor | pending approval | Ready |
 | `qa-rejected-realtor` | realtor | rejected | Ready |
 | `qa-suspended-realtor` | realtor | suspended | Ready |
@@ -126,7 +126,7 @@ These are interim results. Rows reported by the browser agent remain subject to 
 | C: read-only role dashboard/navigation checks | READY TO TEST | Active realtor, landlord, and renter credentials available |
 | D: read-only notary dashboard/navigation checks | READY TO TEST | Active notary credential available |
 | D: notary invitation/certification workflow | BLOCKED | Synthetic notary invitation/packet and stubbed provider path |
-| E: admin login, MFA enrollment/AAL2, wrong-role denial | PARTIAL / BLOCKED | AAL1 gate is verified after remediation; the enrolled factor's TOTP secret was not retained, so AAL2 cannot be repeated without a separately authorized recovery/reset procedure |
+| E: admin login, MFA enrollment/AAL2, wrong-role denial | PARTIAL | Admin password login, MFA enrollment, AAL2, host-scoped cookies, and dashboard rendering are verified; the wrong-role browser denial matrix remains untested |
 | E: privileged mutation and audit | BLOCKED | Harmless synthetic target, mutation authorization, and audit visibility |
 | F-DEMO-05/06/07: side-effect and token separation | BLOCKED | Network evidence plus safe demo/production-shaped synthetic tokens |
 | G: authenticated navigation | READY TO TEST | Role/status fixtures available |
@@ -142,11 +142,11 @@ These are interim results. Rows reported by the browser agent remain subject to 
 | 2 | Public URLs follow the clean target contract | PARTIAL — sampled routing passes; canonical metadata is absent and authenticated flows remain untested |
 | 3 | Durable generated links use typed origins | PARTIAL — automated/source evidence exists; fresh copied/email links remain untested in a browser |
 | 4 | Auth callbacks establish sessions on intended host | BLOCKED |
-| 5 | Sessions remain host-scoped | BLOCKED |
+| 5 | Sessions remain host-scoped | PARTIAL — verified for the production admin AAL2 session; other authenticated roles remain untested |
 | 6 | Server authorization works independently of Proxy | PARTIAL — automated evidence exists; browser negative matrix is blocked |
 | 7 | Fresh and legacy signing links complete | BLOCKED |
 | 8 | Notary invitations complete on notary | BLOCKED |
-| 9 | Admin includes the approved additional control | PARTIAL / BLOCKED — AAL1 still fails closed at the TOTP gate after remediation; post-remediation AAL2 dashboard rendering is blocked by unavailable TOTP material |
+| 9 | Admin includes the approved additional control | PASS — AAL1 fails closed at the TOTP gate, AAL2 succeeds, and the post-remediation dashboard renders without querying the unapplied commercial schema |
 | 10 | Demo cannot cause production side effects | PARTIAL — anonymous UI/cookie checks pass; mutation/token tests are blocked |
 | 11 | APIs, webhooks, cron, and actions avoid cross-host redirects | PARTIAL — sampled wrong-host POST and automated tests pass; provider workflows remain untested |
 | 12 | Only marketing is intentionally indexable | PASS for sampled browser/header evidence |
@@ -158,7 +158,7 @@ These are interim results. Rows reported by the browser agent remain subject to 
 
 The production hostname transition is functioning for the anonymous routing surface. There is no evidence in this run of redirect loops, wrong-surface rendering, demo authentication exposure, or wrong-host mutation replay.
 
-The migration cannot be called complete. There are two documented response/metadata gaps, while the newly provisioned QA suite now unblocks role login, host-scoped cookie, account-state, read-only dashboard, and admin MFA browser checks. Provider-backed workflows, telemetry, and rollback remain blocked.
+The migration cannot be called complete. There are two documented response/metadata gaps, while the newly provisioned QA suite now unblocks role login, host-scoped cookie, account-state, and read-only dashboard browser checks. Admin MFA is verified through AAL2. Provider-backed workflows, telemetry, and rollback remain blocked.
 
 The browser agent may proceed immediately with B2–B4, the provisioned portions of B5, read-only C/D checks, E-ADMIN-01–05, and authenticated navigation in G. The next blocking question after those checks is:
 
@@ -193,8 +193,17 @@ Verification completed before deployment:
 - Local production build: passed with inert process-local placeholders for missing local Supabase variable names.
 - Vercel remote production build: passed.
 
-Post-deployment browser evidence used a new clean headless Chrome context and the dedicated QA admin fixture. Password authentication reached `https://admin.veradoc.pe/auth/mfa`; the two-step verification page was visible, admin content was absent, two Supabase cookies remained host-scoped to `admin.veradoc.pe`, and no browser page errors occurred.
+Post-deployment browser evidence used new clean headless Chrome contexts and the dedicated QA admin fixture. Password authentication reached `https://admin.veradoc.pe/auth/mfa`; the two-step verification page was visible, admin content was absent, two Supabase cookies remained host-scoped to `admin.veradoc.pe`, and no browser page errors occurred.
 
-The AAL2 dashboard check is `BLOCKED`. The TOTP factor enrolled during the preceding browser run remains present, but its secret was not retained in the secure local QA handoff. The factor was not reset or removed. Therefore the original post-MFA crash cannot yet be marked browser-verified as resolved, and completion condition 9 remains partial/blocked.
+With explicit authorization, the single stale TOTP factor on `qa-active-admin` was removed through the Supabase Auth admin MFA API. A replacement TOTP factor was enrolled, verified at AAL2, and retained only in the Git-ignored local QA credential handoff. No other Auth user, factor, database row, schema object, or provider state was changed.
 
-Exact next input: provide approved access to the existing authenticator/TOTP code in a clean browser run, or separately authorize a controlled MFA recovery/reset procedure for the dedicated QA admin fixture.
+The final clean-browser AAL2 run is `PASS` for the remediation target:
+
+- Final origin/path: `https://admin.veradoc.pe/`.
+- `Panel de administración` rendered.
+- Core tabs `Resumen`, `Agentes`, `Invitaciones`, `Cobertura`, and `Usuarios` rendered.
+- Commercial tabs `Pagos notariales`, `Finanzas`, and `Reembolsos` were absent while the schema gate remained off.
+- Two Supabase Auth cookies were scoped to `admin.veradoc.pe`.
+- No page exceptions or HTTP 5xx responses occurred.
+
+The dashboard emitted a separate non-blocking console finding: an automatic React Server Component prefetch for `/auth/signup` was redirected from the admin host to `https://app.veradoc.pe/auth/signup`, then blocked by CORS because the `rsc` request header was not allowed by the preflight response. This did not prevent the admin dashboard from rendering, but it remains follow-up evidence for the broader routing/CORS work. Completion condition 9 is now verified; the overall transition remains `PARTIAL`.
