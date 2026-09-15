@@ -55,16 +55,12 @@ export default function SignerInicioPage() {
   const router = useRouter();
   const context = useSignerContext();
   const [loading, setLoading] = useState(false);
-  const [redirecting, setRedirecting] = useState(false);
+  const resumeStep = context ? getResumeStep(context.signer.status) : null;
 
   useEffect(() => {
-    if (!context) return;
-    const resumeStep = getResumeStep(context.signer.status);
-    if (resumeStep) {
-      setRedirecting(true);
-      router.replace(`${context.basePath}${resumeStep}`);
-    }
-  }, [context, router]);
+    if (!context || !resumeStep) return;
+    router.replace(`${context.basePath}${resumeStep}`);
+  }, [context, resumeStep, router]);
 
   if (!context) {
     return (
@@ -76,7 +72,7 @@ export default function SignerInicioPage() {
     );
   }
 
-  if (redirecting) {
+  if (resumeStep) {
     return (
       <Card>
         <CardContent className="flex flex-col items-center gap-3 py-10">

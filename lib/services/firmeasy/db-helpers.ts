@@ -2,6 +2,11 @@ import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 
+/* eslint-disable @typescript-eslint/no-explicit-any --
+ * This migration-added table/RPC is intentionally isolated here until the
+ * generated database types are refreshed; see the module documentation below.
+ */
+
 /**
  * Type-safe wrapper for firmeasy_webhook_log operations.
  * This table was added in migration 00014 and is not yet in database.types.ts.
@@ -37,7 +42,6 @@ export interface WebhookLogInsert {
   processing_started_at?: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function webhookLogTable(admin: AdminClient): any {
   return (admin as any).from("firmeasy_webhook_log");
 }

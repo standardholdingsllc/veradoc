@@ -257,14 +257,19 @@ export function WizardClient({
   const [rucLookupLoading, setRucLookupLoading] = useState(false);
 
   useEffect(() => {
-    if (comprobanteType !== "01" || purchaserNumDoc.length !== 11) {
-      setRucLookupLoading(false);
-      return;
-    }
-
     let cancelled = false;
 
-    (async () => {
+    if (comprobanteType !== "01" || purchaserNumDoc.length !== 11) {
+      queueMicrotask(() => {
+        if (!cancelled) setRucLookupLoading(false);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    queueMicrotask(async () => {
+      if (cancelled) return;
       setRucLookupLoading(true);
       try {
         const result = await lookupRucAction(purchaserNumDoc);
@@ -279,7 +284,7 @@ export function WizardClient({
           setRucLookupLoading(false);
         }
       }
-    })();
+    });
 
     return () => {
       cancelled = true;

@@ -17,12 +17,14 @@ export default function CompletionPage() {
   const [completing, setCompleting] = useState(false);
   const [completed, setCompleted] = useState(ctx.signerStatus === "complete");
   const [allComplete, setAllComplete] = useState(false);
-  const [waitingForWebhook, setWaitingForWebhook] = useState(false);
+  const [waitingForWebhook, setWaitingForWebhook] = useState(
+    ctx.signerStatus === "identity_verified",
+  );
 
-  // If signer status is "complete" on mount, show completion immediately
+  // Initial state covers terminal statuses; the effect only performs the
+  // asynchronous transition from FirmEasy's signed state.
   useEffect(() => {
     if (ctx.signerStatus === "complete") {
-      setCompleted(true);
       return;
     }
 
@@ -50,11 +52,6 @@ export default function CompletionPage() {
       return () => { cancelled = true; };
     }
 
-    // If signer is at "identity_verified" (returned from FirmEasy before
-    // webhook arrived), poll until webhook advances status
-    if (ctx.signerStatus === "identity_verified") {
-      setWaitingForWebhook(true);
-    }
   }, [ctx.signerStatus, ctx.token]);
 
   // Poll for webhook-driven status change
@@ -147,7 +144,7 @@ export default function CompletionPage() {
             </div>
           </div>
 
-          {completed && (
+          {(completed || ctx.signerStatus === "complete") && (
             <Button
               variant="outline"
               className="w-full"

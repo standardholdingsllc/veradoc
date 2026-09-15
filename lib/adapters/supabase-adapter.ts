@@ -219,6 +219,9 @@ export class SupabaseSignerAdapter implements SignerAdapter {
     const { error } = await admin.from("signature_records").insert({
       packet_signer_id: signerId,
       ...record,
+      // The adapter accepts domain records assembled across signing stages.
+      // Keep this cast local until the adapter contract is narrowed.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
     if (error) throw error;
   }
