@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
 import { META } from "@/lib/i18n/labels";
+import { buildMarketingMetadata } from "@/lib/metadata/marketing";
 
-export const metadata: Metadata = {
+export const metadata = buildMarketingMetadata({
+  path: "/privacidad",
   title: `Política de Privacidad — ${META.siteName}`,
   description:
     "Política de privacidad de VeraDoc conforme a la Ley N° 29733 de Protección de Datos Personales del Perú.",
-};
+});
 
 const LAST_UPDATED = "9 de julio de 2026";
 

@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import {
   Archive,
@@ -22,12 +21,14 @@ import {
   META,
 } from "@/lib/i18n/labels";
 import { cn } from "@/lib/utils";
+import { buildMarketingMetadata } from "@/lib/metadata/marketing";
 import { buildAbsoluteUrl } from "@/lib/routing/origins";
 
-export const metadata: Metadata = {
+export const metadata = buildMarketingMetadata({
+  path: "/",
   title: META.title,
   description: META.description,
-};
+});
 
 const AUDIENCES = [
   {

@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
 import { AlertTriangle, Scale } from "lucide-react";
 import { LEGAL, META, PAGE_TITLES } from "@/lib/i18n/labels";
+import { buildMarketingMetadata } from "@/lib/metadata/marketing";
 
-export const metadata: Metadata = {
+export const metadata = buildMarketingMetadata({
+  path: "/posicionamiento-legal",
   title: `${PAGE_TITLES.posicionamientoLegal} — ${META.siteName}`,
   description: LEGAL.plataformaEvidencia,
-};
+});
 
 const LEGAL_POINTS = [
   {

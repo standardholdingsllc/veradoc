@@ -1,4 +1,5 @@
 import "server-only";
+import { isCommercialAccountingEnabled } from "@/lib/env/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export interface PricingInfo {
@@ -15,23 +16,19 @@ export interface PricingInfo {
 
 export async function getPacketPricing(): Promise<PricingInfo> {
   const admin = createAdminClient();
-  const now = new Date().toISOString();
-  const { data, error } = await admin
-    .from("pricing_config")
-    .select("*")
-    .eq("product_code", "lease_packet_standard")
-    .eq("active", true)
-    .lte("effective_from", now)
-    .or(`effective_to.is.null,effective_to.gt.${now}`)
-    .order("effective_from", { ascending: false })
-    .limit(1)
-    .single();
+  const result = isCommercialAccountingEnabled()
+    ? await getVersionedPricing(admin)
+    : await getLegacyPricing(admin);
+  const { data, error } = result;
 
   if (error || !data) {
     throw new Error("No active pricing configuration found. Payment cannot proceed.");
   }
 
-  const row = data as typeof data & {
+  const row = data as {
+    amount_centimos: number;
+    currency: string;
+    description: string;
     policy_version?: string;
     tax_included?: boolean;
     tax_rate_bps?: number;
@@ -51,6 +48,31 @@ export async function getPacketPricing(): Promise<PricingInfo> {
     includedServices: toStringArray(row.included_services),
     excludedServices: toStringArray(row.excluded_services),
   };
+}
+
+type PricingAdminClient = ReturnType<typeof createAdminClient>;
+
+function getLegacyPricing(admin: PricingAdminClient) {
+  return admin
+    .from("pricing_config")
+    .select("amount_centimos, currency, description")
+    .eq("product_code", "lease_packet_standard")
+    .eq("active", true)
+    .single();
+}
+
+function getVersionedPricing(admin: PricingAdminClient) {
+  const now = new Date().toISOString();
+  return admin
+    .from("pricing_config")
+    .select("*")
+    .eq("product_code", "lease_packet_standard")
+    .eq("active", true)
+    .lte("effective_from", now)
+    .or(`effective_to.is.null,effective_to.gt.${now}`)
+    .order("effective_from", { ascending: false })
+    .limit(1)
+    .single();
 }
 
 function toStringArray(value: unknown): string[] {

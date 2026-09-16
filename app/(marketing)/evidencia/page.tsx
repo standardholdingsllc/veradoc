@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import {
   Clock,
   FileStack,
@@ -10,11 +9,13 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { META, PAGE_TITLES, SEGURIDAD } from "@/lib/i18n/labels";
+import { buildMarketingMetadata } from "@/lib/metadata/marketing";
 
-export const metadata: Metadata = {
+export const metadata = buildMarketingMetadata({
+  path: "/evidencia",
   title: `${PAGE_TITLES.seguridad} — ${META.siteName}`,
   description: SEGURIDAD.subtitulo,
-};
+});
 
 const SECURITY_CONCEPTS = [
   {

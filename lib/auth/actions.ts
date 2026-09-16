@@ -73,6 +73,14 @@ export async function login(
     };
   }
 
+  if (meta.status === "suspended") {
+    await supabase.auth.signOut();
+    return {
+      error:
+        "Esta cuenta está suspendida. Comuníquese con soporte para solicitar una revisión.",
+    };
+  }
+
   if (meta.status === "pending_approval") {
     return { redirect: "/auth/pending-approval" };
   }

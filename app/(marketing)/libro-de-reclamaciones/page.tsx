@@ -1,13 +1,14 @@
-import type { Metadata } from "next";
 import { BookOpen } from "lucide-react";
 import { META } from "@/lib/i18n/labels";
 import { ComplaintForm } from "@/components/legal/complaint-form";
+import { buildMarketingMetadata } from "@/lib/metadata/marketing";
 
-export const metadata: Metadata = {
+export const metadata = buildMarketingMetadata({
+  path: "/libro-de-reclamaciones",
   title: `Libro de Reclamaciones — ${META.siteName}`,
   description:
     "Libro de Reclamaciones Virtual de VeraDoc conforme a la Ley N° 29571 y DS 011-2011-PCM (INDECOPI).",
-};
+});
 
 export default function LibroReclamacionesPage() {
   return (

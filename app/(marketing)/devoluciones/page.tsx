@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
 import { META } from "@/lib/i18n/labels";
+import { buildMarketingMetadata } from "@/lib/metadata/marketing";
 
-export const metadata: Metadata = {
+export const metadata = buildMarketingMetadata({
+  path: "/devoluciones",
   title: `Política de Devoluciones y Cancelaciones — ${META.siteName}`,
   description:
     "Política de devoluciones, cancelaciones y cambios de VeraDoc conforme a la Ley N° 29571, Código de Protección y Defensa del Consumidor del Perú.",
-};
+});
 
 const LAST_UPDATED = "10 de septiembre de 2026";
 

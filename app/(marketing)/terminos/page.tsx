@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
 import { META } from "@/lib/i18n/labels";
+import { buildMarketingMetadata } from "@/lib/metadata/marketing";
 
-export const metadata: Metadata = {
+export const metadata = buildMarketingMetadata({
+  path: "/terminos",
   title: `Términos y Condiciones — ${META.siteName}`,
   description:
     "Términos y condiciones de uso de la plataforma VeraDoc para certificación de arrendamientos en Perú.",
-};
+});
 
 const LAST_UPDATED = "9 de julio de 2026";
 

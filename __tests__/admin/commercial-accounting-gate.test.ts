@@ -89,6 +89,13 @@ describe("commercial accounting feature gate", () => {
     expect(mocks.createAdminClient).not.toHaveBeenCalled();
   });
 
+  it("skips notary earnings schema queries while disabled", async () => {
+    const { getNotaryEarnings } = await import("@/lib/actions/notary");
+
+    await expect(getNotaryEarnings(resourceId)).resolves.toEqual([]);
+    expect(mocks.createAdminClient).not.toHaveBeenCalled();
+  });
+
   it("rejects every payout and finance action before an RPC is called", async () => {
     const actions = await import("@/lib/admin/actions");
     const calls = [

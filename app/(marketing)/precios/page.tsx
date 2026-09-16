@@ -1,12 +1,13 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { HOMEPAGE, META, PAGE_TITLES, PRECIOS } from "@/lib/i18n/labels";
 import { buildAbsoluteUrl } from "@/lib/routing/origins";
+import { buildMarketingMetadata } from "@/lib/metadata/marketing";
 
-export const metadata: Metadata = {
+export const metadata = buildMarketingMetadata({
+  path: "/precios",
   title: `${PAGE_TITLES.precios} — ${META.siteName}`,
   description: PRECIOS.subtitulo,
-};
+});
 
 export default function PreciosPage() {
   const demoUrl = buildAbsoluteUrl({ surface: "demo", path: "/" });

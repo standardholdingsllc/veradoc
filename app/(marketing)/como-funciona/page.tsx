@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import {
   ArrowDown,
   Building2,
@@ -23,11 +22,13 @@ import {
 } from "@/lib/i18n/labels";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/lib/domain/types";
+import { buildMarketingMetadata } from "@/lib/metadata/marketing";
 
-export const metadata: Metadata = {
+export const metadata = buildMarketingMetadata({
+  path: "/como-funciona",
   title: `${PAGE_TITLES.comoFunciona} — ${META.siteName}`,
   description: COMO_FUNCIONA.subtitulo,
-};
+});
 
 type WorkflowRole = UserRole | "system" | "signers";
 

@@ -6,7 +6,10 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/database.types";
 import { requireApproved } from "@/lib/auth/guards";
-import { isNotarySealWorkflowGloballyEnabled } from "@/lib/env/server";
+import {
+  isCommercialAccountingEnabled,
+  isNotarySealWorkflowGloballyEnabled,
+} from "@/lib/env/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import type { CorrectionScope, NotaryWorkflowVersion } from "@/lib/domain/types";
@@ -991,6 +994,8 @@ export interface EarningsMonth {
 export async function getNotaryEarnings(
   notaryId: string,
 ): Promise<EarningsMonth[]> {
+  if (!isCommercialAccountingEnabled()) return [];
+
   const admin = createAdminClient();
 
   const [certificationsResult, payoutsResult] = await Promise.all([
