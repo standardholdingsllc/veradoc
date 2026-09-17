@@ -10,7 +10,9 @@ import {
   getCommercialFinanceData,
 } from "@/lib/admin/queries";
 import { AdminTabs } from "@/components/admin/admin-tabs";
+import { AdminLogoutButton } from "@/components/admin/admin-logout-button";
 import { isCommercialAccountingEnabled } from "@/lib/env/server";
+import { logoutAndRedirect } from "@/lib/auth/logout-actions";
 
 interface AdminDashboardPageProps {
   searchParams?: Promise<{
@@ -69,8 +71,15 @@ export default async function AdminDashboardPage({
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
-      <h1 className="text-2xl font-bold">Panel de administración</h1>
-      <p className="mt-1 text-sm text-muted">Bienvenido, {profile.email}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Panel de administración</h1>
+          <p className="mt-1 text-sm text-muted">Bienvenido, {profile.email}</p>
+        </div>
+        <form action={logoutAndRedirect}>
+          <AdminLogoutButton />
+        </form>
+      </div>
 
       <div className="mt-6">
         <AdminTabs

@@ -144,16 +144,27 @@ export async function getNotaryQueue(
     }),
   );
 
-  const today = new Date().toISOString().slice(0, 10);
-  const { data: activeRate } = await admin
-    .from("notary_payout_rates")
-    .select("participation_bps")
-    .eq("notary_id", notaryId)
-    .lte("effective_from", today)
-    .or(`effective_to.is.null,effective_to.gte.${today}`)
-    .order("effective_from", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  let activeRate: { participation_bps: number } | null = null;
+  if (isCommercialAccountingEnabled()) {
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: configuredRate, error: rateError } = await admin
+      .from("notary_payout_rates")
+      .select("participation_bps")
+      .eq("notary_id", notaryId)
+      .lte("effective_from", today)
+      .or(`effective_to.is.null,effective_to.gte.${today}`)
+      .order("effective_from", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (rateError) {
+      console.error("[notary-queue] Payout rate lookup failed", {
+        code: rateError.code,
+      });
+    } else {
+      activeRate = configuredRate;
+    }
+  }
 
   return data.map((row) => {
     const lp = row.lease_packets as Record<string, unknown>;

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  commercialAccountingEnabled: false,
   createAdminClient: vi.fn(),
   createClient: vi.fn(),
   createRefund: vi.fn(),
@@ -21,7 +22,8 @@ vi.mock("@/lib/auth/mfa", () => ({
   requireAdminMfa: vi.fn(),
 }));
 vi.mock("@/lib/env/server", () => ({
-  isCommercialAccountingEnabled: () => false,
+  isCommercialAccountingEnabled: () => mocks.commercialAccountingEnabled,
+  isNotarySealWorkflowGloballyEnabled: () => false,
 }));
 vi.mock("@/lib/routing/origins", () => ({
   buildNotaryInvitationCallbackUrl: vi.fn(),
@@ -56,9 +58,74 @@ function createProfileQuery() {
   return query;
 }
 
+function createNotaryQueueQuery() {
+  const query = {
+    select: vi.fn(),
+    eq: vi.fn(),
+    order: vi.fn(),
+  };
+  query.select.mockReturnValue(query);
+  query.eq.mockReturnValue(query);
+  query.order.mockResolvedValue({
+    data: [
+      {
+        id: resourceId,
+        assigned_at: "2026-09-16T00:00:00.000Z",
+        review_started_at: null,
+        decision: null,
+        decided_at: null,
+        observations: null,
+        priority: "normal",
+        priority_reason: null,
+        lease_packets: {
+          id: resourceId,
+          packet_code: "QA-001",
+          status: "submitted_to_notary",
+          property_address: "Synthetic address",
+          property_unit: null,
+          district: "Lima",
+          province: "Lima",
+          submitted_to_notary_at: "2026-09-16T00:00:00.000Z",
+          lease_start_date: null,
+          lease_end_date: null,
+          created_by: adminUserId,
+          profiles: { full_name: "QA Realtor", email: "qa@example.test" },
+          packet_signers: [],
+        },
+      },
+    ],
+    error: null,
+  });
+  return query;
+}
+
+function createPayoutRateQuery(result: {
+  data: { participation_bps: number } | null;
+  error: { code: string; message: string } | null;
+}) {
+  const query = {
+    select: vi.fn(),
+    eq: vi.fn(),
+    lte: vi.fn(),
+    or: vi.fn(),
+    order: vi.fn(),
+    limit: vi.fn(),
+    maybeSingle: vi.fn(),
+  };
+  query.select.mockReturnValue(query);
+  query.eq.mockReturnValue(query);
+  query.lte.mockReturnValue(query);
+  query.or.mockReturnValue(query);
+  query.order.mockReturnValue(query);
+  query.limit.mockReturnValue(query);
+  query.maybeSingle.mockResolvedValue(result);
+  return query;
+}
+
 describe("commercial accounting feature gate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.commercialAccountingEnabled = false;
     const profileQuery = createProfileQuery();
     const adminClient = {
       from: vi.fn(() => profileQuery),
@@ -94,6 +161,79 @@ describe("commercial accounting feature gate", () => {
 
     await expect(getNotaryEarnings(resourceId)).resolves.toEqual([]);
     expect(mocks.createAdminClient).not.toHaveBeenCalled();
+  });
+
+  it("skips the notary queue payout-rate query while disabled", async () => {
+    const queueQuery = createNotaryQueueQuery();
+    const adminClient = {
+      from: vi.fn(),
+      rpc: vi.fn(),
+    };
+    mocks.createClient.mockResolvedValue({
+      from: vi.fn(() => queueQuery),
+    });
+    mocks.createAdminClient.mockReturnValue(adminClient);
+
+    const { getNotaryQueue } = await import("@/lib/actions/notary");
+    const queue = await getNotaryQueue(resourceId);
+
+    expect(queue).toHaveLength(1);
+    expect(queue[0].payoutParticipationPercent).toBeNull();
+    expect(adminClient.from).not.toHaveBeenCalledWith("notary_payout_rates");
+  });
+
+  it("uses the configured notary payout rate while accounting is enabled", async () => {
+    mocks.commercialAccountingEnabled = true;
+    const queueQuery = createNotaryQueueQuery();
+    const rateQuery = createPayoutRateQuery({
+      data: { participation_bps: 4250 },
+      error: null,
+    });
+    const adminClient = {
+      from: vi.fn(() => rateQuery),
+      rpc: vi.fn(),
+    };
+    mocks.createClient.mockResolvedValue({
+      from: vi.fn(() => queueQuery),
+    });
+    mocks.createAdminClient.mockReturnValue(adminClient);
+
+    const { getNotaryQueue } = await import("@/lib/actions/notary");
+    const queue = await getNotaryQueue(resourceId);
+
+    expect(adminClient.from).toHaveBeenCalledWith("notary_payout_rates");
+    expect(queue[0].payoutParticipationPercent).toBe(42.5);
+  });
+
+  it("keeps the queue available and logs only the error code when a rate lookup fails", async () => {
+    mocks.commercialAccountingEnabled = true;
+    const queueQuery = createNotaryQueueQuery();
+    const rateQuery = createPayoutRateQuery({
+      data: null,
+      error: { code: "42P01", message: "sensitive provider detail" },
+    });
+    const adminClient = {
+      from: vi.fn(() => rateQuery),
+      rpc: vi.fn(),
+    };
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.createClient.mockResolvedValue({
+      from: vi.fn(() => queueQuery),
+    });
+    mocks.createAdminClient.mockReturnValue(adminClient);
+
+    const { getNotaryQueue } = await import("@/lib/actions/notary");
+    const queue = await getNotaryQueue(resourceId);
+
+    expect(queue[0].payoutParticipationPercent).toBeNull();
+    expect(consoleError).toHaveBeenCalledWith(
+      "[notary-queue] Payout rate lookup failed",
+      { code: "42P01" },
+    );
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain(
+      "sensitive provider detail",
+    );
+    consoleError.mockRestore();
   });
 
   it("rejects every payout and finance action before an RPC is called", async () => {
