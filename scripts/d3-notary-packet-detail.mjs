@@ -14,7 +14,8 @@ import {
 const CONFIG = Object.freeze({
   notaryOrigin: "https://notario.veradoc.pe",
   appOrigin: "https://app.veradoc.pe",
-  deploymentId: "dpl_8M8f8wa9hgcYfQsBf4hi77UqCD51",
+  deploymentId: process.env.D3_DEPLOYMENT_ID
+    ?? "dpl_8M8f8wa9hgcYfQsBf4hi77UqCD51",
   packetCode: "QA-D3-20260917-01",
   packetAddress: "SYNTHETIC QA - NOT A REAL PROPERTY - D3 NAV 20260917",
   credentialFile: ".env.qa-test-credentials.local.md",

@@ -2,7 +2,7 @@
 
 import { ArrowRight } from "lucide-react";
 import type { DocumentHashEntry } from "@/lib/domain/types";
-import { formatDateTime } from "@/lib/formatters";
+import { formatPeruDateTime } from "@/lib/date-time";
 import { HASH_STAGES, RECORD, UI } from "@/lib/i18n/labels";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -62,7 +62,7 @@ export function DocumentHashTimeline({
             </div>
             <HashDisplay hash={entry.hash} className="mb-2" />
             <p className="font-mono text-xs text-muted">
-              {formatDateTime(entry.timestamp)}
+              {formatPeruDateTime(entry.timestamp)}
             </p>
             {entry.actorId ? (
               <p className="mt-1 text-xs text-muted">

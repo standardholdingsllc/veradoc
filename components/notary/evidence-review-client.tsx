@@ -657,9 +657,7 @@ function PropertyAuthorityPanel({
   const [showForm, setShowForm] = useState(false);
   const [titleNumber, setTitleNumber] = useState("");
   const [status, setStatus] = useState<"verified" | "observation" | "not_found">("verified");
-  const [checkedAt, setCheckedAt] = useState(() =>
-    new Date().toISOString().slice(0, 16)
-  );
+  const [checkedAt, setCheckedAt] = useState("");
   const [zone, setZone] = useState("");
   const [office, setOffice] = useState("");
   const [queryReference, setQueryReference] = useState("");
@@ -732,7 +730,16 @@ function PropertyAuthorityPanel({
             Consultas oficiales registradas
           </p>
           {interactive && (
-            <Button size="sm" variant="outline" onClick={() => setShowForm((value) => !value)}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                if (!showForm) {
+                  setCheckedAt(new Date().toISOString().slice(0, 16));
+                }
+                setShowForm((value) => !value);
+              }}
+            >
               <Database className="mr-1 size-3.5" /> Registrar consulta
             </Button>
           )}

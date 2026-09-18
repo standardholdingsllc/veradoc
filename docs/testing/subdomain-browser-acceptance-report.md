@@ -1293,3 +1293,29 @@ The timezone regression test compares output after changing the host timezone be
 ### 31d. Acceptance standing
 
 D-004 remains **PARTIAL — implementation verified at unit/type/lint/compile scope; deployed browser and telemetry verification pending**. The existing production fixture remains suitable for the closure rerun. No notification, signing, payment, certification, registry, or workflow side effect was invoked by this implementation work.
+
+## 32. First production remediation deployment and failed closure rerun — 2026-09-18T00:58:50Z–01:03:39Z
+
+**Status: FAIL for the first production remediation; corrective follow-up pending. Do not record D-004 as closed.**
+
+Commit `4281d53` was pushed to `main` and Vercel's Git integration built production deployment `dpl_6D5sbvJgWjNfCuWtBK78iNFsuwbN`. Vercel cloned branch `main` at that exact commit, compiled successfully, completed TypeScript, generated 46/46 static pages, deployed the output, marked it Ready, and attached all six canonical aliases. The build completed at `2026-09-18T00:59:47.813Z`.
+
+The unchanged D3 fixture was then exercised in two independently authenticated clean notary contexts plus a separate wrong-role realtor context. Correct-role authentication, visible detail content, HTTP 200 refresh, Back, Forward, public-route cleanliness, zero HTTP 5xx, and wrong-role denial all succeeded. The closure still failed because React hydration error #418 occurred during hard refresh in both correct-role contexts.
+
+### 32a. Failure D-005
+
+- **Severity:** High for release acceptance. Production remained usable and no authorization failure or protected-data leak was observed, but the required deterministic hard-refresh criterion still failed after the first remediation.
+- **Exact reproduction steps:** (1) Open a clean Chrome context. (2) Authenticate `qa-active-notary` on `https://notario.veradoc.pe/auth/login`. (3) click synthetic packet `QA-D3-20260917-01`. (4) Confirm the clean `/paquetes/[packet-id]` route and rendered packet. (5) Hard reload. (6) Observe the browser `pageerror` stream. (7) Repeat in a second independently authenticated clean context.
+- **Expected versus actual:** Expected HTTP 200, unchanged correct content, and zero hydration/page errors. Actual HTTP 200 and correct visible content, but one minified React #418 hydration error occurred on refresh in each clean context.
+- **Exact route and UTC:** `https://notario.veradoc.pe/paquetes/[packet-id]`; context 1 `2026-09-18T01:02:19.706Z`–`01:02:37.632Z`, with the page error at `01:02:32.684Z`; context 2 `01:02:37.641Z`–`01:02:50.365Z`, with the page error at `01:02:45.896Z`.
+- **Deployment ID:** `dpl_6D5sbvJgWjNfCuWtBK78iNFsuwbN` (`Ready`, Production, commit `4281d53`).
+- **Sanitized error or stack:** `Error: Minified React error #418` from deployed client chunk `_next/static/chunks/0gnraur0-1std.js`; the harness summarized `Material browser errors or internal notary-prefix leakage were observed.` Inspection confirmed no prefix leakage and no material request failure, leaving the page error as the failing check. Identifiers, credentials, cookies, and tokens are omitted.
+- **Likely failing layer:** A remaining client hydration mismatch in the packet-detail render tree. Source audit found `DocumentHashTimeline` still formatting the packet creation/hash timestamp through the old host-timezone-dependent shared formatter. It also found a render-time `new Date()` initializer in the authority form component. Both sit outside the three summary fields corrected by commit `4281d53`.
+- **Second clean context:** Yes. The same React #418 page error reproduced once in context 2. The separate wrong-role realtor context passed with zero applicable notary auth cookies, the login gate, no packet content, and zero page errors.
+- **Recommended next diagnostic:** Route the hash-timeline timestamp through the explicit `America/Lima` formatter, initialize the authority-form clock only from the user event that opens the form, deploy, and rerun the same two-context harness before querying exact-window telemetry.
+
+### 32b. Corrective follow-up implemented locally
+
+The follow-up changes `DocumentHashTimeline` to use `formatPeruDateTime` and changes the SUNARP form's `checkedAt` initial state from a render-time clock value to an empty deterministic value populated only when the user opens the form. Focused ESLint, the 5/5 date-contract tests, TypeScript, and diff-quality checks pass. Production browser and telemetry status remains **PARTIAL pending redeployment and rerun**.
+
+The failed-run sanitized artifact is `artifacts/d3-notary-packet-detail/evidence-2026-09-18T01-02-19-335Z.json`. The diagnostic comparison process was started afterward, but its monitoring connection was interrupted before a new result was returned; no PASS or diagnostic conclusion is claimed from that interrupted run.
