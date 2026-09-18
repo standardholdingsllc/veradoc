@@ -1,10 +1,10 @@
 # VeraDoc Subdomain Browser Acceptance Report
 
-Overall status: **PARTIAL — the seven-item remediation was deployed uniformly to all production aliases on 2026-09-16; public metadata, CORS, RSC-prefetch, and an exercised Supabase OAuth cookie path now pass live browser retests. D-002, D-003, the password-session-cookie path, and UX-002 still require final authenticated browser confirmation; admin logout remains UX-blocked (UX-001), and provider-dependent workflows remain blocked.**
+Overall status: **PARTIAL — H1 and B5 are complete. The notary packet-detail fixture now exists and the focused production test ran with authenticated browser and exact-window telemetry evidence. Initial detail rendering, clean routes, back/forward, and wrong-role denial passed, but direct refresh emitted React hydration error #418 in two independent clean notary contexts. Section 30 confirms the root cause: server rendering formats packet dates/times in UTC while browser hydration formats the same values in the browser timezone because the client formatters omit an explicit `timeZone`. The packet-detail package is therefore FAIL pending remediation and retest. Provider-dependent/state-changing workflows and the authorized production-like rollback exercise also remain outstanding.**
 
-Report date: 2026-09-15 (initial); 2026-09-16 (retested, remediated, deployed, and partially reverified in production)
+Report date: 2026-09-15 (initial); 2026-09-16 (retested, remediated, deployed, investigated, fully reverified for the seven-item remediation, evidence re-captured with UTC timestamps, and production telemetry reviewed); 2026-09-17 UTC (cron-secret deployment, production acceptance retest, admin-logout closure, payout-gate verification, exact-window Supabase telemetry closure, B5 expired-session closure, notary packet-detail execution, and D-004 root-cause diagnostic)
 
-Source evidence: Browser-agent safe anonymous and authenticated reports supplied by the release owner, independent read-only HTTP and Vercel CLI verification, a production Supabase QA Auth fixture bootstrap authorized on 2026-09-15, post-remediation AAL1/AAL2 browser checks in section 8, authenticated acceptance testing on 2026-09-16 (sections 9–16), and continued browser acceptance testing on 2026-09-16 (sections 10a, 10b, 9a, 16a). Phase B–G evidence includes UTC timestamps, start→final URL pairs, cookie counts, and heading content for most tests. Several rows from the initial session (B4, B5, and some B2/B3 entries) lack UTC timestamps, browser profile labels, redirect status codes, and console/network summaries required by the evidence standard (acceptance guide section 7). Cookie attributes are now confirmed via sanitized browser-context cookie inspection (see section 10b).
+Source evidence: Browser-agent safe anonymous and authenticated reports supplied by the release owner, independent read-only HTTP and Vercel CLI verification, a production Supabase QA Auth fixture bootstrap authorized on 2026-09-15, post-remediation AAL1/AAL2 browser checks in section 8, authenticated acceptance testing on 2026-09-16 (sections 9–16), continued browser acceptance testing on 2026-09-16 (sections 10a, 10b, 9a, 16a), the seven-item retest at `2026-09-16T17:39–17:54Z`, the final D-003 browser/log verification at `2026-09-16T19:05–19:06Z` (section 22), the evidence re-capture at `2026-09-16T20:30–20:57Z`, the Vercel/Supabase telemetry correlation through `2026-09-16T21:06Z` (section 24e), the production acceptance retest against `dpl_8oGzv9X6LeSqXpFUbSsgwvuiiZMi` from `2026-09-17T03:00–03:32Z` with independent Vercel/HTTP corroboration (section 25), the isolated standalone-Chrome focused acceptance pass from `2026-09-17T05:53:09Z` through `05:56:07Z` with subsequent independent artifact, configuration, HTTP, and unit-test verification (section 26), the authenticated aggregate Supabase Logs API query executed at `2026-09-17T06:29:35.722Z`–`06:29:37.121Z` for the exact historical window (section 27), the two-context naturally expired session run plus authenticated exact-window token telemetry at `2026-09-17T18:14:13Z`–`19:14:56Z` (section 28), the two-context notary packet-detail run plus wrong-role context and exact-window telemetry at `2026-09-17T20:55:19Z`–`20:56:33Z` (section 29), and the authenticated production server/client timezone A/B diagnostic at `2026-09-17T21:58:59Z`–`21:59:18Z` (section 30). The earlier B4, B5, and B2/B3 timestamp gaps are superseded by sections 24 and 28. Cookie attributes are confirmed via sanitized browser-context cookie inspection (see sections 10b, 22, 24, 25, 26, 28, and 29).
 
 ## 1. Environment and release
 
@@ -16,13 +16,14 @@ Source evidence: Browser-agent safe anonymous and authenticated reports supplied
 | Notary | `https://notario.veradoc.pe` |
 | Admin | `https://admin.veradoc.pe` |
 | Demo | `https://demo.veradoc.pe` |
-| Vercel deployment | `dpl_4jk9iEMB5n5GMbc1yj4VWsZXRRUE` |
+| Vercel deployment | `dpl_8M8f8wa9hgcYfQsBf4hi77UqCD51` |
 | Deployment status | Ready, production |
-| Current remediation commit | `b4dad37` |
+| Current remediation commit | `3a2203affc7ef4a2809fd69304d43e7bebb47b7c` |
+| Vercel-reported Git metadata | `3a2203affc7ef4a2809fd69304d43e7bebb47b7c` on `codex/build-out-demo-parties` |
 | Post-remediation browser/version | Headless Chrome `152.0.7977.83` |
-| Post-remediation browser timestamp | `2026-09-15T23:34:44Z` |
+| Latest authenticated browser timestamp | `2026-09-17T21:59:18Z` |
 
-The Vercel CLI independently confirmed that the deployment is Ready and has all six aliases: apex, `www`, app, notary, admin, and demo. Earlier browser evidence was collected against `dpl_52hALsJfRggB56ejjwcMRagH8VQZ`; the sanitized admin AAL1 and AAL2 follow-ups in section 8 were repeated against the current remediation deployment.
+The Vercel CLI and read-only deployment API independently confirmed that deployment `dpl_8M8f8wa9hgcYfQsBf4hi77UqCD51` is Ready, targets production, contains commit `3a2203a`, and has all six public aliases: apex, `www`, app, notary, admin, and demo. Earlier browser evidence was collected against `dpl_52hALsJfRggB56ejjwcMRagH8VQZ`, `dpl_4jk9iEMB5n5GMbc1yj4VWsZXRRUE`, `dpl_BS7UyHNMCkoP2dsNF1vuviWpq2rw`, `dpl_BRjTzUEcarJzj4oKYKSziWaAeCH2`, and `dpl_8oGzv9X6LeSqXpFUbSsgwvuiiZMi`; sections 22, 25, and 26 record the successive production verifications.
 
 ## 2. QA Auth fixture readiness
 
@@ -123,7 +124,7 @@ See section 18 for the updated phase readiness after authenticated testing.
 
 See section 17 for the updated completion-condition standing after authenticated testing.
 
-## 7. Current release assessment (superseded by section 20)
+## 7. Historical release assessment (superseded by sections 17–19 and 22)
 
 See section 20 for the updated release assessment after authenticated testing.
 
@@ -297,9 +298,9 @@ All 10 cross-surface login attempts redirected to the user's correct canonical l
 | Renter | `admin.veradoc.pe` | `app.veradoc.pe/auth/login?error=wrong-surface` | PASS |
 | Renter | `notario.veradoc.pe` | `app.veradoc.pe/auth/login?error=wrong-surface` | PASS |
 
-## 12. Account-state matrix (B5) — PARTIAL (5/6)
+## 12. Historical account-state matrix (B5) — PARTIAL (5/6; superseded by section 28)
 
-The normative matrix contains six states. Expired-but-refreshable remains untested.
+At this checkpoint, the normative matrix contained six states and expired-but-refreshable remained untested. Section 28 subsequently closes that state and B5 overall.
 
 | Account state | Login host | Result | Status |
 | --- | --- | --- | --- |
@@ -415,60 +416,61 @@ Additionally: no notary packet-detail navigation evidence (no assigned packets f
 | # | Completion condition | Standing | Change |
 | --- | --- | --- | --- |
 | 1 | Each hostname serves only its approved surface | **PASS** — anonymous and sampled authenticated surface isolation verified; wrong-role matrix 10/10; admin content unavailable from app/notary/demo/apex (8/8) | Confirmed |
-| 2 | Public URLs follow the clean target contract | PARTIAL — all tested navigation uses clean public paths; no prefix leakage; legacy `/notario/perfil` collapses to clean `/perfil`; `A-MKT-03b` (canonical metadata) remains FAIL | — |
+| 2 | Public URLs follow the clean target contract | **PASS** — tested navigation uses clean public paths; no prefix leakage; legacy `/notario/perfil` collapses to clean `/perfil`; all 9 marketing routes publish matching route-specific canonical and `og:url` values | ↑ from PARTIAL to PASS |
 | 3 | Durable generated links use typed origins | PARTIAL — automated/source evidence exists; fresh copied/email links remain untested | — |
 | 4 | Auth callbacks establish sessions on intended host | BLOCKED — password login was tested (not a callback); invitation, magic-link, and OAuth callback flows remain untested | Remains BLOCKED |
-| 5 | Sessions remain host-scoped | **PASS** — nine authenticated-source cross-host destinations, two session-persistence checks, and one demo no-auth confirmation all pass; cookie attributes confirmed via sanitized browser-context cookie inspection: `Domain` is the specific host (not `.veradoc.pe`) on all three authenticated surfaces; demo receives 0 cookies; SEC-001 (Secure=false) is a defense-in-depth finding, not release-blocking given HSTS. | ↑ from PARTIAL to PASS |
-| 6 | Server authorization works independently of Proxy | PARTIAL — wrong-role denial (10/10 active + 3/3 state-specific admin denial), account-state gating (5/6 states), MFA enforcement, post-logout access denial on all surfaces including back-button; admin refresh preserves AAL2; negative mutation matrix blocked | ↑ from PARTIAL |
+| 5 | Sessions remain host-scoped | **PASS** — nine authenticated-source cross-host destinations, two session-persistence checks, and one demo no-auth confirmation all pass; password-session cookies are host-only, `Secure=true`, and `SameSite=Lax` on app, notary, and admin; demo receives 0 cookies | Confirmed; SEC-001 closed |
+| 6 | Server authorization works independently of Proxy | PARTIAL — wrong-role denial (10/10 active, UTC-timestamped + 3/3 state-specific admin denial), account-state gating (6/6 states, UTC-timestamped), MFA enforcement, expired-session role enforcement, and product-level post-logout access denial on all surfaces including the admin back-button; admin refresh preserves AAL2; negative mutation matrix blocked | ↑ B5 complete; remains PARTIAL for negative mutations |
 | 7 | Fresh and legacy signing links complete | BLOCKED | — |
 | 8 | Notary invitations complete on notary | BLOCKED | — |
-| 9 | Admin includes the approved additional control | **PASS** — AAL1→MFA gate, AAL2→dashboard, session invalidation verified (developer-tooling cookie clear, not product-UI logout), back-button denied, wrong-role denied | Confirmed |
+| 9 | Admin includes the approved additional control | **PASS** — AAL1→MFA gate, AAL2→dashboard, visible product-level logout, session-cookie removal, same-host login redirect, back/direct/refresh denial, and wrong-role denial are verified | UX-001 closed in section 26 |
 | 10 | Demo cannot cause production side effects | PARTIAL — anonymous+interactive demo checks pass; 0 cookies; demo `/auth/login` returns empty document (no login form); mutation/token tests blocked | ↑ from PARTIAL |
 | 11 | APIs, webhooks, cron, and actions avoid cross-host redirects | PARTIAL — sampled wrong-host POST and automated tests pass; provider workflows remain untested | — |
 | 12 | Only marketing is intentionally indexable | **PASS** | Confirmed |
-| 13 | Automated and manual matrices pass | PARTIAL — B2 exercised for all 5 roles (3 complete; realtor has D-003 FAIL but refresh now PASS; admin has nav N/A, refresh PASS, logout UX-blocked); B3 complete (9 cross-host destinations + 2 session-persistence + 1 demo no-auth + cookie attributes captured); B4 10/10; B5 5/6; C/D dashboards rendered but D-002 and D-003 FAIL; E cross-surface isolation 8/8 + admin state-specific denial 3/3 PASS; F-DEMO-03 7/7; G navigation routing works but 2 destinations FAIL; provider workflows blocked; B4 and B5 lack UTC timestamps from prior session; SEC-001 finding | ↑ from PARTIAL |
-| 14 | Production telemetry shows no material regression | BLOCKED | — |
+| 13 | Automated and manual matrices pass | PARTIAL — the seven-item remediation is 7/7 PASS; B2 is complete for all 5 roles, including the product-level admin logout; B3 is complete with secure host-only cookies and UTC-timestamped re-records; B4 is 10/10 UTC-timestamped; B5 is 6/6 UTC-timestamped; D-002 and D-003 pass; E cross-surface isolation is 8/8 with admin state-specific denial 3/3; F-DEMO-03 is 7/7; provider workflows remain blocked | ↑ B5 complete; remains PARTIAL for other packages |
+| 14 | Production telemetry shows no material regression | **PASS** — all public surfaces are healthy with no observed CORS failures, redirect loops, or current-deployment 5xx responses; the notification-outbox cron defect is closed; and the authenticated exact-window Supabase query found 67 retained edge-log events with zero `notary_payout_rates` requests and zero associated HTTP 400 responses. | ↑ from PARTIAL to PASS; exact-window database telemetry closed in section 27 |
 | 15 | Rollback exercised or proven production-like | BLOCKED | — |
 
-**Summary: 4 PASS (#1, #5, #9, #12), 6 PARTIAL (#2, #3, #6, #10, #11, #13), 5 BLOCKED (#4, #7, #8, #14, #15).**
+**Summary: 6 PASS (#1, #2, #5, #9, #12, #14), 5 PARTIAL (#3, #6, #10, #11, #13), 4 BLOCKED (#4, #7, #8, #15).**
 
 ## 18. Updated phase readiness
 
 | Area | Status | Missing prerequisite |
 | --- | --- | --- |
-| B2: login, logout, post-logout | PARTIAL — 4/5 roles functionally complete (landlord, renter, notary, realtor). Realtor second nav returns HTTP 500 (D-003) but refresh now PASS. Admin: refresh PASS, tab nav N/A (in-page tabs), product-UI logout blocked (UX-001). | D-003 remediation; admin logout button |
-| B3: cookie isolation | **PASS** — 9 authenticated-source cross-host destinations, 2 session-persistence checks, 1 demo no-auth confirmation; cookie attributes confirmed via sanitized browser-context inspection: `Domain` is the specific host (not `.veradoc.pe`) on all 3 authenticated surfaces; demo 0 cookies; SEC-001 (Secure=false) recorded | — |
-| B4: wrong-role matrix | EXECUTED — 10/10 PASS | UTC timestamps not recorded |
-| B5: account states | PARTIAL (5/6) | Expired-but-refreshable session needs controlled fixture |
-| C: read-only role dashboard/navigation | PARTIAL — dashboard and profile pages render for all 3 app roles; however D-003 (realtor `/agente/nuevo-paquete`) returns HTTP 500 | D-003 remediation |
+| B2: login, logout, post-logout | **COMPLETE** — all five roles are functionally complete. Admin product-level logout clears both auth-cookie chunks, stays on the admin host, and prevents access after back, direct navigation, and refresh. | — |
+| B3: cookie isolation | **PASS** — 9 authenticated-source cross-host destinations, 2 session-persistence checks, 1 demo no-auth confirmation; app, notary, and admin password-session cookies are host-only, `Secure=true`, and `SameSite=Lax`; demo receives 0 cookies | — |
+| B4: wrong-role matrix | **COMPLETE** — 10/10 PASS, UTC-timestamped (section 24a) | — |
+| B5: account states | **COMPLETE — 6/6 PASS**, UTC-timestamped (sections 24b and 28) | — |
+| C: read-only role dashboard/navigation | **COMPLETE** — dashboard and profile pages render for all 3 app roles; realtor `/agente/nuevo-paquete` returns HTTP 200 and renders the six-step wizard | — |
 | C: customer packet/upload/signing workflow | BLOCKED | Provider-safe environment, synthetic packet/signing links, safe OTP sink, and mutation authorization |
-| D: read-only notary dashboard/navigation | PARTIAL (D-002 on ganancias; no packet-detail evidence) | D-002 remediation; assigned packets for packet-detail nav |
+| D: read-only notary dashboard/navigation | PARTIAL — `/ganancias` is healthy; the packet queue link, initial detail render, clean paths, back/forward, and wrong-role denial pass, but direct packet-detail refresh emits React hydration error #418 in 2/2 clean notary contexts | Diagnose and remediate D-004, then rerun the focused refresh check |
 | D: notary invitation/certification workflow | BLOCKED | Synthetic notary invitation/packet and stubbed provider path |
-| E: admin access control | PARTIAL — cross-surface admin content isolation 8/8; wrong-role (active accounts) denial verified; admin state-specific denial 3/3 PASS (pending/rejected/suspended all redirect with `?error=wrong-surface`, no admin cookies survive); session invalidation confirmed via cookie clear; admin refresh PASS; admin tab nav N/A. Product-UI logout untested (UX-001). | Admin logout button |
+| E: admin access control | **COMPLETE** — cross-surface admin content isolation 8/8; wrong-role denial verified; admin state-specific denial 3/3 PASS; product-level logout removes both auth-cookie chunks and denies access after back/direct/refresh; admin refresh PASS; admin tab navigation N/A. | — |
 | E: privileged mutation and audit | BLOCKED | Harmless synthetic target, mutation authorization, and audit visibility |
 | F-DEMO-03: state persistence | **COMPLETE** — 7/7 checks including refresh, client nav, back/forward, multi-role demo surfaces | — |
 | F-DEMO-05/06/07: side-effect and token separation | BLOCKED | Network evidence plus safe demo/production-shaped synthetic tokens |
-| G: authenticated navigation | PARTIAL — routing patterns (refresh, `<Link>`, back/forward, redirect query preservation, no loops, no prefix leakage) are verified and working for exercised roles. 2 `<Link>` destinations return server errors (D-002, D-003); admin tab nav and refresh now verified; notary packet-detail blocked (no assigned packets) | D-002 and D-003 remediation |
+| G: authenticated navigation | PARTIAL — packet-detail `<Link>` navigation and back/forward pass in 2/2 clean notary contexts with no prefix leakage, but direct refresh emits D-004 in both contexts | Diagnose and remediate D-004, then rerun |
 | G: negative privileged mutations | BLOCKED | Provider-safe mutation targets and explicit mutation authorization |
-| H1: telemetry | BLOCKED | Approved read-only telemetry access |
+| H1: telemetry | **PASS** — public-surface and Supabase auth telemetry reviewed; notification-outbox cron 503 closed; payout-rate query gated and verified disabled; authenticated exact-window query returned 67 retained edge-log events, zero `notary_payout_rates` requests, and zero associated HTTP 400 responses | — |
 | H2: rollback exercise | BLOCKED | Production-like environment, named operator, and explicit exercise authorization |
 
 ## 19. Defects and findings
 
 | ID | Severity | Summary | Status |
 | --- | --- | --- | --- |
-| D-002 | Medium | `notario.veradoc.pe/ganancias` server error (ERROR 2581687241) — **confirmed cause:** `getNotaryEarnings` in `lib/actions/notary.ts` selects `notary_igv_centimos`, a column from unapplied migration `20260910160000_commercial_accounting.sql` | DEPLOYED — authenticated browser retest pending |
-| D-003 | Medium | `app.veradoc.pe/agente/nuevo-paquete` server error — **confirmed cause:** the disabled-gate path queried `effective_from` and `effective_to`, columns from the same unapplied commercial migration | DEPLOYED — authenticated browser retest pending |
-| UX-001 | Low | Admin dashboard has no visible logout button | NEW |
-| UX-002 | Low | Suspended account login shows no visible error message | DEPLOYED — suspended-password browser retest pending |
+| D-002 | Medium | `notario.veradoc.pe/ganancias` server error (ERROR 2581687241) — **confirmed cause:** `getNotaryEarnings` selected `notary_igv_centimos`, a column from unapplied migration `20260910160000_commercial_accounting.sql` | **PASS IN PRODUCTION** — authenticated `/ganancias` returned HTTP 200 and the stable unavailable-state message; reconfirmed on current deployment in section 25 |
+| D-003 | Medium | `app.veradoc.pe/agente/nuevo-paquete` server error — **serial causes:** the disabled-gate path originally queried unapplied effective-date columns; after that code fix, deployment `dpl_BS7UyHNMCkoP2dsNF1vuviWpq2rw` supplied an invalid `SUPABASE_SECRET_KEY`, causing the legacy `pricing_config` request to return 401 | **PASS IN PRODUCTION** — first closed on corrected-key deployment `dpl_BRjTzUEcarJzj4oKYKSziWaAeCH2`; authenticated wizard and pricing fallback remain healthy on current deployment per section 25 |
+| UX-001 | Low | Admin dashboard had no visible logout button | **PASS IN PRODUCTION** — visible submit control, pending state, cookie removal, same-host login redirect, and back/direct/refresh denial verified in section 26 |
+| UX-002 | Low | Suspended account login shows no visible error message | **PASS IN PRODUCTION** — persistent suspended-account `role="alert"`; no dashboard navigation or surviving session cookies |
 | A-MKT-03b | Low | Marketing pages missing explicit canonical tags | PASS IN PRODUCTION — 9/9 canonical and `og:url` values verified |
 | A-HDR-05 | Medium | Global wildcard `Access-Control-Allow-Origin: *` on HTML responses | PASS IN PRODUCTION — exact same-origin ACAO verified on all five surfaces |
-| SEC-001 | Low | Supabase auth cookies have `Secure=false` on all authenticated surfaces. HSTS with `includeSubDomains` provides transport protection, limiting practical exposure. Defense-in-depth improvement recommended. | PARTIAL PASS IN PRODUCTION — OAuth verifier cookie is Secure/host-only/Lax; password-session-cookie retest pending |
+| SEC-001 | Low | Supabase password-session cookies lacked the `Secure` flag | **PASS IN PRODUCTION** — both cookie chunks are `Secure=true`, host-only, and `SameSite=Lax` on app, notary, and admin |
 | RSC-CORS | Low | Admin RSC prefetch for `/auth/signup` CORS warning | PASS IN PRODUCTION — zero speculative signup RSC requests observed |
+| D-004 | Medium | Direct refresh of an authenticated notary packet detail emits minified React hydration error #418 while the HTTP 200 page remains visibly rendered | **ROOT CAUSE CONFIRMED; FIX PENDING** — server UTC and browser-local date/time output differ because `EvidenceReviewClient` omits an explicit `timeZone`; sections 29–30 |
 
-### 19a. Local remediation ready for deployment and browser retest
+### 19a. Seven-item remediation implementation and closure
 
-The seven items in the fix-then-retest list were remediated locally on 2026-09-16 without applying migration `20260910160000_commercial_accounting.sql` or changing production/provider state:
+The seven items in the fix-then-retest list were remediated without applying migration `20260910160000_commercial_accounting.sql`. All seven are now deployed and verified in production:
 
 - **D-002:** notary earnings now fails closed before creating an admin client while commercial accounting is disabled; the page renders an unavailable-state message instead of querying unapplied payout columns.
 - **D-003:** packet pricing now uses the legacy pricing columns while the commercial gate is disabled and only applies effective-date filters after the versioned schema is enabled.
@@ -480,7 +482,9 @@ The seven items in the fix-then-retest list were remediated locally on 2026-09-1
 
 Local verification: remediation-focused Vitest **29/29 passed**; complete Vitest **252/252 passed** before the final isolated header-rule strengthening; post-header routing/header Vitest **12/12 passed**; TypeScript **passed**; ESLint **0 errors** (7 unrelated pre-existing warnings); Next.js production build **passed** with inert process-local placeholders for the three required values absent from the local environment. The post-header attempt to rerun the entire suite was interrupted by the command-approval service before results were produced; the changed header boundary is covered by the post-change focused tests and production build.
 
-## 20. Current release assessment (updated 2026-09-16T04:33Z)
+## 20. Historical release assessment (2026-09-16T04:33Z; superseded)
+
+> This section preserves the pre-remediation browser snapshot for audit history. It is not the current standing. See sections 17–19 and 22 for the reconciled status after the final production verification.
 
 A broad browser acceptance pass was executed. Cookie-attribute evidence is now captured; admin state-denial tests are complete; realtor refresh and admin refresh/tab-navigation are verified. The result remains **PARTIAL**, with two confirmed functional failures (D-002, D-003), admin logout UX-blocked (UX-001), and provider-dependent workflows still blocked.
 
@@ -506,7 +510,7 @@ The production hostname transition routing is functioning correctly for both ano
 - **B2:** Landlord, renter, and notary fully verified (login, ≥2 nav links, refresh, product-UI logout, post-logout denial). Realtor verified except D-003 FAIL on `/agente/nuevo-paquete`; refresh now PASS. Admin login + AAL2 verified; session invalidation works but via developer-tooling cookie clear (UX-001).
 - **B3:** All app→notary/admin/demo and admin→app/notary/demo pairs verified in prior sessions.
 - **B4:** 10/10 (no UTC timestamps — from prior session).
-- **B5:** 5/6 states verified (no UTC timestamps — from prior session).
+- **B5 at this historical checkpoint:** 5/6 states verified (no UTC timestamps — from prior session); superseded by sections 24 and 28.
 - **C/D:** Dashboards render for all roles. D-002 and D-003 are confirmed FAILs.
 - **E:** Cross-surface admin isolation 8/8 PASS.
 - **F-DEMO-03:** 7/7 PASS.
@@ -573,9 +577,719 @@ An attempted route to obtain production credentials for disposable synthetic aut
 
 ### 21c. Remaining browser closure
 
+> Historical checklist as of `2026-09-16T16:48Z`. All four checks below were subsequently executed; see section 22 for the final results.
+
 Use the existing authorized QA browser sessions or credentials to run only these final checks against the already-uniform deployment:
 
 1. Notary `/ganancias`: expect HTTP 200 and the accounting-unavailable state, with no server error.
 2. Realtor `/agente/nuevo-paquete`: expect the wizard to render from legacy pricing, with no server error.
 3. Password login on app, notary, and admin: confirm both resulting Supabase session cookies are `Secure=true`, host-scoped, and `SameSite=Lax`.
 4. Suspended realtor login: expect the persistent suspended-account `role="alert"`, no dashboard navigation, and no surviving session cookies.
+
+## 22. Seven-item production closure and D-003 credential follow-up — 2026-09-16T17:39–19:06Z
+
+### 22a. Seven-item retest on deployment `dpl_BS7UyHNMCkoP2dsNF1vuviWpq2rw`
+
+Browser and HTTP evidence collected from `2026-09-16T17:39:00Z` through `2026-09-16T17:54:15Z` produced six passes and one remaining failure:
+
+| ID | Result | Production evidence |
+| --- | --- | --- |
+| D-002 | **PASS** | Authenticated `qa-active-notary` request to `/ganancias` returned HTTP 200, heading “Ganancias,” and the expected accounting-unavailable message. |
+| D-003 | **FAIL** | Authenticated `qa-active-realtor` request to `/agente/nuevo-paquete` returned a server error with digest `2438399202`. |
+| A-MKT-03b | **PASS** | All 9 marketing routes returned route-specific apex canonical and `og:url` values. |
+| A-HDR-05 | **PASS** | Apex, `www`, app, notary, admin, and demo returned their own exact HTTPS origin as ACAO; no wildcard was observed. |
+| RSC-CORS | **PASS** | Admin and notary signup controls rendered as normal anchors, with no speculative signup RSC prefetch. |
+| SEC-001 | **PASS** | Both password-session cookie chunks were `Secure=true`, host-only, and `SameSite=Lax` on app, notary, and admin. |
+| UX-002 | **PASS** | Suspended realtor login remained on `/auth/login`, displayed the persistent suspended-account `role="alert"`, and left no session cookies. |
+
+### 22b. D-003 production investigation
+
+The legacy pricing row and schema were valid: one active `lease_packet_standard` row existed with amount `8900`, currency `PEN`, and a non-empty description; the migration grants `service_role` access to `pricing_config`. The client wizard also accepted the legacy defaults.
+
+Vercel and Supabase logs identified a deployment-configuration failure instead:
+
+- `2026-09-16T17:42:48.129Z`: Vercel returned HTTP 500 for `/agente/nuevo-paquete` and logged the generic pricing exception with digest `2438399202`.
+- `2026-09-16T17:42:48.538Z`: Supabase received `GET /rest/v1/pricing_config` and returned HTTP 401.
+- Supabase gateway classification: `UNAUTHORIZED_INVALID_API_KEY`; both the `apikey` and `Authorization` credential checks were `invalid`.
+
+The deployed `SUPABASE_SECRET_KEY` was therefore rejected by the linked Supabase project. The pricing service's generic exception had masked the underlying 401. The production key was corrected and Vercel was redeployed; no database migration or pricing-row mutation was required.
+
+### 22c. Final verification on deployment `dpl_BRjTzUEcarJzj4oKYKSziWaAeCH2`
+
+Vercel inspection confirmed that the replacement deployment was `Ready`, targeted production, and uniformly served apex, `www`, app, notary, admin, and demo. It was a Vercel `redeploy` of the prior CLI-uploaded artifact. Vercel retained Git metadata `351c343c1d2a09f85d79b21fb19a008cd9335247`; the remediation implementation tracked in this workspace is commit `64eac00cdf1f954053fef407f7460cead506d175`.
+
+At `2026-09-16T19:05:35Z`, a clean headless Chrome `152.0.7977.83` session performed an ordinary password login as `qa-active-realtor` and navigated to `https://app.veradoc.pe/agente/nuevo-paquete`:
+
+- Main document returned HTTP 200.
+- Heading rendered as “Crear paquete de arrendamiento.”
+- The complete six-step wizard rendered at “Paso 1 de 6 · Cargar contrato.”
+- No server-error page appeared.
+- Both app auth-cookie chunks were host-scoped, `Secure=true`, and `SameSite=Lax`.
+- Vercel recorded the related `/agente/nuevo-paquete` requests as HTTP 200 with no error or fatal log entries.
+- Supabase recorded `GET /rest/v1/pricing_config` at `2026-09-16T19:05:36.052Z` as HTTP 200 with no gateway error code.
+
+**Seven-item remediation result: 7 PASS, 0 FAIL.**
+
+### 22d. Remaining acceptance work outside the seven-item remediation
+
+1. Implement and test a visible admin logout control (UX-001).
+2. Exercise the expired-but-refreshable session state with a controlled fixture.
+3. Obtain provider-safe fixtures and authorization for the state-changing customer, signing, notary, privileged-mutation, webhook, and notification workflows.
+4. Complete the notary packet-detail navigation check with an assigned synthetic packet.
+5. Gate or remove the ungated payout-rate query and confirm the Supabase 400s stop, then complete rollback evidence in an approved production-like context. The notification-outbox cron 503 is closed in section 25; the payout gate and exact-window telemetry are subsequently closed in sections 26–27, leaving rollback outstanding.
+
+## 23. Recommended next test sequence — 2026-09-16T20:21Z
+
+The seven-item remediation is fully closed. The following sequence covers the remaining acceptance gaps in dependency order. Each package lists the setup required before testing can begin and the pass criteria that would close the item.
+
+| Priority | Test package | Setup required | Pass criteria |
+| --- | --- | --- | --- |
+| 1 | **Admin logout (UX-001)** | Add a visible logout control; use the AAL2 QA admin | Logout clears both auth-cookie chunks, redirects to login, and back/refresh cannot reopen admin content |
+| ~~2~~ | ~~**Expired-session behavior**~~ | ~~Controlled expired access token with a still-valid refresh token~~ | **DONE** — two naturally expired production sessions passed; see section 28 |
+| 3 | **Notary packet-detail navigation** | **SETUP COMPLETE** — synthetic packet assigned to `qa-active-notary` without provider actions | **RUN — FAIL**: refresh emits D-004 in 2/2 clean contexts; other scoped checks pass (section 29) |
+| ~~4~~ | ~~**Re-record B4/B5 evidence**~~ | ~~Clean browser contexts and the existing QA account matrix~~ | **DONE** — section 24a–d; UTC timestamps, viewport, cookies, console captured |
+| 5 | **Provider-safe workflows** | Staging/preview or production-safe provider sandboxes, synthetic packets, safe OTP/message sinks | Complete customer, signing, invitation, payment, and certification workflows without real-world side effects |
+| 6 | **Operations gates** | Cron configuration defect closed (section 25); payout gate and exact-window Supabase telemetry closed (sections 26–27); approved rollback environment/operator still required | Complete the rollback exercise |
+
+### 23a. Package details
+
+**Priority 1 — Admin logout (UX-001).** This is the only remaining functional defect. The admin dashboard currently has no visible logout control; the QA workaround was manual cookie deletion via DevTools. Implementation adds a logout button or menu item to the admin layout. The test authenticates `qa-active-admin` through password + TOTP, exercises the new logout control, and then verifies: (a) both `sb-…-auth-token` chunks are absent from `cookieStore.getAll()`; (b) the browser lands on `/auth/login`; (c) back-button and direct `/` refresh both resolve to the login page with zero auth cookies. This is the only item that requires a code change before testing.
+
+**Priority 2 — Expired-session behavior (complete).** Section 28 records two independently authenticated, server-issued sessions that were retained in process memory without mutation until their signed access tokens expired naturally. Both refreshed transparently on `app.veradoc.pe`, rotated access and refresh tokens, preserved identity and role enforcement, retained `Secure=true` / host-only / `SameSite=Lax` cookies, and produced no redirect loop. Exact-window authenticated Supabase telemetry corroborated two successful token POSTs and zero token 4xx/5xx.
+
+**Priority 3 — Notary packet-detail navigation (executed; failed refresh criterion).** Section 29 records the single synthetic production packet assigned to `qa-active-notary`, the zero-side-effect database proof, two independent authenticated notary contexts, one wrong-role realtor context, and exact-window Supabase telemetry. Initial detail rendering, back/forward, clean paths, and wrong-role denial pass. Direct refresh returns HTTP 200 and remains visibly rendered but emits React hydration error #418 in both clean notary contexts, so this package remains open as D-004.
+
+**Priority 4 — Re-record B4/B5 evidence (complete).** Section 24a–d records the 10/10 B4 matrix, the first five B5 states, the older B3 rows, and the security-relevant admin post-logout direct-navigation check with UTC timestamps, viewport, cookies, page content, and console observations. Section 28 subsequently closes the expired-but-refreshable sixth B5 state.
+
+**Priority 5 — Provider-safe workflows.** This is the largest remaining package and the only one that exercises real business flows end-to-end. It requires: a staging/preview environment or production-safe provider sandboxes for FirmEasy (signing), Supabase (OTP/email), payment gateway, and messaging; synthetic packets with documents uploaded to a safe storage bucket; and safe OTP/message sinks that do not reach real recipients. Pass criteria cover the full customer lifecycle (signup → packet creation → signing entry → OTP → identity → consent → review → signature → completion), notary invitation acceptance, notary certification, and payment success/failure/pending redirects — all without real-world side effects.
+
+**Priority 6 — Operations gates.** The production cron secret was configured and deployment `dpl_8oGzv9X6LeSqXpFUbSsgwvuiiZMi` was verified with seven consecutive scheduled HTTP 200 responses and zero current-deployment cron 503s. The commercial payout-rate query was subsequently gated and exact-window Supabase telemetry confirmed zero requests and zero associated 400s (sections 26–27). The only remaining operations gate is for an approved rollback operator to exercise `HOST_ROUTING_MODE=off` in a production-like environment and record the time to full service restoration.
+
+### 23b. Blocking dependencies
+
+- **Priority 1** blocks on implementation (code change), not on external setup.
+- **Priority 2 is closed. Priority 3** no longer blocks on fixture creation; it now blocks on diagnosing and remediating D-004, then rerunning the refresh check. Priority 4 is complete.
+- **Priority 5** blocks on provider-safe environment authorization — the question first raised in section 20 remains open:
+
+> Which provider-safe environment and synthetic packet/signing fixtures should be used for the state-changing customer and notary workflows?
+
+- **Priority 6** now blocks only on an approved production-like rollback environment and operator. The cron and payout-rate operational errors are closed, including the exact-window Supabase verification.
+
+## 24. Evidence re-capture and telemetry review — 2026-09-16T20:30–20:57Z
+
+Browser: Cursor IDE Chromium, viewport 1280×720 (`Emulation.setDeviceMetricsOverride` verified). Console hooks for `console.error`/`console.warn` reported **no entries** across all scenarios. Cookie state checked via `cookieStore.getAll()` (`Runtime.evaluate`). HTTP redirect status codes for auth flows were client-side navigations (Next.js router); intermediate 302/307 chains were not individually captured.
+
+### 24a. B4 wrong-role login matrix — re-recorded with UTC timestamps (10/10 PASS)
+
+All 10 cross-surface login attempts redirected to the user's correct canonical login page with `?error=wrong-surface`, 0 cookies on the destination, and the alert *"Esta cuenta pertenece a otro portal. Inicie sesión nuevamente aquí."*
+
+| # | Account role | Wrong host | UTC | Final URL | `?error=wrong-surface` | Cookies | Page heading | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | Notary | `app.veradoc.pe` | `2026-09-16T20:47:26Z` | `notario.veradoc.pe/auth/login?error=wrong-surface` | Yes | 0 | Iniciar sesión | PASS |
+| 2 | Notary | `admin.veradoc.pe` | `2026-09-16T20:48:41Z` | `notario.veradoc.pe/auth/login?error=wrong-surface` | Yes | 0 | Iniciar sesión | PASS |
+| 3 | Realtor | `notario.veradoc.pe` | `2026-09-16T20:49:41Z` | `app.veradoc.pe/auth/login?error=wrong-surface` | Yes | 0 | Iniciar sesión | PASS |
+| 4 | Realtor | `admin.veradoc.pe` | `2026-09-16T20:57:46Z` | `app.veradoc.pe/auth/login?error=wrong-surface` | Yes | 0 | Iniciar sesión | PASS |
+| 5 | Admin | `app.veradoc.pe` | `2026-09-16T20:51:45Z` | `admin.veradoc.pe/auth/login?error=wrong-surface` | Yes | 0 | Iniciar sesión | PASS |
+| 6 | Admin | `notario.veradoc.pe` | `2026-09-16T20:52:39Z` | `admin.veradoc.pe/auth/login?error=wrong-surface` | Yes | 0 | Iniciar sesión | PASS |
+| 7 | Landlord | `admin.veradoc.pe` | `2026-09-16T20:53:41Z` | `app.veradoc.pe/auth/login?error=wrong-surface` | Yes | 0 | Iniciar sesión | PASS |
+| 8 | Landlord | `notario.veradoc.pe` | `2026-09-16T20:54:42Z` | `app.veradoc.pe/auth/login?error=wrong-surface` | Yes | 0 | Iniciar sesión | PASS |
+| 9 | Renter | `admin.veradoc.pe` | `2026-09-16T20:55:47Z` | `app.veradoc.pe/auth/login?error=wrong-surface` | Yes | 0 | Iniciar sesión | PASS |
+| 10 | Renter | `notario.veradoc.pe` | `2026-09-16T20:56:47Z` | `app.veradoc.pe/auth/login?error=wrong-surface` | Yes | 0 | Iniciar sesión | PASS |
+
+This closes the B4 evidence-format gap. The prior section 11 results are confirmed and superseded by the timestamped evidence above.
+
+### 24b. Historical B5 account-state re-record — 5/5 PASS (superseded by section 28)
+
+Each scenario started with cookies cleared on `app.veradoc.pe`, then a fresh login at `https://app.veradoc.pe/auth/login`.
+
+| # | Account state | UTC | Start → Final URL | Cookies | Visible content | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | Pending approval (`qa-pending-realtor`) | `2026-09-16T20:32:03Z` | `/auth/login` → `/auth/pending-approval` | 2 | "Cuenta pendiente de aprobación" | PASS |
+| 2 | Rejected (`qa-rejected-realtor`) | `2026-09-16T20:33:09Z` | `/auth/login` → `/auth/rejected` | 2 | "Solicitud no aprobada" | PASS |
+| 3 | Suspended (`qa-suspended-realtor`) | `2026-09-16T20:34:34Z` | `/auth/login` → `/auth/login` (stays) | 0 | `role="alert"`: "Esta cuenta está suspendida. Comuníquese con soporte para solicitar una revisión." | PASS |
+| 4 | Missing role / no profile (`qa-missing-role`) | `2026-09-16T20:35:48Z` | `/auth/login` → `/auth/pending-approval` | 1 | "Cuenta pendiente de aprobación" (treated as pending) | PASS |
+| 5 | Invalid session (garbage cookie) | `2026-09-16T20:36:20Z` | `/agente` → `/auth/login?next=%2Fagente` | 1 (invalid) | "Iniciar sesión"; `next=` preserved | PASS |
+| 6 | Expired but refreshable | — | — | — | — | NOT RUN (requires controlled expired-token fixture) |
+
+**Notes:**
+- State 4 (missing-role) produced 1 unsplit cookie name (`sb-…-auth-token`) rather than the 2-chunk pattern seen with other accounts. This is cosmetic — the user lands on the correct pending-approval gate.
+- State 5 retains the garbage `.0` cookie value until explicitly cleared; the session is not valid and the protected route correctly rejects it.
+
+This closed the B5 evidence-format gap for states 1–5 at that checkpoint. Section 28 subsequently executes and closes state 6 with a controlled naturally expired-token fixture.
+
+### 24c. B3 cross-host isolation — re-recorded with UTC timestamps (4/4 PASS)
+
+Login as `qa-active-realtor` on `app.veradoc.pe` at `~2026-09-16T20:37:35Z` (2 cookies), then cross-host visits:
+
+| Test | UTC | Start → Final URL | Cookies on visited host | Visible content | Status |
+| --- | --- | --- | --- | --- | --- |
+| B3-APP-TO-NOTARY | `2026-09-16T20:38:32Z` | `notario.veradoc.pe/` → `notario.veradoc.pe/auth/login?next=%2F` | 0 | "Iniciar sesión" | PASS |
+| B3-APP-TO-ADMIN | `2026-09-16T20:39:17Z` | `admin.veradoc.pe/` → `admin.veradoc.pe/auth/login?next=%2F` | 0 | "Iniciar sesión" | PASS |
+| B3-APP-TO-DEMO | `2026-09-16T20:39:44Z` | `demo.veradoc.pe/` → `demo.veradoc.pe/` | 0 | "Modo demostración" | PASS |
+| B3-APP-SESSION-PERSIST | `2026-09-16T20:40:14Z` | `app.veradoc.pe/agente` → `app.veradoc.pe/agente` | 2 | "Panel del agente inmobiliario" | PASS |
+
+This closes the three `(prior, no UTC)` B3 rows from section 10.
+
+### 24d. E-ADMIN-BACKBUTTON — re-recorded (direct navigation PASS; history.back N/A in shared tab)
+
+Admin login + MFA completed at `~2026-09-16T20:41:45Z`. Cookies cleared at `2026-09-16T20:41:57Z`.
+
+| Step | UTC | Action | Final URL | Cookies | Visible content | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| history.back() | `2026-09-16T20:42:14Z` | After cookie clear on admin `/` | `app.veradoc.pe/agente` | 2 (app realtor session) | "Panel del agente inmobiliario" | N/A — back navigated to prior cross-host history entry (shared tab from B3 tests), not an admin page |
+| Direct `/` | `2026-09-16T20:44:45Z` | Navigate to `admin.veradoc.pe/` | `admin.veradoc.pe/auth/login?next=%2F` | 0 | "Iniciar sesión" | PASS |
+
+The `history.back()` result is expected: the browser's back stack contained `app.veradoc.pe/agente` from the B3 test sequence in the same tab, so it navigated there (with the still-valid app realtor session). This is not a security issue — it confirms the app and admin sessions are independent. The prior session's `history.back()` result (redirect to admin login) was recorded in an admin-only tab history. The security-relevant check is the direct navigation (step 2): after clearing admin cookies, `admin.veradoc.pe/` redirects to login with 0 cookies. **PASS.**
+
+### 24e. Historical H1 production telemetry review — PARTIAL (superseded by section 25 for current deployment status)
+
+This subsection records the pre-fix state of deployment `dpl_BRjTzUEcarJzj4oKYKSziWaAeCH2`. Its recurring cron 503 finding is closed by the deployment and retest in section 25; the payout-rate finding remains open.
+
+**Checks performed:** initial surface/log review `2026-09-16T20:30:00Z` – `2026-09-16T20:36:00Z`; status-filtered Vercel and Supabase follow-up through `2026-09-16T21:06:28Z`
+**Deployment:** `dpl_BRjTzUEcarJzj4oKYKSziWaAeCH2` (Ready, all 6 aliases)
+
+#### Surface health
+
+| Surface | HTTP status | Response time |
+| --- | --- | --- |
+| `veradoc.pe/` | 200 | 417 ms |
+| `www.veradoc.pe/` | 200 (via 307 → apex) | 554 ms |
+| `app.veradoc.pe/auth/login` | 200 | 1076 ms |
+| `notario.veradoc.pe/auth/login` | 200 | 428 ms |
+| `admin.veradoc.pe/auth/login` | 200 | 402 ms |
+| `demo.veradoc.pe/` | 200 | 359 ms |
+
+Previously failing routes also healthy: `app.veradoc.pe/agente/nuevo-paquete` → 200 (login gate); `notario.veradoc.pe/ganancias` → 200 (login gate). No error pages, no redirect loops.
+
+#### CORS consistency
+
+| URL | ACAO |
+| --- | --- |
+| `veradoc.pe/precios` | `https://veradoc.pe` |
+| `app.veradoc.pe/agente` | `https://app.veradoc.pe` |
+| `notario.veradoc.pe/perfil` | `https://notario.veradoc.pe` |
+| `admin.veradoc.pe/` | `https://admin.veradoc.pe` |
+| `demo.veradoc.pe/agente` | `https://demo.veradoc.pe` |
+
+OPTIONS preflight with foreign origin (`https://evil.example.com`) on `app.veradoc.pe/auth/login` returned `https://app.veradoc.pe` — does not reflect foreign origin. No wildcard `*` observed. Vercel logs show 0 CORS-related errors in the 24-hour window.
+
+#### Vercel request logs (24-hour window)
+
+| Status | Count | Assessment |
+| --- | --- | --- |
+| 401 | 0 | No auth-denial spike |
+| 403 | 0 | No forbidden spike |
+| 500 | 6 | **All on prior deployments** (`dpl_4jk9i…` and `dpl_BS7Uy…`); **0 on current** `dpl_BRjTz…` |
+| 404 | 20 | Expected: demo/admin `/auth/callback` without params, demo `OPTIONS /agente`, crawler probes |
+| 503 | At least 25 unique on the current deployment from `19:00:40Z` through `21:00:40Z` | All were the internal notification-outbox cron; one every five minutes |
+
+The unfiltered 2,500-row sample reached its cap and contained only 200/304/307 responses; it therefore cannot support a claim of zero 4xx/5xx responses across the full 24-hour window. A separate status-filtered query found the recurring 503 responses above. The earlier `~1,000` figure was not a reliable unique count and is superseded by the directly verified current-deployment series.
+
+No redirect loops were observed. Auth-gate redirects (`/agente`, `/perfil`, `/auth/callback`) behave as expected 307 → login. Domain distribution in the capped sample showed only known production hosts; the status-filtered results likewise showed no unknown-host traffic.
+
+Auth callback behavior: bare `app.veradoc.pe/auth/callback` → 307 → login (expected without OAuth params). `admin.veradoc.pe/auth/callback` and `demo.veradoc.pe/auth/callback` → 404 (by design). No callback 500 errors.
+
+#### Operational note (non-subdomain)
+
+Deployment `dpl_BRjTzUEcarJzj4oKYKSziWaAeCH2` returned HTTP 503 for `GET /api/internal/notification-outbox/process` every five minutes throughout the verified `19:00:40Z`–`21:00:40Z` interval. The route returns 503 only when neither `CRON_SECRET` nor `OUTBOX_CRON_SECRET` is configured. At that checkpoint, a production environment-variable inventory confirmed that both names were absent, while `vercel.json` scheduled the route every five minutes. This was not a hostname-routing regression. It was subsequently corrected and successfully retested on the replacement deployment in section 25.
+
+#### Supabase auth logs
+
+The Supabase MCP flow did not authenticate, but the read-only Supabase Management API was available and was used without exposing identities, tokens, or request payloads.
+
+For `2026-09-15T21:06:28Z` through `2026-09-16T21:06:28Z`, Supabase Auth recorded:
+
+- 1,739 informational events and 1 warning.
+- 198 login events, 55 logout events, 30 token-revocation events, 12 MFA challenges, 1 factor-in-progress event, and 1 factor-deletion event.
+- The only Auth HTTP error was one `GET /authorize` response with status 400 at `2026-09-16T16:47:27Z`.
+- No Supabase Auth 5xx events were present.
+
+The Supabase API gateway also showed historical 401 responses from the invalid secret-key deployment described in section 22. After the corrected-key deployment (`2026-09-16T19:00:00Z` onward), three 4xx events remained:
+
+| UTC | Request | Status | Assessment |
+| --- | --- | --- | --- |
+| `2026-09-16T20:31:35.687Z` | `GET /auth/v1/health` | 401 | Expected unauthenticated health probe; `UNAUTHORIZED_MISSING_API_KEY` |
+| `2026-09-16T20:37:52.503Z` | `GET /rest/v1/notary_payout_rates` | 400 | Server-side Node query requested commercial payout-rate fields while the commercial schema is unavailable |
+| `2026-09-16T20:37:53.700Z` | `GET /rest/v1/notary_payout_rates` | 400 | Repeat of the same server-side query |
+
+The payout-rate error is swallowed by `getNotaryQueue`, so the dashboard degrades to a null participation percentage rather than returning a user-facing 500. It is nevertheless a real telemetry defect: the effective-date payout query is not gated when commercial accounting is disabled.
+
+#### H1 verdict: **PARTIAL**
+
+| What passes | What prevents full PASS |
+| --- | --- |
+| All 6 public surfaces healthy (200, sub-1.1s) | Notification-outbox cron returns 503 every five minutes because the production cron secret is absent |
+| CORS consistent and same-origin, no wildcard | Two server-side payout-rate requests returned Supabase 400 because the commercial query is not gated |
+| 0 current-deployment 500 responses | Vercel's unfiltered 24-hour view was capped at 2,500 rows; status-filtered queries are required for error counts |
+| Supabase Auth reviewed: no auth 5xx events | At this historical checkpoint, the operational fixes had not yet been deployed or retested |
+| No redirect loops; auth-gate redirects correct | |
+| No unknown-host traffic observed | |
+| No callback 500 errors | |
+
+## 25. Current production acceptance retest — 2026-09-17T03:00–03:32Z
+
+**Deployment:** `dpl_8oGzv9X6LeSqXpFUbSsgwvuiiZMi`
+
+**Deployment status:** Ready, Production
+
+**Evidence:** Cursor IDE Chromium authenticated browser testing, HTTP/header inspection, Vercel deployment inspection, and exact-window status-filtered request logs. Independent verification was performed after receipt of the retest report. No credentials, cookie values, authorization headers, or secret values were recorded.
+
+### 25a. Deployment and surface health
+
+Vercel inspection confirmed that the current deployment serves all six production aliases: apex, `www`, app, notary, admin, and demo. Each intended landing/login surface returned a successful final HTTP 200 response, with the expected `www` → apex and unauthenticated app/notary/admin login redirects. No server-error page or redirect loop was observed.
+
+The `www` redirect hop returned HTTP 307 with `Access-Control-Allow-Origin: https://www.veradoc.pe`; the final apex response returned `Access-Control-Allow-Origin: https://veradoc.pe`. App, notary, admin, and demo returned their own exact origins. An OPTIONS preflight using foreign origin `https://evil.example.com` returned the app origin rather than reflecting the foreign origin. No wildcard ACAO was observed.
+
+All nine marketing routes returned HTTP 200 with matching route-specific canonical and `og:url` values under `https://veradoc.pe`.
+
+### 25b. Seven-item regression — 7/7 PASS
+
+| ID | Result | UTC evidence | Verified behavior |
+| --- | --- | --- | --- |
+| D-002 | **PASS** | `2026-09-17T03:23:56Z` browser; corroborating HTTP 200 requests from `03:23:15Z` onward | Authenticated notary `/ganancias` rendered the heading and stable accounting-unavailable state without a server error |
+| D-003 | **PASS** | `2026-09-17T03:25:08Z` browser; corroborating HTTP 200 requests at `03:24:47Z` and `03:25:06–07Z` | Authenticated realtor `/agente/nuevo-paquete` rendered the six-step wizard (`Paso 1 de 6 · Cargar contrato`) |
+| A-MKT-03b | **PASS** | `2026-09-17T03:22:46–03:22:49Z` | 9/9 marketing routes published correct canonical and `og:url` metadata |
+| A-HDR-05 | **PASS** | `2026-09-17T03:22:18–03:22:22Z`; independently rechecked | Exact per-surface ACAO on all six surfaces and the `www` redirect hop; foreign origin not reflected |
+| RSC-CORS | **PASS** | `2026-09-17T03:22:49Z` | Admin and notary signup controls produced no speculative signup RSC requests; implementation remains a plain `<a>` |
+| SEC-001 | **PASS** | App `03:27:11Z`; notary `03:26:43Z`; admin post-MFA `03:30:05Z` | Both Supabase auth-cookie chunks were `Secure=true`, host-only, and `SameSite=Lax` on all three authenticated surfaces |
+| UX-002 | **PASS** | `2026-09-17T03:31:42Z` | Suspended realtor remained on login with a persistent `role="alert"`, no dashboard navigation, and zero session cookies |
+
+The browser inspection also recorded `HttpOnly=false` for the Supabase browser-managed auth cookies. That observation does not reopen SEC-001, whose acceptance scope is the `Secure` flag plus host-only/SameSite behavior; it remains relevant to the application's broader XSS threat model.
+
+### 25c. Notification-outbox cron regression — CLOSED
+
+The production `CRON_SECRET` was configured and the prior known-good artifact was redeployed uniformly. Seven consecutive scheduled requests were independently found on the current deployment:
+
+| UTC | Method | Path | Status |
+| --- | --- | --- | --- |
+| `2026-09-17T03:00:40.307Z` | GET | `/api/internal/notification-outbox/process` | 200 |
+| `2026-09-17T03:05:40.366Z` | GET | `/api/internal/notification-outbox/process` | 200 |
+| `2026-09-17T03:10:40.314Z` | GET | `/api/internal/notification-outbox/process` | 200 |
+| `2026-09-17T03:15:40.265Z` | GET | `/api/internal/notification-outbox/process` | 200 |
+| `2026-09-17T03:20:40.205Z` | GET | `/api/internal/notification-outbox/process` | 200 |
+| `2026-09-17T03:25:40.132Z` | GET | `/api/internal/notification-outbox/process` | 200 |
+| `2026-09-17T03:30:40.092Z` | GET | `/api/internal/notification-outbox/process` | 200 |
+
+Exact-window status-filtered logs contained zero 503 responses and no `CRON_SECRET not configured` error. Two deliberate unauthenticated apex probes returned the expected 401 at `03:01:19.767Z` and `03:23:06.915Z`. This conclusively closes the missing-secret/recurring-503 defect. It proves scheduler authentication and successful Route Handler execution; downstream provider delivery remains part of the separately blocked provider-workflow package.
+
+### 25d. Corrected exact-window telemetry
+
+The submitted retest summary reported five 4xx responses. Independent status-filtered verification for the stated `03:00–03:32Z` window found four:
+
+| UTC | Host/path | Status | Assessment |
+| --- | --- | --- | --- |
+| `2026-09-17T03:01:19.767Z` | `veradoc.pe/api/internal/notification-outbox/process` | 401 | Expected unauthenticated cron probe |
+| `2026-09-17T03:18:38.047Z` | Current deployment URL `/` | 404 | Unattributed direct deployment-URL probe; no functional surface impact |
+| `2026-09-17T03:18:38.630Z` | Current deployment URL `/` | 404 | Unattributed direct deployment-URL probe; no functional surface impact |
+| `2026-09-17T03:23:06.915Z` | `veradoc.pe/api/internal/notification-outbox/process` | 401 | Expected unauthenticated cron probe |
+
+The non-apex cron-path 404 cited in the submitted report occurred at `2026-09-17T02:59:00.052Z`, immediately before the stated test window, and is therefore excluded from the exact-window count. The available request records do not establish that the two deployment-URL root probes were scanner traffic, so they are recorded as unattributed. Exact-window current-deployment 5xx count was zero.
+
+No CORS failure, auth-callback failure, redirect-loop signature, or unknown production-host traffic was found in the reviewed evidence. Absence claims are bounded to the queried acceptance window and Vercel retention/query limits.
+
+### 25e. Updated verdict and remaining operations gap
+
+| Scope | Result |
+| --- | --- |
+| Current deployment Ready on all six aliases | **PASS** |
+| Seven-item production regression | **7/7 PASS** |
+| Notification-outbox missing-secret/503 regression | **CLOSED** |
+| Current-deployment 5xx during acceptance window | **0** |
+| Exact-window cron 503 | **0** |
+| H1 overall | **PARTIAL** — the cron blocker is closed, but the ungated `notary_payout_rates` query that previously produced two Supabase 400 responses remains unremediated and un-retested |
+| Overall completion standing | **5 PASS, 6 PARTIAL, 4 BLOCKED** — unchanged because condition #14 remains PARTIAL until the payout-rate telemetry defect is closed |
+
+The production acceptance retest itself is **18/18 PASS**. This does not change the full transition to complete: admin logout, the expired-refreshable fixture, notary packet-detail fixture, provider-safe state-changing workflows, the payout-rate query, and the rollback exercise remain outstanding as documented in sections 17, 18, and 23.
+
+## 26. Focused admin-logout and payout-gate production closure — 2026-09-17T05:53–05:56Z
+
+This section supersedes the UX-001 and payout-query status statements in sections 22d, 23, and 25e. Historical observations in those sections remain valid for the deployments and times recorded there.
+
+### 26a. Artifact and execution-environment verification
+
+| Field | Verified result |
+| --- | --- |
+| Commit | `3a2203affc7ef4a2809fd69304d43e7bebb47b7c` — `fix: close admin logout and payout telemetry gaps` |
+| GitHub branch | `codex/build-out-demo-parties`; remote branch resolves to the exact commit |
+| Deployment | `dpl_8M8f8wa9hgcYfQsBf4hi77UqCD51` |
+| Deployment target/status | Production / Ready |
+| Deployment URL | `https://veradoc-1eyb8z3ar-jonahs-projects-27d907e3.vercel.app` |
+| Vercel Git metadata | Exact commit `3a2203affc7ef4a2809fd69304d43e7bebb47b7c`, branch `codex/build-out-demo-parties` |
+| Build log | Repository cloned at commit `3a2203a`; build completed in 38 seconds; deployment completed |
+| Focused unit tests | 3 files passed; 9/9 tests passed |
+| Acceptance browser | Standalone Google Chrome `chrome.exe`, headless shell, temporary user-data directory and dedicated process; not a Cursor renderer |
+| Viewport | 1280 × 720 |
+| Admin test window | `2026-09-17T05:55:35Z`–`05:56:07Z` |
+| Notary payout-gate window | `2026-09-17T05:53:09Z`–`05:53:34Z` |
+
+The focused browser run was isolated from the Cursor/Electron host after an earlier integrated-browser run reloaded the IDE and interrupted its agent. Full refresh and history operations in this section were executed only against the dedicated standalone Chrome process.
+
+All six public aliases are attached to the deployment and currently reach a successful final response:
+
+| Surface | Direct behavior | Final result |
+| --- | --- | --- |
+| `veradoc.pe` | No redirect | HTTP 200 at apex |
+| `www.veradoc.pe` | One canonical redirect | HTTP 200 at `veradoc.pe` |
+| `app.veradoc.pe` | One expected auth redirect | HTTP 200 at same-host `/auth/login` |
+| `notario.veradoc.pe` | One expected auth redirect | HTTP 200 at same-host `/auth/login?next=%2F` |
+| `admin.veradoc.pe` | One expected auth redirect | HTTP 200 at same-host `/auth/login?next=%2F` |
+| `demo.veradoc.pe` | No redirect | HTTP 200 at demo root |
+
+The distinction between the initial 307 and final 200 is intentional: protected roots redirect unauthenticated clients to their same-host login page.
+
+### 26b. UX-001 admin logout — PASS and closed
+
+The supplied authenticated browser evidence and independent deployed-code/artifact review establish all required criteria:
+
+1. The admin dashboard displayed an enabled, keyboard-accessible `Cerrar sesión` submit button inside a Server Action form.
+2. Submitting through the product UI exposed the pending label `Cerrando sesión...`.
+3. Before logout, two sanitized Supabase auth-token cookie chunks were present.
+4. Both cookies were host-only to `admin.veradoc.pe`, `Secure=true`, and `SameSite=Lax`.
+5. After logout, zero Supabase auth cookies remained.
+6. The browser remained on `admin.veradoc.pe` and landed at `/auth/login`.
+7. The login page rendered and admin dashboard content was absent.
+8. Back-button navigation resolved to the admin login gate with no admin content.
+9. Direct navigation to `/` resolved to the admin login gate with no admin content.
+10. Refresh remained on the login gate with no admin content.
+11. The focused run observed zero console errors, zero warnings, zero 5xx responses, zero cross-host redirects, and no redirect loop.
+
+The deployed Server Action calls the shared Supabase sign-out action and uses the relative `/auth/login` redirect, preserving the current admin host. UX-001 is therefore **PASS IN PRODUCTION** and no longer blocks B2 or E.
+
+### 26c. Payout-rate query gate — implementation PASS; server-log confirmation pending (superseded by section 27)
+
+The notary dashboard and `/historial` rendered successfully across the focused navigation and refresh sequence. The browser run observed zero failed requests, zero 5xx responses, zero payout-related console errors, and a stable `Estimado de pago: Sin términos` state.
+
+The remediation itself is independently verified through the following deterministic chain:
+
+- The exact deployed commit wraps the `notary_payout_rates` lookup in `isCommercialAccountingEnabled()`.
+- The exact deployment contains no `COMMERCIAL_ACCOUNTING_ENABLED` key in either its captured build environment or runtime environment.
+- The server environment parser defaults an absent boolean flag to `false`.
+- The disabled-path unit test proves that the queue remains available, returns a null payout participation percentage, and does not call `adminClient.from("notary_payout_rates")`.
+- Enabled-path and sanitized-error tests prove the query still works when deliberately enabled and that failures log only the provider error code.
+- The complete focused suite passed 9/9 tests across the accounting gate, logout redirect, and logout-button files.
+
+Browser interception alone cannot establish the absence of this query because `getNotaryQueue` performs it server-side. Likewise, the rendered `Sin términos` value confirms a null application result but does not by itself prove why the value is null. The deployed artifact, captured deployment configuration, default-false parser, and focused tests provide the evidence that the disabled production branch cannot execute the query.
+
+At this checkpoint, exact-window Supabase query logs were not inspected because Supabase MCP authentication was unavailable. Section 27 subsequently closes this evidence gap through the authenticated read-only Supabase Management API. At the time of this section, the conclusions were:
+
+- **Payout-query code/configuration remediation: PASS.**
+- **Browser/runtime behavior: PASS.**
+- **H1 exact-window database telemetry: PARTIAL** until a read-only Supabase log query confirms zero `notary_payout_rates` requests and zero associated 400 responses for `2026-09-17T05:53:09Z`–`05:53:34Z`.
+
+### 26d. Updated closure and remaining work (superseded by section 27 for H1)
+
+| Scope | Current result |
+| --- | --- |
+| UX-001 admin logout | **CLOSED — PASS IN PRODUCTION** |
+| B2 login/logout/post-logout | **COMPLETE** |
+| E admin access control | **COMPLETE** |
+| Payout-query implementation | **CLOSED — PASS IN PRODUCTION** |
+| H1 browser/runtime portion | **PASS** |
+| H1 database-log portion | **PARTIAL — exact-window Supabase logs unavailable** |
+| Production deployment | **ACCEPTABLE** |
+| Completion-condition standing | **5 PASS, 6 PARTIAL, 4 BLOCKED** |
+
+At this checkpoint, the remaining acceptance work was the expired-but-refreshable session fixture, notary packet-detail fixture, provider-safe state-changing workflows, the H1 exact-window Supabase log check, and the authorized production-like rollback exercise. Section 27 subsequently closes the H1 log check.
+
+## 27. Authenticated exact-window Supabase telemetry closure — 2026-09-17T06:29:35Z–06:29:37Z
+
+This section supersedes the H1 database-log `PARTIAL` statements and operations blockers in sections 22d, 23, 25e, and 26. Historical statements remain valid for the checkpoints at which they were recorded; the current tables in sections 17 and 18 have been reconciled to this result.
+
+### 27a. Query method and evidence boundary
+
+The new `scripts/h1-supabase-telemetry.mjs` acceptance harness queried the Supabase Management API's read-only unified Logs endpoint using an authenticated token with log access. The request and ClickHouse SQL were both bounded to the exact production browser window `2026-09-17T05:53:09.000Z`–`2026-09-17T05:53:34.000Z`, filtered to `source = 'edge_logs'`, and returned aggregate counters only. The query did not select event messages, headers, identities, cookies, authorization values, raw query strings, or request bodies.
+
+| Field | Verified result |
+| --- | --- |
+| Test execution UTC | `2026-09-17T06:29:35.722Z`–`06:29:37.121Z` |
+| Historical telemetry window | `2026-09-17T05:53:09.000Z`–`05:53:34.000Z` |
+| Deployment under acceptance | `dpl_8M8f8wa9hgcYfQsBf4hi77UqCD51` |
+| Supabase Logs API authentication | **PASS** — authenticated HTTP 200 response received |
+| Retained edge-log coverage | **PASS** — 67 rows in the exact window |
+| First retained event | `2026-09-17T05:53:12.378000Z` |
+| Last retained event | `2026-09-17T05:53:31.682000Z` |
+| `/rest/v1/notary_payout_rates` requests | **0** |
+| Associated HTTP 400 responses | **0** |
+
+The nonzero edge-log count proves that the exact-window result is supported by retained telemetry rather than an empty or unavailable log source. The zero payout-request count is stronger than merely observing zero 400 responses: the disabled production gate did not issue the database API request during the acceptance window.
+
+### 27b. Puppeteer harness result and no-overclaim boundary
+
+The same harness is designed to require two authenticated clean Chrome contexts before its combined end-to-end verdict can be `PASS`. For this execution, `H1_NOTARY_EMAIL` and `H1_NOTARY_PASSWORD` were not supplied, so both fresh browser contexts were not run and the harness correctly returned overall **BLOCKED** rather than claiming a combined pass.
+
+This harness-level browser block does not reopen the browser/runtime result from section 26, which was independently captured with an authenticated standalone Chrome process against the same deployment and exact production window. It means only that this new automated execution cannot be cited as an additional authenticated browser rerun. The evidence boundaries are therefore:
+
+- **New authenticated exact-window database telemetry: PASS.**
+- **Previously established browser/runtime evidence from section 26: PASS.**
+- **New harness's fresh authenticated browser rerun: BLOCKED — QA notary credential environment variables were unavailable; second clean context NOT RUN.**
+- **Combined H1 acceptance, using the independent browser/runtime evidence plus the new database telemetry: PASS.**
+
+The harness emits `PASS` only when required evidence is observed, `FAIL` for demonstrated contradictory behavior, and `PARTIAL` or `BLOCKED` when telemetry, authentication, retained coverage, Chrome, or another required source is unavailable. Its focused unit suite passed 5/5; syntax, focused lint, TypeScript, and diff-quality checks also passed.
+
+### 27c. Updated current standing
+
+| Scope | Current result |
+| --- | --- |
+| Payout-query code/configuration remediation | **PASS** |
+| H1 browser/runtime portion | **PASS** — section 26 |
+| H1 exact-window database-log portion | **PASS** — 67 retained edge events; 0 payout requests; 0 payout 400s |
+| H1 overall | **COMPLETE — PASS** |
+| Production deployment | **ACCEPTABLE** |
+| Completion-condition standing | **6 PASS, 5 PARTIAL, 4 BLOCKED** |
+
+The remaining acceptance work is now limited to the notary packet-detail fixture, provider-safe state-changing workflows, and the authorized production-like rollback exercise.
+
+## 28. B5 expired-but-refreshable production closure — 2026-09-17T18:14:13Z–19:14:56Z
+
+**Deployment:** `dpl_8M8f8wa9hgcYfQsBf4hi77UqCD51` (Ready / Production; independently re-inspected immediately before the run)
+
+**Browser:** Standalone headless Chrome `152.0.7977.83`, 1280×720, dedicated process and new browser contexts
+
+### 28a. Controlled fixture and verdict boundary
+
+The test created two independent sessions through the ordinary production realtor login. Each server-issued cookie was held only in process memory, its signed access token was left unmodified, and the originating browser context was closed so browser-side proactive refresh could not occur. Production Supabase configuration reported a 3,600-second JWT lifetime. The harness waited until both JWT `exp` times plus a 15-second buffer, restored each session into its own new context, and navigated directly to `https://app.veradoc.pe/agente`.
+
+No production account, database row, auth configuration, Vercel configuration, provider setting, or application data was changed. Credential, cookie, access-token, refresh-token, authorization-header, identity, event-message, and raw-query values were neither printed nor written.
+
+### 28b. Two-context authentication evidence — PASS
+
+| Evidence | Context 1 | Context 2 |
+| --- | --- | --- |
+| Fixture issued UTC | `2026-09-17T18:14:21.110Z` | `2026-09-17T18:14:25.744Z` |
+| Original signed access-token expiry | `2026-09-17T19:14:19Z` | `2026-09-17T19:14:24Z` |
+| Post-expiry request window | `19:14:39.574Z`–`19:14:45.521Z` | `19:14:48.526Z`–`19:14:52.269Z` |
+| Protected route | `/agente`, HTTP 200, `Panel del agente inmobiliario` | `/agente`, HTTP 200, `Panel del agente inmobiliario` |
+| Access token rotated | PASS | PASS |
+| Refresh token rotated | PASS | PASS |
+| New access-token expiry | `2026-09-17T20:14:42Z` | `2026-09-17T20:14:49Z` |
+| User identity preserved | PASS | PASS |
+| Auth `Set-Cookie` observed | PASS | PASS |
+| Cookie chunks before → after | 2 → 2 | 2 → 2 |
+| Cookie attributes | `Secure=true`, host-only `app.veradoc.pe`, `SameSite=Lax` | Same |
+| Wrong-role route | `/arrendador` → 307 → `/agente` HTTP 200 | Same |
+| Cross-host bounce / redirect loop | None / none | None / none |
+| Page errors / HTTP 5xx | 0 / 0 | 0 / 0 |
+
+Context 2 recorded two Chromium `net::ERR_ABORTED` GET cancellations for app routes while the test deliberately navigated through the wrong-role redirect. They were not failed main documents, produced no HTTP error response, and had no user-visible impact.
+
+### 28c. Exact-window Supabase Auth telemetry — PASS
+
+An authenticated read-only Supabase Management Logs API query aggregated only counters for `2026-09-17T19:14:39.000Z`–`19:14:56.500Z`. The window excludes the two password logins one hour earlier.
+
+| Counter | Result |
+| --- | --- |
+| Retained edge-log rows | 44 |
+| `POST /auth/v1/token` | 2 |
+| Token HTTP 2xx | 2 |
+| Token HTTP 4xx | 0 |
+| Token HTTP 5xx | 0 |
+| First / last retained event | `19:14:41.671Z` / `19:14:55.347Z` |
+
+The two successful token POSTs corroborate the two independently observed token rotations. Nonzero retained coverage prevents an empty-log false pass.
+
+### 28d. Harness false-negative reconciliation
+
+The first automated verdict emitted `FAIL` even though every product requirement above passed. Two oracle defects caused that false negative:
+
+1. The installed Puppeteer `BrowserContext.cookies(url)` call returned the whole context store rather than URL-applicable cookies. The two cookies it returned explicitly had the host-only domain `app.veradoc.pe`; this was a test-query error, not leakage to `admin.veradoc.pe`. The harness now uses CDP `Network.getCookies` for URL applicability.
+2. The oracle treated all `net::ERR_ABORTED` cancellations as material failures. The two cancellations were caused by deliberate navigation/redirects and are now retained as observations but excluded from the failure count.
+
+The original sanitized FAIL artifact is preserved with its complete failure fields (severity, exact reproduction, expected/actual, exact route and UTC, deployment ID, sanitized error, likely layer, second-context result, and next diagnostic). A colocated reassessment records the corrected oracle and exact-window telemetry. No product defect is opened from the false negative.
+
+### 28e. Current B5 standing
+
+| Scope | Result |
+| --- | --- |
+| Natural expired-token fixture | **PASS — 2/2 independent sessions** |
+| Same-host refresh | **PASS** |
+| Access + refresh token rotation | **PASS** |
+| Cookie security and chunk preservation | **PASS** |
+| Role enforcement after refresh | **PASS** |
+| Redirect-loop check | **PASS** |
+| Exact-window auth telemetry | **PASS — 2 token POSTs, 2 HTTP 2xx, 0 HTTP 4xx/5xx** |
+| B5 account-state matrix | **COMPLETE — 6/6 PASS** |
+
+This closes the expired-but-refreshable package. The transition remains **PARTIAL** for the notary packet-detail fixture, provider-safe state-changing workflows, and the authorized production-like rollback exercise.
+
+## 29. Notary packet-detail production test — 2026-09-17T20:55:19Z–20:56:33Z
+
+**Overall result: FAIL.** Required authentication and telemetry evidence was available. The initial detail render, clean public navigation, back/forward, and wrong-role denial passed. Direct refresh failed the zero-page-exception criterion because React hydration error #418 reproduced in both independent clean notary contexts. The visibly rendered HTTP 200 response does not override that failure.
+
+### 29a. Test design and controlled fixture
+
+The authorized fixture setup created exactly one `pending_notary` packet with the opaque test label `QA-D3-20260917-01` and exactly one assignment to the active `qa-active-notary` profile. The packet uses an unmistakably synthetic address, future synthetic lease dates, no uploaded document, and no signer identity. Setup used direct transactional database inserts into `lease_packets` and `notary_assignments`; it did not call application actions, assignment RPCs, signing providers, payment providers, notification services, or certification workflows.
+
+Live trigger inspection found only packet-code generation and update-bookkeeping triggers on `lease_packets`, and no user trigger on `notary_assignments`. The fixture supplied its packet code explicitly, so packet-code generation was not invoked. Pre- and post-browser verification returned:
+
+| Fixture evidence | Count |
+| --- | ---: |
+| Synthetic packets matching the fixture key | 1 |
+| Assignments to the intended active QA notary | 1 |
+| Documents | 0 |
+| Signers / signing-token relationships | 0 |
+| Payments | 0 |
+| Notification-outbox rows | 0 |
+| Notary workflow jobs | 0 |
+| Certifications | 0 |
+| Registry entries | 0 |
+| Audit mutations | 0 |
+
+The browser oracle required all of the following:
+
+1. Authenticate as `qa-active-notary` on the canonical notary host and verify `notary/active` trusted session metadata.
+2. Find `QA-D3-20260917-01` in the queue and follow its visible `<Link>` to `/paquetes/[packet-id]`.
+3. Verify the synthetic packet code, synthetic address, summary section, and empty-signer state render.
+4. Hard-reload the detail URL and require HTTP 200, the same visible markers, and zero page exceptions.
+5. Use browser Back to restore the queue and Forward to restore the detail page, without `/notario` prefix leakage.
+6. In a separate clean context, submit active realtor credentials on the notary login, require the canonical wrong-surface denial, then request the packet detail directly and require the notary login gate, zero applicable notary auth cookies, and no packet content.
+7. Require retained exact-window database telemetry and zero relevant REST HTTP errors.
+
+### 29b. Release, browser, authentication, and telemetry evidence
+
+| Field | Verified result |
+| --- | --- |
+| Deployment | `dpl_8M8f8wa9hgcYfQsBf4hi77UqCD51` |
+| Deployment status | Ready / Production; all six aliases attached, independently re-inspected before the run |
+| Browser | Standalone headless Chrome `152.0.7977.83` |
+| Viewport | 1280 × 720 |
+| Clean contexts | Two active-notary contexts plus one wrong-role realtor context |
+| Correct-role authentication | PASS in 2/2 contexts; trusted metadata was `notary/active` |
+| Notary cookies | Two Supabase cookie chunks in each correct-role context; host-only `notario.veradoc.pe`, `Secure=true`, `SameSite=Lax` |
+| Wrong-role cookie result | Zero auth cookies applicable to the notary packet URL |
+| Exact telemetry window | `2026-09-17T20:55:19.532Z`–`20:56:33.628Z` |
+| Retained Supabase edge-log rows | 136 |
+| `notary_assignments` REST requests | 16 |
+| `lease_packets` REST requests | 4 |
+| Relevant REST HTTP 4xx/5xx | 0 |
+| First / last retained event | `20:55:22.480Z` / `20:55:47.273Z` |
+
+The nonzero request counters corroborate the browser's authenticated queue/detail reads. The absence of REST errors does not convert the browser result to PASS because the observed failure is a client hydration exception after a successful HTTP 200 response.
+
+### 29c. Scoped results
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Queue link to packet detail | **PASS — 2/2** | Visible fixture link; clean `/paquetes/[packet-id]` destination |
+| Initial detail rendering | **PASS — 2/2** | Packet code, synthetic address, summary, and `Sin firmantes registrados.` rendered |
+| Direct refresh | **FAIL — 2/2** | HTTP 200 and visible markers remained, but React hydration error #418 fired during `detail-refresh` |
+| Browser Back | **PASS — 2/2** | Returned to `/`, `Panel del notario`, fixture link still visible |
+| Browser Forward | **PASS — 2/2** | Returned to clean `/paquetes/[packet-id]` and restored fixture content |
+| Internal-prefix leakage | **PASS — 2/2** | No settled public URL began with `/notario` |
+| Material network failures / HTTP 5xx | **PASS — 0** | Only navigation-related `net::ERR_ABORTED` cancellations; no material failure and no 5xx |
+| Wrong-role denial | **PASS — 1/1** | Realtor login was redirected to the app login with `error=wrong-surface`; direct notary detail request rendered the notary login gate, zero notary auth cookies, and no packet data |
+| Provider and business side effects | **PASS — none observed** | Post-test database counts remained zero for notifications, payments, signing data, workflow jobs, certifications, registry entries, and audit mutations |
+
+### 29d. Failure D-004
+
+- **Severity:** Medium. The page remains visibly rendered and no protected data leak or server error was observed, but a deterministic hydration exception on direct refresh violates the required browser acceptance criterion and may leave client behavior unreliable.
+- **Exact reproduction steps:** (1) Start a clean Chrome context. (2) Open `https://notario.veradoc.pe/auth/login`. (3) Authenticate with `qa-active-notary`. (4) Click `QA-D3-20260917-01` in the queue. (5) Confirm the clean `/paquetes/[packet-id]` detail. (6) perform a hard reload. (7) Observe the browser `pageerror` stream.
+- **Expected versus actual:** Expected HTTP 200, correct synthetic detail content, and zero page exceptions. Actual HTTP 200 and correct visible content, followed by minified React hydration error #418 during the `detail-refresh` stage.
+- **Exact route and UTC:** `https://notario.veradoc.pe/paquetes/[packet-id]`; context 1 `2026-09-17T20:55:19.911Z`–`20:55:31.991Z`; context 2 `2026-09-17T20:55:31.998Z`–`20:55:44.592Z`. A preceding diagnostic capture recorded the exception at `20:53:21.996Z` and `20:53:36.375Z` on the same route and stage.
+- **Deployment ID:** `dpl_8M8f8wa9hgcYfQsBf4hi77UqCD51`.
+- **Sanitized error or stack:** `Error: Minified React error #418` in the deployed Next.js/React client chunk; raw packet identifiers, credentials, cookies, and query strings are omitted.
+- **Failing layer:** Client hydration of the notary evidence-review page after a full document load. Section 30 confirms that `formatDate` and `formatDateTime` call locale formatting without an explicit `timeZone`, so the UTC server and America/Bogota browser produce different initial text. Routing, authentication, RLS reads, and Supabase REST responses completed successfully.
+- **Second clean context:** Yes. The same error reproduced in the second independently authenticated clean Chrome context. It also reproduced in the preceding two-context diagnostic run.
+- **Recommended next action:** Make packet date/time rendering deterministic by choosing and applying the product-approved timezone explicitly (likely `America/Lima` for Peruvian business timestamps, with date-only lease fields handled so they cannot shift to the previous day). Add a server/client render test, then rerun this unchanged fixture test with two clean contexts and exact-window telemetry.
+
+### 29e. Evidence boundary and current standing
+
+The raw packet identifier, credentials, cookie values, and authentication tokens are excluded from the report and sanitized artifacts. The focused harness is `scripts/d3-notary-packet-detail.mjs`; its final artifact is `artifacts/d3-notary-packet-detail/evidence-2026-09-17T20-55-19-532Z.json`.
+
+The fixture remains in place for the diagnostic rerun. No cleanup was performed because the user requested one synthetic assigned packet and the unresolved refresh failure requires a stable reproduction target. The full transition remains **PARTIAL**. D packet navigation remains **PARTIAL with D-004 root cause confirmed and remediation pending**; the focused packet-detail package is **FAIL**.
+
+## 30. D-004 hydration root-cause diagnostic — 2026-09-17T21:58:59Z–21:59:18Z
+
+**Diagnostic status: COMPLETE — root cause confirmed. No application code was changed.**
+
+The diagnostic reused the authenticated synthetic packet and compared three reads of the same production route:
+
+1. JavaScript-disabled Chrome, which exposes the server-rendered HTML without client hydration.
+2. Normal Chrome using the host timezone `America/Bogota`.
+3. Chrome forced to `UTC`, matching the Vercel server runtime timezone observed in the server HTML.
+
+All three requests returned HTTP 200 and rendered the correct synthetic packet. Only the America/Bogota hydration emitted React error #418.
+
+| Field | Server HTML, JavaScript disabled | Hydrated browser, `America/Bogota` | Hydrated browser, forced `UTC` |
+| --- | --- | --- | --- |
+| Lease start | `01 ene. 2099` | `31 dic. 2098` | `01 ene. 2099` |
+| Lease end | `31 dic. 2099` | `30 dic. 2099` | `31 dic. 2099` |
+| Submitted to notary | `17 set. 2026, 08:45 p. m.` | `17 set. 2026, 03:45 p. m.` | `17 set. 2026, 08:45 p. m.` |
+| React hydration errors | N/A; JavaScript disabled | **1 × error #418** | **0** |
+| Matches server fields exactly | Baseline | **No** | **Yes** |
+
+This A/B result isolates the mismatch to timezone-dependent initial rendering:
+
+- `EvidenceReviewClient` uses `new Date(iso).toLocaleDateString("es-PE", ...)` and `toLocaleString("es-PE", ...)` without specifying `timeZone`.
+- The locale controls language and formatting conventions; it does not force the Peruvian timezone.
+- PostgreSQL `date` values such as `2099-01-01` are parsed by `new Date("2099-01-01")` as UTC midnight. In a UTC-5 browser, they display as the previous calendar day.
+- The submitted `timestamptz` value is formatted at 20:45 on the UTC server and 15:45 in the America/Bogota browser.
+- React receives different server and client text during the initial hydration and throws #418. On client-side navigation there is no pre-existing server HTML to hydrate, explaining why the original `<Link>` navigation passed and hard refresh failed.
+- Forcing the browser to UTC makes every compared field identical to the server HTML and eliminates the hydration error. This rules in timezone-dependent formatting as the cause for this fixture and rules out routing, authentication, RLS, Supabase REST errors, or the packet data itself.
+
+### Local production-build boundary
+
+The workspace HEAD exactly matches deployment commit `3a2203affc7ef4a2809fd69304d43e7bebb47b7c`, and an existing Next.js 16.2.6 production artifact was started locally with server timezone `UTC`. The authenticated route could not be exercised because the production server environment schema requires `SUPABASE_SECRET_KEY`, which is intentionally absent from the local environment. The server recorded the missing-variable Zod error before handling the route.
+
+No production secrets were copied or displayed to bypass that boundary. A request to pull production Vercel environment secrets into a temporary local process was rejected as unnecessarily risky. The deployed-production comparison above directly observes the actual production server HTML and is stronger evidence for the live defect than a reconstructed local response.
+
+### Required remediation verification
+
+The appropriate timezone policy is a product decision, but the technical acceptance criteria are now precise:
+
+- Date-only lease fields must render the same calendar date on server and client; they must not be shifted through an implicit UTC-midnight `Date` conversion.
+- Business timestamps must use one explicit approved timezone on server and client, likely `America/Lima` for this Peruvian workflow.
+- A production-mode server/client test must compare the formatted output under at least `UTC` and `America/Lima`/`America/Bogota` runtime timezones.
+- The unchanged packet fixture must then pass hard refresh in two clean Chrome contexts with zero hydration errors and retained exact-window telemetry.
+
+The diagnostic harness is `scripts/d3-hydration-diagnostic.mjs`; its sanitized artifact is `artifacts/d3-hydration-diagnostic/evidence-2026-09-17T21-58-59-863Z.json`.
+
+## 31. D-004 deterministic date/time implementation — 2026-09-18T00:23Z–00:27:47Z
+
+**Current result: PARTIAL — remediation is implemented and static/unit verification is clean, but production-mode authenticated browser closure is not yet available. Do not record D-004 as PASS.**
+
+The implementation adopts two explicit data contracts for the notary packet-detail boundary:
+
+- PostgreSQL calendar dates remain canonical `YYYY-MM-DD` values. They are validated without converting them to a local instant, then formatted in a fixed UTC calendar frame so `2099-01-01` cannot become `2098-12-31` in a UTC-5 browser.
+- Actual timestamps are validated and normalized by the server action to ISO-8601 UTC instants, then rendered by the client with the explicit Peruvian business timezone `America/Lima`.
+
+### 31a. Frontend and backend changes
+
+| Layer | Implemented change |
+| --- | --- |
+| Shared contract | Added `lib/date-time.ts` with calendar-date validation, instant normalization, and deterministic `es-PE` formatters. |
+| Backend boundary | `getPacketEvidenceReview` now normalizes packet, assignment, document, evidence, signature, audit, checklist, duplicate-range, and property-authority dates/timestamps before returning client data. The notary queue's returned timestamps use the same instant normalization. |
+| Frontend detail | `EvidenceReviewClient` no longer calls locale date/time methods without `timeZone`; lease/duplicate dates use calendar formatting and all rendered instants use `America/Lima`. |
+| Frontend checklist | Both production and demo checklist timestamps use the same explicit Peru formatter. |
+| Regression tests | Added five focused tests covering canonical/invalid calendar dates, UTC instant normalization, host-timezone-independent calendar rendering, host-timezone-independent Peru timestamp rendering, and Peru-date rendering for instants. |
+
+### 31b. Verification completed
+
+| Check | Result |
+| --- | --- |
+| Focused date-contract test | **PASS — 5/5** |
+| Full unit suite | **PASS — 33 files, 272/272 tests** |
+| TypeScript `tsc --noEmit` | **PASS** |
+| ESLint on all changed implementation/test files | **PASS** |
+| Diff whitespace check | **PASS** |
+| Next.js production compilation | **PASS** — optimized bundle compiled and TypeScript completed |
+| Full production build/page-data collection | **BLOCKED** — local `SUPABASE_SECRET_KEY` is intentionally unavailable |
+| Authenticated post-fix hard refresh, two clean contexts | **NOT RUN** — the fix is not deployed and the local authenticated production server cannot start without the missing server credential |
+| Post-fix exact-window Supabase telemetry | **NOT AVAILABLE** — there was no post-fix authenticated browser window to query |
+
+The timezone regression test compares output after changing the host timezone between UTC, America/Bogota, and Asia/Tokyo. The outputs remain identical for the same semantic value; the Peru timestamp case resolves `2026-09-17T20:45:00.000Z` to `03:45 p. m.` regardless of host timezone. This closes the deterministic formatter behavior at unit scope, not at deployed browser scope.
+
+### 31c. Verification blocker V-004
+
+- **Severity:** Release-verification blocker; not evidence of a new product regression. The changed application compiled successfully, but required authenticated production-mode hydration evidence could not be generated locally.
+- **Exact reproduction steps:** (1) At workspace commit `3a2203affc7ef4a2809fd69304d43e7bebb47b7c` plus the uncommitted D-004 remediation, leave the intentionally absent `SUPABASE_SECRET_KEY` unset. (2) Run `npm run build`. (3) Observe successful optimized compilation and TypeScript, followed by failure during page-data collection.
+- **Expected versus actual:** Expected a complete production build that can be started for the two-context packet hard-refresh test. Actual compilation and TypeScript passed, but page-data collection stopped because the server environment schema rejected the missing secret.
+- **Exact route and UTC:** Local build-time collection for `/auth/mfa`, surfaced by Next.js as failure to collect configuration for `/auth/callback`; observed in the `2026-09-18T00:25Z`–`00:27:47Z` verification window. No authenticated application route was served.
+- **Deployment ID:** No deployment ID applies to the un-deployed workspace fix. The last production baseline remains `dpl_8M8f8wa9hgcYfQsBf4hi77UqCD51`, which contains the original D-004 behavior and was not used to claim post-fix success.
+- **Sanitized error or stack:** Zod environment validation error at `path: ["SUPABASE_SECRET_KEY"]`, `expected string, received undefined`, while collecting Next.js page data. No secret value, credential, cookie, token, packet identifier, or query was present.
+- **Likely failing layer:** Local production-build environment completeness, before route execution. The optimized frontend/backend bundle itself compiled successfully.
+- **Second clean context:** Not applicable to the build-time blocker. The required two clean authenticated Chrome contexts were not run; this absence is why the result remains PARTIAL.
+- **Recommended next diagnostic:** Deploy this exact scoped change through the normal reviewed pipeline, then rerun `scripts/d3-notary-packet-detail.mjs` against the unchanged synthetic fixture in two clean authenticated notary contexts. Require zero React #418/page errors on hard refresh and query retained exact-window telemetry before changing D-004 to PASS.
+
+### 31d. Acceptance standing
+
+D-004 remains **PARTIAL — implementation verified at unit/type/lint/compile scope; deployed browser and telemetry verification pending**. The existing production fixture remains suitable for the closure rerun. No notification, signing, payment, certification, registry, or workflow side effect was invoked by this implementation work.

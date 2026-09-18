@@ -14,10 +14,44 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import type { CorrectionScope, NotaryWorkflowVersion } from "@/lib/domain/types";
 import type { SealWorkflowState } from "@/lib/domain/notary-seal-types";
+import { normalizeDateOnly, normalizeInstant } from "@/lib/date-time";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+const RENDERED_EVIDENCE_TIMESTAMP_KEYS = [
+  "sentAt",
+  "verifiedAt",
+  "acceptedAt",
+  "signed_at",
+] as const;
+
+function normalizeEvidenceMetadata(
+  metadata: Record<string, unknown>,
+): Record<string, unknown> {
+  const normalized = { ...metadata };
+  for (const key of RENDERED_EVIDENCE_TIMESTAMP_KEYS) {
+    const value = normalized[key];
+    if (typeof value === "string") {
+      normalized[key] = normalizeInstant(value);
+    }
+  }
+  return normalized;
+}
+
+function normalizeChecklist(
+  checklist: Record<string, { checked: boolean; checkedAt?: string }>,
+): Record<string, { checked: boolean; checkedAt?: string }> {
+  return Object.fromEntries(
+    Object.entries(checklist).map(([key, item]) => [
+      key,
+      item.checkedAt
+        ? { ...item, checkedAt: normalizeInstant(item.checkedAt) }
+        : item,
+    ]),
+  );
+}
 
 async function resolveNotaryWorkflowVersion(
   notaryId: string,
@@ -177,10 +211,10 @@ export async function getNotaryQueue(
       : null;
     return {
       assignmentId: row.id,
-      assignedAt: row.assigned_at!,
-      reviewStartedAt: row.review_started_at,
+      assignedAt: normalizeInstant(row.assigned_at!),
+      reviewStartedAt: normalizeInstant(row.review_started_at),
       decision: row.decision,
-      decidedAt: row.decided_at,
+      decidedAt: normalizeInstant(row.decided_at),
       observations: row.observations,
       packetId: lp.id as string,
       packetCode: (lp.packet_code as string) ?? "",
@@ -189,7 +223,7 @@ export async function getNotaryQueue(
       propertyUnit: lp.property_unit as string | null,
       district: lp.district as string | null,
       province: lp.province as string | null,
-      submittedAt: lp.submitted_to_notary_at as string | null,
+      submittedAt: normalizeInstant(lp.submitted_to_notary_at as string | null),
       realtorName: (realtorProfile.full_name as string) ?? "",
       realtorEmail: (realtorProfile.email as string) ?? "",
       signerCount: signers.length,
@@ -401,7 +435,7 @@ export async function getPacketEvidenceReview(
         storagePath: doc.storage_path,
         fileHash: doc.file_hash,
         signedUrl,
-        createdAt: doc.created_at,
+        createdAt: normalizeInstant(doc.created_at),
       };
     }),
   );
@@ -522,9 +556,11 @@ export async function getPacketEvidenceReview(
         id: e.id,
         evidenceType: e.evidence_type ?? "",
         storagePath: e.storage_path,
-        metadata: (e.metadata ?? {}) as Record<string, unknown>,
+        metadata: normalizeEvidenceMetadata(
+          (e.metadata ?? {}) as Record<string, unknown>,
+        ),
         signedUrl: e.signedUrl,
-        createdAt: e.created_at,
+        createdAt: normalizeInstant(e.created_at),
       })),
       signatureRecord: sigRec
         ? {
@@ -532,8 +568,8 @@ export async function getPacketEvidenceReview(
             certificateSubject: sigRec.certificate_subject,
             certificateIssuer: sigRec.certificate_issuer,
             certificateSerial: sigRec.certificate_serial,
-            certificateValidFrom: sigRec.certificate_valid_from,
-            certificateValidTo: sigRec.certificate_valid_to,
+            certificateValidFrom: normalizeInstant(sigRec.certificate_valid_from),
+            certificateValidTo: normalizeInstant(sigRec.certificate_valid_to),
             chainValidationResult: sigRec.chain_validation_result,
             revocationResult: sigRec.revocation_result,
             timestampResult: sigRec.timestamp_result as string | null,
@@ -541,8 +577,8 @@ export async function getPacketEvidenceReview(
             pdfIntegrityValid: sigRec.pdf_integrity_valid,
             signedDocumentHash: sigRec.signed_document_hash,
             verificationUrl: sigRec.verification_url,
-            providerSignedAt: sigRec.provider_signed_at,
-            createdAt: sigRec.created_at,
+            providerSignedAt: normalizeInstant(sigRec.provider_signed_at),
+            createdAt: normalizeInstant(sigRec.created_at),
           }
         : null,
     };
@@ -685,19 +721,19 @@ export async function getPacketEvidenceReview(
       department: packetRow.department,
       rentalAmount: packetRow.rental_amount,
       depositAmount: packetRow.deposit_amount,
-      leaseStartDate: packetRow.lease_start_date,
-      leaseEndDate: packetRow.lease_end_date,
+      leaseStartDate: normalizeDateOnly(packetRow.lease_start_date),
+      leaseEndDate: normalizeDateOnly(packetRow.lease_end_date),
       documentHash: packetRow.document_hash,
-      submittedAt: packetRow.submitted_to_notary_at,
-      certifiedAt: packetRow.certified_at,
-      createdAt: packetRow.created_at!,
+      submittedAt: normalizeInstant(packetRow.submitted_to_notary_at),
+      certifiedAt: normalizeInstant(packetRow.certified_at),
+      createdAt: normalizeInstant(packetRow.created_at!),
       notaryWorkflowVersion: packetRow.notary_workflow_version,
     },
     assignment: {
       decision: assignmentRow.decision,
       observations: assignmentRow.observations,
-      reviewStartedAt: assignmentRow.review_started_at,
-      decidedAt: assignmentRow.decided_at,
+      reviewStartedAt: normalizeInstant(assignmentRow.review_started_at),
+      decidedAt: normalizeInstant(assignmentRow.decided_at),
       correctionScope: assignmentRow.correction_scope,
     },
     documents: documentsWithUrls,
@@ -708,7 +744,7 @@ export async function getPacketEvidenceReview(
       action: a.action,
       metadata: (a.metadata ?? {}) as Record<string, unknown>,
       ipAddress: a.ip_address as string | null,
-      createdAt: a.created_at,
+      createdAt: normalizeInstant(a.created_at),
     })),
     realtor: {
       fullName: realtorRow?.full_name ?? "",
@@ -719,11 +755,14 @@ export async function getPacketEvidenceReview(
       ruc: realtorRow?.ruc ?? null,
       phone: realtorRow?.phone ?? null,
     },
-    checklist: ((checklistRow?.checklist_data as Record<string, { checked: boolean; checkedAt?: string }>) ?? {}),
+    checklist: normalizeChecklist(
+      (checklistRow?.checklist_data as Record<string, { checked: boolean; checkedAt?: string }>)
+        ?? {},
+    ),
     duplicateCheck: {
       overlapCount: Number(dupRow?.overlap_count ?? 0),
-      earliestStart: dupRow?.earliest_start ?? null,
-      latestEnd: dupRow?.latest_end ?? null,
+      earliestStart: normalizeDateOnly(dupRow?.earliest_start ?? null),
+      latestEnd: normalizeDateOnly(dupRow?.latest_end ?? null),
     },
     propertyAuthorityChecks: (authorityRows ?? []).map((check) => ({
       id: check.id,
@@ -737,7 +776,7 @@ export async function getPacketEvidenceReview(
         | "observation"
         | "not_found",
       ownerNames: check.owner_names ?? [],
-      checkedAt: check.checked_at,
+      checkedAt: normalizeInstant(check.checked_at),
       checkedBy: check.checked_by,
       sourceUrl: check.source_url,
       notes: check.notes,

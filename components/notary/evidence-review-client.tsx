@@ -22,6 +22,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import {
+  formatCalendarDate,
+  formatPeruDate,
+  formatPeruDateTime,
+} from "@/lib/date-time";
 
 const PdfViewer = dynamic(
   () => import("@/components/pdf/pdf-viewer").then((m) => m.PdfViewer),
@@ -58,26 +63,6 @@ import {
   CHECKLIST,
 } from "@/lib/i18n/labels";
 import type { DocumentHashEntry } from "@/lib/domain/types";
-
-function formatDate(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("es-PE", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function formatDateTime(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString("es-PE", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 function statusColor(status: string): string {
   if (status === "certified") return "bg-green-50 text-green-700";
@@ -273,9 +258,9 @@ export function EvidenceReviewClient({ data }: EvidenceReviewClientProps) {
                 { label: "Departamento", value: data.packet.department ?? "—" },
                 { label: "Renta mensual", value: data.packet.rentalAmount ? `S/ ${data.packet.rentalAmount}` : "—" },
                 { label: "Depósito", value: data.packet.depositAmount ? `S/ ${data.packet.depositAmount}` : "—" },
-                { label: "Fecha inicio", value: formatDate(data.packet.leaseStartDate) },
-                { label: "Fecha fin", value: formatDate(data.packet.leaseEndDate) },
-                { label: "Enviado al notario", value: formatDateTime(data.packet.submittedAt) },
+                { label: "Fecha inicio", value: formatCalendarDate(data.packet.leaseStartDate) },
+                { label: "Fecha fin", value: formatCalendarDate(data.packet.leaseEndDate) },
+                { label: "Enviado al notario", value: formatPeruDateTime(data.packet.submittedAt) },
                 { label: "Firmantes", value: String(data.signers.length) },
               ]}
             />
@@ -339,8 +324,8 @@ export function EvidenceReviewClient({ data }: EvidenceReviewClientProps) {
                             { label: EVIDENCE_DETAILS.sujetoCertificado, value: signer.signatureRecord!.certificateSubject ?? "—", mono: true },
                             { label: EVIDENCE_DETAILS.emisorCertificado, value: signer.signatureRecord!.certificateIssuer ?? "—", mono: true },
                             { label: EVIDENCE_DETAILS.numeroSerie, value: signer.signatureRecord!.certificateSerial ?? "—", mono: true },
-                            { label: EVIDENCE_DETAILS.periodoValidez, value: `${formatDate(signer.signatureRecord!.certificateValidFrom)} → ${formatDate(signer.signatureRecord!.certificateValidTo)}`, mono: true },
-                            ...(signer.signatureRecord!.providerSignedAt ? [{ label: "Firmado en", value: formatDateTime(signer.signatureRecord!.providerSignedAt), mono: true as const }] : []),
+                            { label: EVIDENCE_DETAILS.periodoValidez, value: `${formatPeruDate(signer.signatureRecord!.certificateValidFrom)} → ${formatPeruDate(signer.signatureRecord!.certificateValidTo)}`, mono: true },
+                            ...(signer.signatureRecord!.providerSignedAt ? [{ label: "Firmado en", value: formatPeruDateTime(signer.signatureRecord!.providerSignedAt), mono: true as const }] : []),
                           ]}
                         />
                         <div className="grid gap-3 sm:grid-cols-4">
@@ -413,9 +398,9 @@ export function EvidenceReviewClient({ data }: EvidenceReviewClientProps) {
                       {data.duplicateCheck.overlapCount} arrendamiento(s)
                       activo(s) superpuesto(s).
                       {data.duplicateCheck.earliestStart &&
-                        ` Desde: ${formatDate(data.duplicateCheck.earliestStart)}`}
+                        ` Desde: ${formatCalendarDate(data.duplicateCheck.earliestStart)}`}
                       {data.duplicateCheck.latestEnd &&
-                        ` Hasta: ${formatDate(data.duplicateCheck.latestEnd)}`}
+                        ` Hasta: ${formatCalendarDate(data.duplicateCheck.latestEnd)}`}
                     </p>
                   </div>
                 </div>
@@ -447,7 +432,7 @@ export function EvidenceReviewClient({ data }: EvidenceReviewClientProps) {
                     {data.auditLog.map((event) => (
                       <tr key={event.id} className="border-b border-border last:border-0">
                         <td className="whitespace-nowrap px-2 py-2 font-mono">
-                          {formatDateTime(event.createdAt)}
+                          {formatPeruDateTime(event.createdAt)}
                         </td>
                         <td className="px-2 py-2">{event.action}</td>
                         <td className="px-2 py-2 font-mono text-muted">
@@ -588,7 +573,7 @@ function EvidenceSummaryPanel({ data }: { data: PacketEvidenceData }) {
             <p className="mt-1 text-xs text-muted">
               {data.evidenceSummary.completedChecks} de {data.evidenceSummary.totalChecks} controles automáticos disponibles
               {data.evidenceSummary.generatedAt
-                ? ` · informe ${formatDateTime(data.evidenceSummary.generatedAt)}`
+                ? ` · informe ${formatPeruDateTime(data.evidenceSummary.generatedAt)}`
                 : " · informe pendiente"}
             </p>
           </div>
@@ -768,7 +753,7 @@ function PropertyAuthorityPanel({
                     <p className="mt-1 text-xs text-muted">
                       {check.registryZone ?? "Zona no indicada"}
                       {check.registryOffice ? ` · ${check.registryOffice}` : ""}
-                      {` · ${formatDateTime(check.checkedAt)}`}
+                      {` · ${formatPeruDateTime(check.checkedAt)}`}
                     </p>
                   </div>
                   <Badge variant={
@@ -1110,13 +1095,13 @@ function SignerEvidenceSection({
                 <div>
                   <p className="text-muted">{EVIDENCE_DETAILS.codigoEnviado}</p>
                   <p className="font-mono">
-                    {formatDateTime(ev.metadata.sentAt as string | null)}
+                    {formatPeruDateTime(ev.metadata.sentAt as string | null)}
                   </p>
                 </div>
                 <div>
                   <p className="text-muted">{EVIDENCE_DETAILS.verificadoEn}</p>
                   <p className="font-mono">
-                    {formatDateTime(ev.metadata.verifiedAt as string | null)}
+                    {formatPeruDateTime(ev.metadata.verifiedAt as string | null)}
                   </p>
                 </div>
               </div>
@@ -1139,7 +1124,7 @@ function SignerEvidenceSection({
                 <div>
                   <p className="text-muted">{EVIDENCE_DETAILS.aceptadoEn}</p>
                   <p className="font-mono">
-                    {formatDateTime(ev.metadata.acceptedAt as string | null)}
+                    {formatPeruDateTime(ev.metadata.acceptedAt as string | null)}
                   </p>
                 </div>
                 <div>
@@ -1170,7 +1155,7 @@ function SignerEvidenceSection({
                 <div>
                   <p className="text-muted">Firmado</p>
                   <p className="font-mono">
-                    {formatDateTime(ev.metadata.signed_at as string | null)}
+                    {formatPeruDateTime(ev.metadata.signed_at as string | null)}
                   </p>
                 </div>
                 <div>

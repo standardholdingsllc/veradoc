@@ -4,7 +4,7 @@ import { useTransition, useOptimistic } from "react";
 import { CheckCircle2, Circle } from "lucide-react";
 import { toast } from "sonner";
 import type { NotaryReview } from "@/lib/domain/types";
-import { formatDateTime } from "@/lib/formatters";
+import { formatPeruDateTime } from "@/lib/date-time";
 import { CHECKLIST } from "@/lib/i18n/labels";
 import { cn } from "@/lib/utils";
 import { toggleChecklistItem } from "@/lib/services/notary-service";
@@ -109,7 +109,7 @@ export function ChecklistPanel({
                 </p>
                 {item.checked && item.checkedAt ? (
                   <p className="mt-0.5 font-mono text-[10px] text-muted">
-                    {formatDateTime(item.checkedAt)}
+                    {formatPeruDateTime(item.checkedAt)}
                   </p>
                 ) : null}
               </div>
@@ -239,7 +239,7 @@ export function ProductionChecklistPanel({
                 </p>
                 {item.checked && item.checkedAt ? (
                   <p className="mt-0.5 font-mono text-[10px] text-muted">
-                    {formatDateTime(item.checkedAt)}
+                    {formatPeruDateTime(item.checkedAt)}
                   </p>
                 ) : null}
               </div>
