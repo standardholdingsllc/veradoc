@@ -1319,3 +1319,52 @@ The unchanged D3 fixture was then exercised in two independently authenticated c
 The follow-up changes `DocumentHashTimeline` to use `formatPeruDateTime` and changes the SUNARP form's `checkedAt` initial state from a render-time clock value to an empty deterministic value populated only when the user opens the form. Focused ESLint, the 5/5 date-contract tests, TypeScript, and diff-quality checks pass. Production browser and telemetry status remains **PARTIAL pending redeployment and rerun**.
 
 The failed-run sanitized artifact is `artifacts/d3-notary-packet-detail/evidence-2026-09-18T01-02-19-335Z.json`. The diagnostic comparison process was started afterward, but its monitoring connection was interrupted before a new result was returned; no PASS or diagnostic conclusion is claimed from that interrupted run.
+
+## 33. D-004 corrective production closure — 2026-09-18T01:12:29Z–01:15:17Z
+
+**Overall result: PASS.** This section supersedes the pending/failed D-004 standing in sections 29–32. Required production build, authentication, two-clean-context browser behavior, wrong-role denial, and exact-window telemetry evidence were all available.
+
+### 33a. Git and Vercel production evidence
+
+Corrective commit `914ae30` was pushed to both the working branch and `main`. Vercel's Git integration created production deployment `dpl_B7sZqboSJd79bAWDCdT7oY8eMVmD`, marked it Ready, and attached `veradoc.pe`, `www.veradoc.pe`, `app.veradoc.pe`, `notario.veradoc.pe`, `admin.veradoc.pe`, and `demo.veradoc.pe`.
+
+The deployed correction routes the document-hash timeline timestamp through the explicit `America/Lima` formatter and removes the render-time clock initializer from the SUNARP form. Together with the first remediation's canonical calendar dates and normalized instants, the packet-detail render tree no longer emits different initial server/client text for the fixture.
+
+### 33b. Final browser matrix
+
+The harness ran in standalone Chrome `152.0.7977.83` from `2026-09-18T01:13:57.652Z` through `01:15:17.058Z`.
+
+| Check | Context 1 | Context 2 | Result |
+| --- | --- | --- | --- |
+| Trusted authentication | 2 secure host-only Supabase cookie chunks; `notary/active` | Same | **PASS** |
+| Queue link and initial detail | Synthetic fixture rendered at clean `/paquetes/[packet-id]` | Same | **PASS** |
+| Hard refresh | HTTP 200; packet rendered; 0 page errors | HTTP 200; packet rendered; 0 page errors | **PASS** |
+| Browser Back / Forward | Queue restored, then detail restored | Same | **PASS** |
+| Internal `/notario` prefix leakage | None | None | **PASS** |
+| Console errors | 0 | 0 | **PASS** |
+| HTTP 5xx | 0 | 0 | **PASS** |
+| Material request failures | 0 | 0 | **PASS** |
+
+The independent wrong-role realtor context also passed: direct packet access ended at `https://notario.veradoc.pe/auth/login`, zero notary auth cookies applied, no packet content rendered, and there were zero page errors, HTTP 5xx responses, or material request failures.
+
+### 33c. Exact-window authenticated telemetry
+
+The Supabase Management Logs API returned authenticated HTTP 200 for an aggregate-only query bounded exactly to `2026-09-18T01:13:57.652Z`–`01:15:17.058Z`.
+
+| Counter | Result |
+| --- | ---: |
+| Retained edge-log rows | 134 |
+| `notary_assignments` REST requests | 16 |
+| `lease_packets` REST requests | 4 |
+| Relevant REST HTTP 4xx/5xx | 0 |
+| First retained event | `2026-09-18T01:14:02.917Z` |
+| Last retained event | `2026-09-18T01:14:30.415Z` |
+
+Nonzero retained coverage and the expected packet/assignment reads corroborate the authenticated browser activity. No notification, signing, payment, certification, registry, or state-changing workflow action was invoked by the closure run.
+
+### 33d. Final standing
+
+- **D-004 hydration defect: CLOSED — PASS IN PRODUCTION.**
+- **Notary packet-detail navigation package: COMPLETE — PASS.**
+- Detail rendering, hard refresh, Back/Forward history, clean public routes, and wrong-role denial all pass with required authentication and telemetry evidence.
+- The sanitized final artifact is `artifacts/d3-notary-packet-detail/evidence-2026-09-18T01-13-57-652Z.json`; secrets, raw packet identifiers, cookies, tokens, and query contents remain excluded from the committed report.
