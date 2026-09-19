@@ -20,6 +20,7 @@ GRANT veradoc_packet_rpc_owner TO postgres;
 -- It is revoked at the end of this migration before the transaction commits.
 GRANT USAGE, CREATE ON SCHEMA public TO veradoc_packet_rpc_owner;
 GRANT USAGE ON SCHEMA auth TO veradoc_packet_rpc_owner;
+GRANT EXECUTE ON FUNCTION auth.uid() TO veradoc_packet_rpc_owner;
 GRANT SELECT ON public.profiles, public.notary_coverage, public.registry_entries TO veradoc_packet_rpc_owner;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.lease_packets TO veradoc_packet_rpc_owner;
 GRANT SELECT, INSERT ON public.packet_signers, public.packet_documents, public.packet_audit_log TO veradoc_packet_rpc_owner;
