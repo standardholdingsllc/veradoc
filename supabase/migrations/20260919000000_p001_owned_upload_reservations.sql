@@ -14,7 +14,7 @@ $$;
 -- superuser and cannot transfer function ownership without membership in the
 -- target role. Keep the owner non-login while allowing future migrations to
 -- maintain these functions.
-GRANT veradoc_packet_rpc_owner TO postgres WITH ADMIN OPTION;
+GRANT veradoc_packet_rpc_owner TO postgres;
 
 GRANT USAGE ON SCHEMA public, auth TO veradoc_packet_rpc_owner;
 GRANT SELECT ON public.profiles, public.notary_coverage, public.registry_entries TO veradoc_packet_rpc_owner;
