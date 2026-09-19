@@ -112,7 +112,7 @@ END;
 $$;
 
 ALTER FUNCTION public.reserve_lease_packet_upload(uuid, text) OWNER TO veradoc_packet_rpc_owner;
-REVOKE ALL ON FUNCTION public.reserve_lease_packet_upload(uuid, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.reserve_lease_packet_upload(uuid, text) FROM PUBLIC, anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.reserve_lease_packet_upload(uuid, text) TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.mark_lease_packet_uploaded(
@@ -158,7 +158,7 @@ END;
 $$;
 
 ALTER FUNCTION public.mark_lease_packet_uploaded(uuid, uuid, text) OWNER TO veradoc_packet_rpc_owner;
-REVOKE ALL ON FUNCTION public.mark_lease_packet_uploaded(uuid, uuid, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.mark_lease_packet_uploaded(uuid, uuid, text) FROM PUBLIC, anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.mark_lease_packet_uploaded(uuid, uuid, text) TO service_role;
 
 CREATE OR REPLACE FUNCTION public.finalize_lease_packet(
@@ -312,7 +312,7 @@ END;
 $$;
 
 ALTER FUNCTION public.finalize_lease_packet(uuid, text, text, text, text, text, numeric, numeric, date, date, jsonb) OWNER TO veradoc_packet_rpc_owner;
-REVOKE ALL ON FUNCTION public.finalize_lease_packet(uuid, text, text, text, text, text, numeric, numeric, date, date, jsonb) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.finalize_lease_packet(uuid, text, text, text, text, text, numeric, numeric, date, date, jsonb) FROM PUBLIC, anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.finalize_lease_packet(uuid, text, text, text, text, text, numeric, numeric, date, date, jsonb) TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.claim_lease_upload_cleanup(
@@ -365,7 +365,7 @@ END;
 $$;
 
 ALTER FUNCTION public.claim_lease_upload_cleanup(integer) OWNER TO veradoc_packet_rpc_owner;
-REVOKE ALL ON FUNCTION public.claim_lease_upload_cleanup(integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.claim_lease_upload_cleanup(integer) FROM PUBLIC, anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.claim_lease_upload_cleanup(integer) TO service_role;
 
 CREATE OR REPLACE FUNCTION public.complete_lease_upload_cleanup(
@@ -408,7 +408,7 @@ END;
 $$;
 
 ALTER FUNCTION public.complete_lease_upload_cleanup(uuid, uuid) OWNER TO veradoc_packet_rpc_owner;
-REVOKE ALL ON FUNCTION public.complete_lease_upload_cleanup(uuid, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.complete_lease_upload_cleanup(uuid, uuid) FROM PUBLIC, anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.complete_lease_upload_cleanup(uuid, uuid) TO service_role;
 
 -- Direct authenticated grants are intentionally retained in this compatibility
