@@ -7,7 +7,6 @@ export const AUTH_ROUTES = {
   callback: "/auth/callback",
   pendingApproval: "/auth/pending-approval",
   rejected: "/auth/rejected",
-  invitePrefix: "/auth/invite",
   mfa: "/auth/mfa",
 } as const;
 

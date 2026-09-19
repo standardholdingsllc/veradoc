@@ -31,8 +31,6 @@ export const leaseTermsSchema = z.object({
 
 export const createPacketSchema = z.object({
   packetId: z.string().uuid(),
-  storagePath: z.string().min(1),
-  fileHash: z.string().min(1),
   property: propertySchema,
   leaseTerms: leaseTermsSchema,
   signers: z.array(signerInputSchema).min(1, "Al menos un firmante requerido"),

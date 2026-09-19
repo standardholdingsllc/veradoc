@@ -18,18 +18,6 @@ export async function getPendingRealtors() {
   return data ?? [];
 }
 
-export async function getInvitations() {
-  await requireAdminMfa();
-  const admin = createAdminClient();
-  const { data } = await admin
-    .from("invitations")
-    .select(
-      "id, email, role, status, token, expires_at, accepted_at, metadata, created_at, invited_by",
-    )
-    .order("created_at", { ascending: false });
-  return data ?? [];
-}
-
 export async function getCoverage() {
   await requireAdminMfa();
   const admin = createAdminClient();

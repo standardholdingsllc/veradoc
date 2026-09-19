@@ -27,17 +27,6 @@ export const realtorSignupSchema = z.object({
   phone: optionalString,
 });
 
-export const notaryInviteSchema = z.object({
-  token,
-  password,
-  fullName,
-  dni: optionalString,
-  accreditationNumber: optionalString,
-  province,
-  department: optionalString,
-  phone: optionalString,
-});
-
 export const approveRealtorSchema = z.object({
   userId: uuid,
   province,
@@ -52,12 +41,6 @@ export const createSignerAccountSchema = z.object({
   token,
   email,
   password,
-});
-
-export const createInvitationSchema = z.object({
-  email: z.string().email("Correo electrónico inválido").max(320),
-  province: z.string().min(1, "Provincia requerida").max(100),
-  department: z.string().max(100).optional().default(""),
 });
 
 export const addCoverageSchema = z.object({

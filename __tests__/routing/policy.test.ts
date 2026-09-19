@@ -29,18 +29,11 @@ describe("hostname route policy", () => {
     },
   );
 
-  it("keeps legacy callback and invite compatibility narrowly on the apex", () => {
+  it("keeps legacy callback compatibility narrowly on the apex", () => {
     expect(
       decideRoute({
         surface: "marketing",
         pathname: "/auth/callback",
-        method: "GET",
-      }).kind,
-    ).toBe("allow");
-    expect(
-      decideRoute({
-        surface: "marketing",
-        pathname: "/auth/invite/t",
         method: "GET",
       }).kind,
     ).toBe("allow");
@@ -52,6 +45,17 @@ describe("hostname route policy", () => {
       }).kind,
     ).toBe("redirect");
   });
+
+  it.each(["marketing", "app", "notary", "admin", "demo"] as const)(
+    "rejects retired invitation routes on %s",
+    (surface) => {
+      for (const method of ["GET", "POST"] as const) {
+        expect(
+          decideRoute({ surface, pathname: "/auth/invite/obsolete", method }),
+        ).toMatchObject({ kind: "reject", status: 404 });
+      }
+    },
+  );
 
   it("never redirects a wrong-host mutation", () => {
     const decision = decideRoute({

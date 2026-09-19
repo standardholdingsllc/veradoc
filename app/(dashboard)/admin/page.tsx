@@ -1,7 +1,6 @@
 import { requireAdminMfa } from "@/lib/auth/mfa";
 import {
   getPendingRealtors,
-  getInvitations,
   getCoverage,
   getActiveNotaries,
   getMetrics,
@@ -31,7 +30,6 @@ export default async function AdminDashboardPage({
 
   const coreDataPromise = Promise.all([
     getPendingRealtors(),
-    getInvitations(),
     getCoverage(),
     getActiveNotaries(),
     getMetrics(),
@@ -45,29 +43,10 @@ export default async function AdminDashboardPage({
     coreDataPromise,
     commercialDataPromise,
   ]);
-  const [pendingRealtors, rawInvitations, coverage, notaries, metrics, users] =
+  const [pendingRealtors, coverage, notaries, metrics, users] =
     coreData;
   const payoutData = commercialData?.[0] ?? { rates: [], payouts: [] };
   const financeData = commercialData?.[1] ?? [];
-
-  const invitations = rawInvitations.map(
-    (inv) => {
-      const safe = { ...inv } as Record<string, unknown> & {
-        id: string;
-        email: string;
-        role: string;
-        status: string;
-        expires_at: string;
-        accepted_at: string | null;
-        metadata: Record<string, unknown> | null;
-        created_at: string;
-        invited_by: string;
-        token?: unknown;
-      };
-      delete safe.token;
-      return safe;
-    },
-  );
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
@@ -84,7 +63,6 @@ export default async function AdminDashboardPage({
       <div className="mt-6">
         <AdminTabs
           pendingRealtors={pendingRealtors}
-          invitations={invitations}
           coverage={coverage}
           notaries={notaries}
           metrics={metrics}

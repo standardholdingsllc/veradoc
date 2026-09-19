@@ -71,8 +71,7 @@ function isAllowedAppAuthPath(pathname: string): boolean {
 function isAllowedNotaryAuthPath(pathname: string): boolean {
   return (
     pathname === "/auth/login" ||
-    pathname === "/auth/callback" ||
-    matchesPrefix(pathname, "/auth/invite")
+    pathname === "/auth/callback"
   );
 }
 
@@ -88,6 +87,10 @@ export function decideRoute(input: RouteDecisionInput): RouteDecision {
 
   if (input.surface === "unknown") {
     return { kind: "reject", reason: "HOST_UNKNOWN", status: 404 };
+  }
+
+  if (matchesPrefix(pathname, "/auth/invite")) {
+    return { kind: "reject", reason: "HOST_PATH_WRONG_SURFACE", status: 404 };
   }
 
   if (input.isWww) {
@@ -127,10 +130,7 @@ export function decideRoute(input: RouteDecisionInput): RouteDecision {
   if (input.surface === "marketing") {
     // Narrow legacy callback compatibility remains on the apex during the
     // migration window. Ordinary auth forms canonicalize to the app surface.
-    if (
-      pathname === "/auth/callback" ||
-      matchesPrefix(pathname, "/auth/invite")
-    ) {
+    if (pathname === "/auth/callback") {
       return {
         kind: "allow",
         reason: "HOST_PATH_ALLOWED",

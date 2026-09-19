@@ -117,7 +117,7 @@ Ask for one artifact at a time as the workflow reaches it:
 - Fresh landlord and renter signing links.
 - An old apex signing link that remains valid.
 - Expired and consumed signing links.
-- A synthetic notary invitation and assigned packet.
+- A synthetic packet assigned to the active exclusive notary.
 - A demo token and a production-shaped synthetic token for separation tests.
 - Access to a safe email/OTP sink.
 - A synthetic upload file if the agent cannot create one locally.
@@ -197,7 +197,6 @@ An `unknown` or `production` row blocks the corresponding side-effecting test un
 | | valid legacy apex signing link | | |
 | | expired signing link | | |
 | | consumed signing link | | |
-| | notary invitation | | |
 | | notary-assigned packet | | |
 | | demo token | | |
 | | synthetic upload PDF | | |
@@ -218,7 +217,7 @@ For every case record:
 - Console/network error summary.
 - Side effects observed or explicitly not invoked.
 
-Sanitize token paths as `/firma/[token]` and `/auth/invite/[token]`. Remove query strings containing credentials. Do not upload an unsanitized HAR or trace.
+Sanitize token paths as `/firma/[token]`. Remove query strings containing credentials. Do not upload an unsanitized HAR or trace.
 
 Use this row format:
 
@@ -384,19 +383,25 @@ Test IDs: `C-SIGN-LANDLORD-*` and `C-SIGN-RENTER-*`.
 - `C-LINK-04`: A replayed completion/sign request is rejected or idempotent according to the workflow contract.
 - `C-LINK-05`: Token-bearing URLs and query strings do not appear in console logs, analytics payloads, or referrers. Report only sanitized templates.
 
+### C4. OAuth, confirmation, and recovery callbacks
+
+Test supported customer authentication callbacks independently from the notary workflow.
+
+- `C-AUTH-01`: Realtor OAuth returns to the app origin, creates only the intended session, and applies safe `next` handling.
+- `C-AUTH-02`: Realtor email confirmation returns to the app origin and preserves the expected approval state.
+- `C-AUTH-03`: Password recovery returns to the app origin and never reflects a code or credential-bearing query in evidence.
+- `C-AUTH-04`: A callback containing the retired `invitation` parameter returns a generic failure before code exchange and sets no cookie.
+
 ## 11. Phase D — Notary workflow
 
-Prerequisites: safe email sink, active/invited synthetic notary, assigned synthetic packet, provider-safe certification path, and explicit mutation authorization.
+Prerequisites: active exclusive notary, assigned synthetic packet, provider-safe certification path, explicit mutation authorization, and audit visibility.
 
-- `D-NOTARY-01`: Generate or receive a new synthetic invitation. Its destination host is `notario`, with the token redacted in evidence.
-- `D-NOTARY-02`: Follow the email callback. The session is established on the notary host and remains there through invite acceptance.
-- `D-NOTARY-03`: Login lands on `notario` `/`, never public `/notario`.
-- `D-NOTARY-04`: Exercise queue/root, packet detail, profile, history, and earnings. All browser-visible paths remain clean.
-- `D-NOTARY-05`: Direct refresh and client navigation work on packet detail.
-- `D-NOTARY-06`: Certify only the assigned synthetic packet through a stub/sandbox provider. Verify authorization and audit evidence.
-- `D-NOTARY-07`: A notary cannot view or mutate a packet assigned to another notary.
-- `D-NOTARY-08`: Customer and admin paths never render protected data on the notary host.
-- `D-NOTARY-09`: If a still-valid legacy apex invitation exists, exercise its approved compatibility behavior. Do not assume a generic auth-code redirect works.
+- `D-NOTARY-01`: Password login lands on `notario` `/`, never public `/notario`.
+- `D-NOTARY-02`: Exercise queue/root, packet detail, profile, history, and earnings. All browser-visible paths remain clean.
+- `D-NOTARY-03`: Direct refresh and client navigation work on packet detail.
+- `D-NOTARY-04`: Certify only the assigned synthetic packet through a stub/sandbox provider. Verify authorization and audit evidence.
+- `D-NOTARY-05`: A notary cannot view or mutate a packet assigned to another notary.
+- `D-NOTARY-06`: Customer and admin paths never render protected data on the notary host.
 
 ## 12. Phase E — Admin workflow and MFA
 
@@ -535,13 +540,13 @@ Use docs/testing/subdomain-browser-acceptance-guide.md as your execution contrac
 
 After the safe phase, continue as far as the available environment, credentials, and fixtures allow. When you are blocked, ask me exactly ONE concise question at a time, then stop and wait for my answer. Do not send a questionnaire or bundle several approvals into one message. Explain in one sentence which next test the answer unlocks. Skip questions already answered by repository or environment evidence.
 
-Never ask me to paste passwords, cookies, OTPs, TOTP seeds, auth codes, signing tokens, invitation tokens, or personal data into chat. Ask me to use the secure credential mechanism available to you or to log into a fresh browser profile interactively. Never reveal those values in screenshots, traces, logs, URLs, or your final report.
+Never ask me to paste passwords, cookies, OTPs, TOTP seeds, auth codes, signing tokens, or personal data into chat. Ask me to use the secure credential mechanism available to you or to log into a fresh browser profile interactively. Never reveal those values in screenshots, traces, logs, URLs, or your final report.
 
 Production is read-only by default. MercadoPago is known to be configured for production, so do not submit payments or refunds. Do not trigger real FirmEasy signing, email, WhatsApp/SMS, notarial sealing, tax issuance, or production-data mutations unless you first establish a provider-safe environment and receive explicit authorization for the named synthetic fixtures and actions. Stop immediately if a real side effect may occur.
 
 Use separate clean browser profiles for anonymous, realtor, landlord, renter, notary, and admin testing. Prove that auth cookies are host-only by inspecting cookie attributes with values redacted and by natural cross-host navigation; never copy cookies between hosts. Admin must not expose protected data before TOTP AAL2. Demo must receive no production auth cookie and cause no production side effects.
 
-For every test, record PASS, FAIL, BLOCKED, or NOT RUN with timestamp, environment/release, browser/profile, sanitized start and final URLs, redirect/status evidence, visible result, and a redacted screenshot or trace reference where useful. A test is PASS only when you observed evidence. Sanitize token paths as /firma/[token] and /auth/invite/[token], and omit sensitive query values.
+For every test, record PASS, FAIL, BLOCKED, or NOT RUN with timestamp, environment/release, browser/profile, sanitized start and final URLs, redirect/status evidence, visible result, and a redacted screenshot or trace reference where useful. A test is PASS only when you observed evidence. Sanitize token paths as /firma/[token], and omit sensitive query values.
 
 At the end, return a Markdown report in the exact format required by section 17 of the browser acceptance guide. Map the evidence to all 15 completion conditions in section 22 of the normative transition guide. If anything applicable is unverified, call the migration partial and state the single next input needed for each remaining blocker.
 

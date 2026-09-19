@@ -18,10 +18,6 @@ site_url = "http://localhost:3000"
 enable_signup = true
 enable_confirmations = false
 
-[auth.email.template.invite]
-subject = "Te han invitado a VeraDoc"
-content_path = "./supabase/templates/invite.html"
-
 [auth.email.template.confirmation]
 subject = "Confirma tu correo en VeraDoc"
 content_path = "./supabase/templates/confirmation.html"

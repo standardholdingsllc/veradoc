@@ -12,6 +12,7 @@
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:b5-expired-session": "node scripts/b5-expired-session.mjs",
     "test:h1-telemetry": "node scripts/h1-supabase-telemetry.mjs",
+    "test:auth-callbacks": "node scripts/auth-callback-acceptance.mjs",
     "test:watch": "vitest",
     "postinstall": "node scripts/copy-pdf-worker.mjs",
     "db:types": "npx supabase gen types typescript --local --schema public > lib/supabase/database.types.ts",

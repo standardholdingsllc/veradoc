@@ -116,7 +116,6 @@ function createRoutingResponse(request: NextRequest, decision: RouteDecision): N
 
 function sanitizePathFamily(pathname: string): string {
   if (pathname.startsWith("/firma/")) return "/firma/[token]";
-  if (pathname.startsWith("/auth/invite/")) return "/auth/invite/[token]";
   if (pathname.startsWith("/paquetes/")) return "/paquetes/[packetId]";
   const firstSegment = pathname.split("/").filter(Boolean)[0];
   return firstSegment ? `/${firstSegment}` : "/";
@@ -151,6 +150,15 @@ export default async function proxy(request: NextRequest) {
       process.env.VERCEL_PROJECT_PRODUCTION_URL ?? "",
     ],
   });
+  if (
+    request.nextUrl.pathname === "/auth/invite" ||
+    request.nextUrl.pathname.startsWith("/auth/invite/")
+  ) {
+    return applySurfaceHeaders(
+      new NextResponse(null, { status: 404 }),
+      classification.surface,
+    );
+  }
   const computedDecision = decideRoute({
     surface: classification.surface,
     pathname: request.nextUrl.pathname,
@@ -207,24 +215,6 @@ export default async function proxy(request: NextRequest) {
 
   if (internalPath.startsWith("/auth")) {
     if (internalPath === AUTH_ROUTES.callback) {
-      return applySurfaceHeaders(response, classification.surface);
-    }
-
-    if (internalPath.startsWith(AUTH_ROUTES.invitePrefix)) {
-      if (!user) {
-        return redirectWithCookies(
-          loginDestination(request, classification.surface, "notary"),
-          response,
-          classification.surface,
-        );
-      }
-      if (isActive && role) {
-        return redirectWithCookies(
-          roleDestination(request, classification.surface, role),
-          response,
-          classification.surface,
-        );
-      }
       return applySurfaceHeaders(response, classification.surface);
     }
 

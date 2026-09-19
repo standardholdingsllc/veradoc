@@ -59,14 +59,14 @@
 - Date: 2026-09-14
 - Owner: VeraDoc engineering
 - Work package: WP-3 / WP-4 / WP-7
-- Problem: Signing and notary invitation tokens currently have seven-day lifetimes and already-issued links must survive migration.
-- Chosen option: Use 307 redirects for ordinary legacy GET/HEAD paths for 30 days. Keep narrowly scoped apex callback/invite compatibility during the same window. Never redirect wrong-host mutations.
+- Problem: Signing links and the former notary invitation links required migration compatibility when this decision was adopted.
+- Chosen option: Use 307 redirects for ordinary legacy signing GET/HEAD paths for 30 days and retain narrowly scoped apex callback compatibility. The invitation portion of this decision is superseded by SD-DEC-007; retired invite URLs no longer redirect. Never redirect wrong-host mutations.
 - Rejected options: Immediate removal and permanent 308 redirects.
 - Security impact: Token-bearing query strings are neither logged nor emitted in telemetry.
 - Authentication/cookie impact: Legacy apex callbacks may require a fresh login on the canonical host because sessions remain host-scoped.
 - Generated-link impact: All newly generated links use typed canonical origins immediately.
 - External-system impact: Supabase exact callback allowlisting remains a release prerequisite.
-- Migration compatibility: Seven-day tokens receive more than a three-week safety margin.
+- Migration compatibility: Signing tokens receive more than a three-week safety margin. Historical invitation compatibility ended only after production inventory confirmed no pending invitation rows or profileless invited users.
 - Observability: Redirect reason codes omit raw paths for token-bearing families.
 - Rollback: Set `HOST_ROUTING_MODE=off`; do not remove domains.
 - Required tests: Fresh links, legacy links, callback handling, query preservation, and no cross-host POST redirects.
@@ -107,3 +107,21 @@
 - Rollback: Promote the preceding application deployment. No database rollback is needed because this decision does not apply the migration.
 - Required tests: Default-off environment parsing, hidden commercial tabs, skipped schema queries, and fail-closed payout, finance, refund, and reconciliation actions.
 - Follow-up trigger: Review the full migration with database backup, data-impact validation, provider safety, and a forward-recovery plan before enabling commercial accounting.
+
+## SD-DEC-007 — Exclusive notary is operationally provisioned
+
+- Date: 2026-09-18
+- Owner: VeraDoc engineering
+- Work package: WP-4 / WP-5 / WP-7
+- Problem: The MVP has one exclusive notary, so a product mechanism for inviting additional notaries conflicts with the operating model and expands the authentication attack surface.
+- Chosen option: Retire the notary invitation UI, email, actions, acceptance route, callback parameter, database table, RPC, and `profiles.invited_by`. The exclusive account remains password-authenticated and operationally provisioned. Adding or replacing it requires separately authorized operations or a future product change.
+- Rejected options: Keeping a hidden admin action, retaining legacy redirects, or relying on Supabase's generic invite-user capability as a VeraDoc workflow.
+- Security impact: `/auth/invite/**` and callbacks containing `invitation` fail closed before session exchange, cookie creation, or cross-host redirect.
+- Authentication/cookie impact: Existing notary password login is unchanged and remains host-scoped.
+- Generated-link impact: No notary onboarding link exists. Notary packet links continue to target `notario.veradoc.pe`.
+- External-system impact: Remove the custom invitation template and invitation-specific Resend automation while preserving SMTP, confirmation, magic-link, and recovery flows.
+- Migration compatibility: Deploy application removal first with the legacy schema retained; after production stability, apply a forward-only schema removal. Rollback after the schema migration means redeploying the first removal release.
+- Observability: Retired paths return a generic 404 and no token or query string is logged.
+- Rollback: Before schema removal, redeploy the preceding application. After schema removal, redeploy the first removal release; restoring invitations requires database restoration and an approved product reversal.
+- Required tests: Host/method matrix for retired routes, callback pre-exchange rejection, absence of cookies/redirects, existing notary password login, and schema-object absence.
+- Follow-up trigger: Any request for a second or replacement notary requires explicit product, security, operations, and migration review.

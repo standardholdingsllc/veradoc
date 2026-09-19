@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -214,6 +214,10 @@ export function WizardClient({
   >([]);
   const [processing, setProcessing] = useState(false);
   const [fileName, setFileName] = useState("");
+  const uploadAttemptRef = useRef<{
+    fingerprint: string;
+    packetId: string;
+  } | null>(null);
 
   const [contractForm, setContractForm] = useState<ContractForm>({
     address: "",
@@ -308,8 +312,17 @@ export function WizardClient({
       setUploadProgress(10);
       setFileName(file.name);
 
+      const fingerprint = `${file.name}:${file.size}:${file.lastModified}`;
+      if (uploadAttemptRef.current?.fingerprint !== fingerprint) {
+        uploadAttemptRef.current = {
+          fingerprint,
+          packetId: crypto.randomUUID(),
+        };
+      }
+
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("packetId", uploadAttemptRef.current.packetId);
 
       setUploadProgress(40);
       const result = await uploadLeaseDocument(formData);
@@ -388,8 +401,6 @@ export function WizardClient({
 
     const packetResult = await createLeasePacket({
       packetId: uploadResult.packetId,
-      storagePath: uploadResult.storagePath,
-      fileHash: uploadResult.fileHash,
       property: {
         address: contractForm.address,
         unit: contractForm.unit || undefined,

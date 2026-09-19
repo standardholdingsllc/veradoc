@@ -8,7 +8,7 @@
 #
 # This script:
 #   - Configures Resend as the custom SMTP provider
-#   - Updates invite, magic-link, recovery, and confirmation email templates
+#   - Updates magic-link, recovery, and confirmation email templates
 #
 set -euo pipefail
 
@@ -62,7 +62,6 @@ read_template() {
   python3 -c "import sys,json; print(json.dumps(open(sys.argv[1]).read()))" "$file"
 }
 
-INVITE_HTML=$(read_template "invite.html")
 MAGIC_LINK_HTML=$(read_template "magic-link.html")
 RECOVERY_HTML=$(read_template "recovery.html")
 CONFIRMATION_HTML=$(read_template "confirmation.html")
@@ -74,8 +73,6 @@ curl -sf -X PATCH "${API}" \
   -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -d "{
-    \"mailer_subjects_invite\": \"Te han invitado a VeraDoc\",
-    \"mailer_templates_invite_content\": ${INVITE_HTML},
     \"mailer_subjects_magic_link\": \"Tu enlace de acceso a VeraDoc\",
     \"mailer_templates_magic_link_content\": ${MAGIC_LINK_HTML},
     \"mailer_subjects_recovery\": \"Restablecer tu contraseña de VeraDoc\",

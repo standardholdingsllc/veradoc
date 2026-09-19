@@ -33,6 +33,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+/tmp-*
+/temp_*.ps1
+/~$*.xlsx
 
 # env files (can opt-in for committing if needed)
 .env*

@@ -25,9 +25,6 @@ vi.mock("@/lib/env/server", () => ({
   isCommercialAccountingEnabled: () => mocks.commercialAccountingEnabled,
   isNotarySealWorkflowGloballyEnabled: () => false,
 }));
-vi.mock("@/lib/routing/origins", () => ({
-  buildNotaryInvitationCallbackUrl: vi.fn(),
-}));
 vi.mock("@/lib/services/commercial-service", () => ({
   hashPrivatePromoCode: vi.fn(),
   promoCodeHint: vi.fn(),

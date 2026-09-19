@@ -120,6 +120,7 @@ export default async function AgenteDashboardPage(props: {
   let query = supabase
     .from("lease_packets")
     .select("*, packet_signers(signer_full_name, role_in_lease, status), payments(status)")
+    .eq("creation_state", "finalized")
     .order("updated_at", { ascending: false });
 
   if (searchParams.status) {

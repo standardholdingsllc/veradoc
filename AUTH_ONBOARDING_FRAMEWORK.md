@@ -8,10 +8,10 @@ VeraDoc is not a generic self-serve signing product. The platform coordinates re
 
 The onboarding rules are different for each party:
 
-- **Notaries** have special contracts with VeraDoc. They cannot create accounts publicly. VeraDoc or an admin-created process invites them, and they complete onboarding from that invitation.
+- **Notaries** are not a self-service account class. VeraDoc has one exclusive notary account, provisioned through a separately authorized operational procedure outside the product UI.
 - **Realtors** are the paying clients and distribution channel. They can request an account, but they must be approved before they can operate. This matters because notaries operate provincially in Peru, and VeraDoc must prevent realtors from creating or sending lease packets in provinces where the company does not have contracted notarial coverage.
 - **Landlords and renters** do not create accounts before a transaction exists. They enter VeraDoc through a signing link created from a realtor's lease packet. Their account is tied to that signing invitation.
-- **Admins** exist to control approvals, invitations, and platform access. The current build includes the role and protected admin route foundation, but not a full management UI.
+- **Admins** control realtor approvals and platform access. They cannot add or invite notaries through the product.
 
 This keeps VeraDoc's commercial and legal exposure under control. Realtors cannot start sending documents until approved, notaries remain a contracted partner class, and signers only enter the platform in the context of a real lease packet.
 
@@ -67,24 +67,13 @@ Approval is handled by `approveRealtor` in `lib/auth/actions.ts`. That action re
 
 Rejected realtors are sent to `/auth/rejected`.
 
-### Notary Invitation
+### Exclusive notary provisioning
 
-Routes:
+VeraDoc has one exclusive, operationally provisioned notary account. The application exposes no public signup, admin invitation UI, email invitation, acceptance route, callback parameter, Server Action, or database mechanism for adding another notary.
 
-- `/auth/callback`
-- `/auth/invite/[token]`
+The existing notary authenticates with password login on `notario.veradoc.pe` and retains the dashboard, profile, packet assignments, coverage, certification, history, and earnings flows. Adding or replacing that account requires a separately authorized operational procedure or a future approved product change.
 
-Notaries are invited instead of self-registering. The `invitations` table stores pending notary invitations. The invitation token belongs to VeraDoc's application layer, while Supabase also uses its own auth callback token for the magic-link session.
-
-The implemented flow separates those two tokens:
-
-1. A notary receives a Supabase magic link that redirects through `/auth/callback`.
-2. The callback preserves the VeraDoc invitation token in the redirect.
-3. The notary lands on `/auth/invite/[token]` with a Supabase session.
-4. The invite page calls `acceptNotaryInvite`.
-5. The server action validates the invitation server-side, sets the password, writes trusted role metadata, inserts the notary profile, and marks the invitation accepted.
-
-The proxy intentionally allows authenticated users without role metadata through `/auth/invite/[token]`, because that is the expected state during notary invite acceptance.
+Retired `/auth/invite/**` URLs and callbacks containing an `invitation` parameter fail closed before session exchange and do not redirect or set cookies.
 
 ### Signer Account Creation
 
@@ -143,7 +132,6 @@ Implemented auth routes:
 - `/auth/login`
 - `/auth/signup`
 - `/auth/callback`
-- `/auth/invite/[token]`
 - `/auth/pending-approval`
 - `/auth/rejected`
 
@@ -169,7 +157,6 @@ Auth mutations live in `lib/auth/actions.ts`:
 - `login`
 - `logout`
 - `signupRealtor`
-- `acceptNotaryInvite`
 - `approveRealtor`
 - `rejectRealtor`
 - `createSignerAccount`
@@ -195,7 +182,8 @@ The root `proxy.ts` implements Next.js 16 route protection. It:
 - Refreshes Supabase sessions.
 - Preserves refreshed cookies when redirecting.
 - Allows `/auth/callback` through.
-- Handles `/auth/invite/[token]` separately from ordinary login/signup routes.
+- Rejects retired `/auth/invite/**` requests before Supabase session refresh.
+- Rejects callback requests containing the obsolete `invitation` parameter before code exchange.
 - Redirects pending and rejected realtors to the correct holding pages.
 - Redirects active users away from the wrong dashboard and toward their own role dashboard.
 
@@ -226,24 +214,9 @@ The canonical application profile table. It stores:
 - realtor license number
 - notary accreditation number
 - province and department
-- invitation and approval audit fields
+- approval audit fields
 
 RLS allows users to read their own profile and active admins to read or update all profiles.
-
-### `invitations`
-
-Used for notary invitations. It stores:
-
-- invited email
-- notary role
-- inviter
-- VeraDoc invitation token
-- status
-- expiration
-- accepted timestamp
-- metadata
-
-Direct public reads are revoked. Admins can manage invitations. Invite lookup is performed through the `lookup_invitation` RPC.
 
 ### `signing_tokens`
 
@@ -270,7 +243,6 @@ The migration avoids direct `using (true)` policies on PII-bearing tables. It al
 
 RPCs:
 
-- `lookup_invitation(p_token)` returns only pending, unexpired invitations and is granted to authenticated users.
 - `claim_signing_token(p_token_hash)` atomically moves a token from `otp_verified` to `claiming` and is granted only to `service_role`.
 
 The signing token flow uses `UPDATE ... WHERE status = 'otp_verified' RETURNING ...`, which prevents two concurrent requests from claiming the same token.
@@ -283,7 +255,7 @@ Currently included:
 
 - Auth pages.
 - Realtor public signup.
-- Notary invite acceptance.
+- Exclusive-notary password login and protected dashboard access.
 - Signer account creation action.
 - Admin role and protected admin route placeholder.
 - Dashboard route placeholders for every role.
@@ -291,7 +263,7 @@ Currently included:
 
 Still expected in later product work:
 
-- Full admin management UI for realtor approvals and notary invitations.
+- Full admin management UI for realtor approvals and user access.
 - Province coverage tables that map contracted notaries to supported provinces.
 - Actual lease packet creation and signer invitation generation in production data.
 - Background reconciliation for signing tokens stuck in `claiming`.

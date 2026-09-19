@@ -1,8 +1,8 @@
 # VeraDoc Subdomain Browser Acceptance Report
 
-Overall status: **PARTIAL — H1 and B5 are complete. The notary packet-detail fixture now exists and the focused production test ran with authenticated browser and exact-window telemetry evidence. Initial detail rendering, clean routes, back/forward, and wrong-role denial passed, but direct refresh emitted React hydration error #418 in two independent clean notary contexts. Section 30 confirms the root cause: server rendering formats packet dates/times in UTC while browser hydration formats the same values in the browser timezone because the client formatters omit an explicit `timeZone`. The packet-detail package is therefore FAIL pending remediation and retest. Provider-dependent/state-changing workflows and the authorized production-like rollback exercise also remain outstanding.**
+Overall status: **PARTIAL — the notary invitation requirement and blockers P-004/P-004A were removed from current product scope. Historical invitation evidence is retained in sections 35f and 36 as superseded audit history only. Fresh/copy/legacy signing entry, demo/production token separation, invalid ordinary callback failure routing, release identity, and authenticated browser preflight have current-deployment evidence. The customer lifecycle remains FAIL because authenticated production PDF upload is denied by storage RLS in two clean contexts. OTP delivery, payment, certification, provider callbacks, and exact-window provider/auth telemetry remain BLOCKED or PARTIAL for the precise reasons recorded below.**
 
-Report date: 2026-09-15 (initial); 2026-09-16 (retested, remediated, deployed, investigated, fully reverified for the seven-item remediation, evidence re-captured with UTC timestamps, and production telemetry reviewed); 2026-09-17 UTC (cron-secret deployment, production acceptance retest, admin-logout closure, payout-gate verification, exact-window Supabase telemetry closure, B5 expired-session closure, notary packet-detail execution, and D-004 root-cause diagnostic)
+Report date: 2026-09-15 (initial); 2026-09-16 (retested, remediated, deployed, investigated, fully reverified for the seven-item remediation, evidence re-captured with UTC timestamps, and production telemetry reviewed); 2026-09-17 UTC (cron-secret deployment, production acceptance retest, admin-logout closure, payout-gate verification, exact-window Supabase telemetry closure, B5 expired-session closure, notary packet-detail execution, and D-004 root-cause diagnostic); 2026-09-18 UTC (D-004 production closure, provider-workflow readiness, and authorized synthetic-production execution)
 
 Source evidence: Browser-agent safe anonymous and authenticated reports supplied by the release owner, independent read-only HTTP and Vercel CLI verification, a production Supabase QA Auth fixture bootstrap authorized on 2026-09-15, post-remediation AAL1/AAL2 browser checks in section 8, authenticated acceptance testing on 2026-09-16 (sections 9–16), continued browser acceptance testing on 2026-09-16 (sections 10a, 10b, 9a, 16a), the seven-item retest at `2026-09-16T17:39–17:54Z`, the final D-003 browser/log verification at `2026-09-16T19:05–19:06Z` (section 22), the evidence re-capture at `2026-09-16T20:30–20:57Z`, the Vercel/Supabase telemetry correlation through `2026-09-16T21:06Z` (section 24e), the production acceptance retest against `dpl_8oGzv9X6LeSqXpFUbSsgwvuiiZMi` from `2026-09-17T03:00–03:32Z` with independent Vercel/HTTP corroboration (section 25), the isolated standalone-Chrome focused acceptance pass from `2026-09-17T05:53:09Z` through `05:56:07Z` with subsequent independent artifact, configuration, HTTP, and unit-test verification (section 26), the authenticated aggregate Supabase Logs API query executed at `2026-09-17T06:29:35.722Z`–`06:29:37.121Z` for the exact historical window (section 27), the two-context naturally expired session run plus authenticated exact-window token telemetry at `2026-09-17T18:14:13Z`–`19:14:56Z` (section 28), the two-context notary packet-detail run plus wrong-role context and exact-window telemetry at `2026-09-17T20:55:19Z`–`20:56:33Z` (section 29), and the authenticated production server/client timezone A/B diagnostic at `2026-09-17T21:58:59Z`–`21:59:18Z` (section 30). The earlier B4, B5, and B2/B3 timestamp gaps are superseded by sections 24 and 28. Cookie attributes are confirmed via sanitized browser-context cookie inspection (see sections 10b, 22, 24, 25, 26, 28, and 29).
 
@@ -16,12 +16,12 @@ Source evidence: Browser-agent safe anonymous and authenticated reports supplied
 | Notary | `https://notario.veradoc.pe` |
 | Admin | `https://admin.veradoc.pe` |
 | Demo | `https://demo.veradoc.pe` |
-| Vercel deployment | `dpl_8M8f8wa9hgcYfQsBf4hi77UqCD51` |
+| Vercel deployment | `dpl_58qbvGJKQeeZrgCNXM54Lqm464dU` |
 | Deployment status | Ready, production |
-| Current remediation commit | `3a2203affc7ef4a2809fd69304d43e7bebb47b7c` |
-| Vercel-reported Git metadata | `3a2203affc7ef4a2809fd69304d43e7bebb47b7c` on `codex/build-out-demo-parties` |
+| Current remediation source | Vercel CLI upload from the current invitation-removal working tree; no commit provenance claimed |
+| Prior Vercel-reported Git metadata | `3a2203affc7ef4a2809fd69304d43e7bebb47b7c` on `codex/build-out-demo-parties` |
 | Post-remediation browser/version | Headless Chrome `152.0.7977.83` |
-| Latest authenticated browser timestamp | `2026-09-17T21:59:18Z` |
+| Latest authenticated browser timestamp | `2026-09-18T22:36:05Z` |
 
 The Vercel CLI and read-only deployment API independently confirmed that deployment `dpl_8M8f8wa9hgcYfQsBf4hi77UqCD51` is Ready, targets production, contains commit `3a2203a`, and has all six public aliases: apex, `www`, app, notary, admin, and demo. Earlier browser evidence was collected against `dpl_52hALsJfRggB56ejjwcMRagH8VQZ`, `dpl_4jk9iEMB5n5GMbc1yj4VWsZXRRUE`, `dpl_BS7UyHNMCkoP2dsNF1vuviWpq2rw`, `dpl_BRjTzUEcarJzj4oKYKSziWaAeCH2`, and `dpl_8oGzv9X6LeSqXpFUbSsgwvuiiZMi`; sections 22, 25, and 26 record the successive production verifications.
 
@@ -418,11 +418,11 @@ Additionally: no notary packet-detail navigation evidence (no assigned packets f
 | 1 | Each hostname serves only its approved surface | **PASS** — anonymous and sampled authenticated surface isolation verified; wrong-role matrix 10/10; admin content unavailable from app/notary/demo/apex (8/8) | Confirmed |
 | 2 | Public URLs follow the clean target contract | **PASS** — tested navigation uses clean public paths; no prefix leakage; legacy `/notario/perfil` collapses to clean `/perfil`; all 9 marketing routes publish matching route-specific canonical and `og:url` values | ↑ from PARTIAL to PASS |
 | 3 | Durable generated links use typed origins | PARTIAL — automated/source evidence exists; fresh copied/email links remain untested | — |
-| 4 | Auth callbacks establish sessions on intended host | BLOCKED — password login was tested (not a callback); invitation, magic-link, and OAuth callback flows remain untested | Remains BLOCKED |
+| 4 | Auth callbacks establish sessions on intended host | BLOCKED — password login was tested (not a callback); magic-link, confirmation, recovery, and OAuth callback flows remain untested | Remains BLOCKED |
 | 5 | Sessions remain host-scoped | **PASS** — nine authenticated-source cross-host destinations, two session-persistence checks, and one demo no-auth confirmation all pass; password-session cookies are host-only, `Secure=true`, and `SameSite=Lax` on app, notary, and admin; demo receives 0 cookies | Confirmed; SEC-001 closed |
 | 6 | Server authorization works independently of Proxy | PARTIAL — wrong-role denial (10/10 active, UTC-timestamped + 3/3 state-specific admin denial), account-state gating (6/6 states, UTC-timestamped), MFA enforcement, expired-session role enforcement, and product-level post-logout access denial on all surfaces including the admin back-button; admin refresh preserves AAL2; negative mutation matrix blocked | ↑ B5 complete; remains PARTIAL for negative mutations |
 | 7 | Fresh and legacy signing links complete | BLOCKED | — |
-| 8 | Notary invitations complete on notary | BLOCKED | — |
+| 8 | Notary invitation delivery | **REMOVED FROM PRODUCT SCOPE** — exclusive notary is operationally provisioned; retired links must fail closed | Not counted in applicable-condition totals |
 | 9 | Admin includes the approved additional control | **PASS** — AAL1→MFA gate, AAL2→dashboard, visible product-level logout, session-cookie removal, same-host login redirect, back/direct/refresh denial, and wrong-role denial are verified | UX-001 closed in section 26 |
 | 10 | Demo cannot cause production side effects | PARTIAL — anonymous+interactive demo checks pass; 0 cookies; demo `/auth/login` returns empty document (no login form); mutation/token tests blocked | ↑ from PARTIAL |
 | 11 | APIs, webhooks, cron, and actions avoid cross-host redirects | PARTIAL — sampled wrong-host POST and automated tests pass; provider workflows remain untested | — |
@@ -431,7 +431,7 @@ Additionally: no notary packet-detail navigation evidence (no assigned packets f
 | 14 | Production telemetry shows no material regression | **PASS** — all public surfaces are healthy with no observed CORS failures, redirect loops, or current-deployment 5xx responses; the notification-outbox cron defect is closed; and the authenticated exact-window Supabase query found 67 retained edge-log events with zero `notary_payout_rates` requests and zero associated HTTP 400 responses. | ↑ from PARTIAL to PASS; exact-window database telemetry closed in section 27 |
 | 15 | Rollback exercised or proven production-like | BLOCKED | — |
 
-**Summary: 6 PASS (#1, #2, #5, #9, #12, #14), 5 PARTIAL (#3, #6, #10, #11, #13), 4 BLOCKED (#4, #7, #8, #15).**
+**Summary: 6 PASS (#1, #2, #5, #9, #12, #14), 5 PARTIAL (#3, #6, #10, #11, #13), 3 BLOCKED (#4, #7, #15), and 1 REMOVED FROM PRODUCT SCOPE (#8).**
 
 ## 18. Updated phase readiness
 
@@ -444,7 +444,7 @@ Additionally: no notary packet-detail navigation evidence (no assigned packets f
 | C: read-only role dashboard/navigation | **COMPLETE** — dashboard and profile pages render for all 3 app roles; realtor `/agente/nuevo-paquete` returns HTTP 200 and renders the six-step wizard | — |
 | C: customer packet/upload/signing workflow | BLOCKED | Provider-safe environment, synthetic packet/signing links, safe OTP sink, and mutation authorization |
 | D: read-only notary dashboard/navigation | PARTIAL — `/ganancias` is healthy; the packet queue link, initial detail render, clean paths, back/forward, and wrong-role denial pass, but direct packet-detail refresh emits React hydration error #418 in 2/2 clean notary contexts | Diagnose and remediate D-004, then rerun the focused refresh check |
-| D: notary invitation/certification workflow | BLOCKED | Synthetic notary invitation/packet and stubbed provider path |
+| D: notary certification workflow | BLOCKED | Assigned synthetic packet, stubbed provider path, mutation authorization, and audit visibility |
 | E: admin access control | **COMPLETE** — cross-surface admin content isolation 8/8; wrong-role denial verified; admin state-specific denial 3/3 PASS; product-level logout removes both auth-cookie chunks and denies access after back/direct/refresh; admin refresh PASS; admin tab navigation N/A. | — |
 | E: privileged mutation and audit | BLOCKED | Harmless synthetic target, mutation authorization, and audit visibility |
 | F-DEMO-03: state persistence | **COMPLETE** — 7/7 checks including refresh, client nav, back/forward, multi-role demo surfaces | — |
@@ -661,7 +661,7 @@ The seven-item remediation is fully closed. The following sequence covers the re
 
 **Priority 4 — Re-record B4/B5 evidence (complete).** Section 24a–d records the 10/10 B4 matrix, the first five B5 states, the older B3 rows, and the security-relevant admin post-logout direct-navigation check with UTC timestamps, viewport, cookies, page content, and console observations. Section 28 subsequently closes the expired-but-refreshable sixth B5 state.
 
-**Priority 5 — Provider-safe workflows.** This is the largest remaining package and the only one that exercises real business flows end-to-end. It requires: a staging/preview environment or production-safe provider sandboxes for FirmEasy (signing), Supabase (OTP/email), payment gateway, and messaging; synthetic packets with documents uploaded to a safe storage bucket; and safe OTP/message sinks that do not reach real recipients. Pass criteria cover the full customer lifecycle (signup → packet creation → signing entry → OTP → identity → consent → review → signature → completion), notary invitation acceptance, notary certification, and payment success/failure/pending redirects — all without real-world side effects.
+**Priority 5 — Provider-safe workflows.** This is the largest remaining package and the only one that exercises real business flows end-to-end. It requires: a staging/preview environment or production-safe provider sandboxes for FirmEasy (signing), Supabase (OTP/email), payment gateway, and messaging; synthetic packets with documents uploaded to a safe storage bucket; and safe OTP/message sinks that do not reach real recipients. Pass criteria cover the full customer lifecycle (signup → packet creation → signing entry → OTP → identity → consent → review → signature → completion), exclusive-notary certification, and payment success/failure/pending redirects — all without real-world side effects.
 
 **Priority 6 — Operations gates.** The production cron secret was configured and deployment `dpl_8oGzv9X6LeSqXpFUbSsgwvuiiZMi` was verified with seven consecutive scheduled HTTP 200 responses and zero current-deployment cron 503s. The commercial payout-rate query was subsequently gated and exact-window Supabase telemetry confirmed zero requests and zero associated 400s (sections 26–27). The only remaining operations gate is for an approved rollback operator to exercise `HOST_ROUTING_MODE=off` in a production-like environment and record the time to full service restoration.
 
@@ -1368,3 +1368,412 @@ Nonzero retained coverage and the expected packet/assignment reads corroborate t
 - **Notary packet-detail navigation package: COMPLETE — PASS.**
 - Detail rendering, hard refresh, Back/Forward history, clean public routes, and wrong-role denial all pass with required authentication and telemetry evidence.
 - The sanitized final artifact is `artifacts/d3-notary-packet-detail/evidence-2026-09-18T01-13-57-652Z.json`; secrets, raw packet identifiers, cookies, tokens, and query contents remain excluded from the committed report.
+
+## 34. Provider-safe end-to-end workflow design and readiness run — 2026-09-18T04:23:40Z–04:27:12Z
+
+**Package result: BLOCKED.** The test was designed and its safe/read-only preflight was executed. No provider-backed or state-changing workflow is marked PASS because the environment, callback, audit, and telemetry prerequisites needed to execute those workflows safely were not available. No product-code change was made.
+
+### 34a. Current release and safe execution evidence
+
+| Field | Verified result |
+| --- | --- |
+| Environment exercised | Production, read-only preflight only |
+| Git commit | `8fcc16bffb902afc65b06eb66ded7a3ceb129feb` |
+| Deployment | `dpl_czHsnN2pTCXCtVx8SrMd49cVM759` |
+| Deployment status | Ready / Production |
+| Vercel build provenance | `main` at commit `8fcc16b`; build compiled, typechecked, generated 46/46 static pages, and completed successfully |
+| Attached aliases | Apex, `www`, app, notary, admin, demo, and project aliases |
+| Surface probe UTC | `2026-09-18T04:23:40Z` |
+| Surface probe result | Apex 200; `www` 307 to apex; app/notary/admin login 200; demo root 200 |
+| Browser | Standalone Chrome `152.0.7977.83`, 1280×720, fresh browser context per role |
+| Authenticated browser window | `2026-09-18T04:25:53.219Z`–`04:27:12.640Z` |
+| Provider actions invoked | None |
+| Production mutations invoked | None |
+
+The read-only browser preflight reused the assigned synthetic notary packet from section 33. Two independently authenticated clean notary contexts each reached the clean `/paquetes/[packet-id]` route, rendered the synthetic fixture, survived hard refresh and Back/Forward, retained two secure host-only authentication-cookie chunks, and recorded zero console errors, page errors, HTTP 5xx responses, or material request failures. A separate clean realtor context was denied at the notary login gate with zero notary authentication cookies and no packet content.
+
+This is **PASS for the current-deployment authentication/browser preflight only**. It is not a new packet-detail package closure because this run did not have authenticated exact-window Supabase telemetry. The prior complete closure, including telemetry, remains section 33. The sanitized current artifact is `artifacts/d3-notary-packet-detail/evidence-2026-09-18T04-25-53-219Z.json`.
+
+### 34b. Provider-safety and fixture manifest
+
+| Provider or fixture class | Observed state | Workflow effect |
+| --- | --- | --- |
+| MercadoPago | Production credentials/mode variables exist; the acceptance guide identifies production payments as unsafe | Payment submission, refund, and success/failure/pending callback tests BLOCKED |
+| FirmEasy/signing | Configuration variable names exist, but encrypted values do not prove `sandbox` mode or a safe tenant | Signature submission, provider callback, and replay tests BLOCKED |
+| Email | Production variable name exists; no safe sink or captured-message interface declared | Magic-link, confirmation, recovery, and emailed signing-link tests BLOCKED |
+| WhatsApp/SMS/OTP | No safe sink or provider-sandbox declaration available | OTP and message-delivery tests BLOCKED |
+| Storage | Production Supabase is configured; no isolated test bucket/namespace and cleanup authority declared | Customer upload/download lifecycle BLOCKED |
+| Notarial sealing | No enabled safe stub/sandbox declaration available | Certification workflow BLOCKED |
+| Tax issuance | No provider configuration is present in the production variable-name inventory; no safe stub owner declared | Any tax-document side effect BLOCKED |
+| OAuth | No disposable provider identity, callback capture, or provider-safe tenant declared | Fresh OAuth callback BLOCKED |
+| Telemetry | `SUPABASE_ACCESS_TOKEN` with `analytics_logs_read` is unavailable to this run | Exact-window database/auth/provider correlation BLOCKED |
+| Audit visibility | No approved audit-log reader or synthetic mutation target supplied | Positive/negative privileged mutation proof BLOCKED |
+| Authentication fixtures | Existing active QA roles are available and authorize authentication testing only | Read-only auth preflight available; no workflow mutation authority |
+| Workflow artifacts | No fresh landlord/renter link, valid legacy link, expired/consumed token, independently assigned notary packet, demo token pair, or synthetic upload fixture supplied | Token/link/lifecycle cases BLOCKED |
+
+The production environment-variable inventory was read by name only. No encrypted value, credential, cookie, token, code, query string, or personal datum was retrieved or recorded.
+
+### 34c. Executable test design
+
+Every case uses a unique opaque run label, one clean browser context per actor, sanitized route templates, and a UTC window opened before the first action. State-changing phases must run only after the chosen target and the relevant provider class are explicitly confirmed safe. Before/after database and provider snapshots must be aggregate or opaque-ID based, and cleanup must be limited to the named synthetic fixtures.
+
+| ID | Workflow | Required fixtures and safe controls | PASS evidence |
+| --- | --- | --- | --- |
+| P-E2E-01 | Fresh copied and emailed links | Synthetic realtor packet, safe mail/message sink, captured link metadata | Generated landlord/renter links use the app origin; delivered links match; no raw token enters evidence |
+| P-E2E-02 | Confirmation, recovery, magic-link, and OAuth callbacks | Disposable realtor, safe inbox, OAuth sandbox identity, exact callback allowlists | One-time callback establishes a host-scoped session on the intended host; replay is rejected; auth telemetry corroborates the exchange |
+| P-E2E-03 | Fresh and legacy signing entry | Fresh landlord/renter links, still-valid apex legacy link, expired and consumed tokens | Fresh and legacy entry stay/canonicalize to app; expired/consumed/replayed tokens fail safely without account or state duplication |
+| P-E2E-04 | Customer upload and signing lifecycle | Synthetic PDF visibly marked `SYNTHETIC TEST — NOT A REAL CONTRACT`, isolated storage namespace, safe OTP sink, FirmEasy sandbox/stub | Create packet → upload/download → OTP → account → identity → consent → review → sign → completion succeeds for both parties; refresh/resume/mobile behavior is stable; provider and audit telemetry agree |
+| P-E2E-05 | Exclusive-notary certification | Independently assigned synthetic packets, certification stub/sandbox, audit reader | The assigned packet can be certified once; wrong-role, wrong-owner, wrong-state, and replay attempts are denied; audit event and final artifacts correlate |
+| P-E2E-06 | Payment redirects | MercadoPago sandbox account/instrument and webhook capture | Success, failure, and pending returns stay on app; webhook signature/idempotency and payment state correlate; no real charge/refund occurs |
+| P-E2E-07 | Negative privileged mutations | Harmless synthetic target for each action; clean anonymous, wrong-role, suspended, wrong-host, wrong-owner, wrong-state, demo, unapproved-Origin, and replay contexts | Every attempt fails without state change or cross-host redirect; denial/audit telemetry is present and sanitized |
+| P-E2E-08 | Demo/production token separation | Valid demo token plus production-shaped synthetic token with no real packet | Production-shaped token fails on demo; demo token fails on production; neither invokes production tables, storage, providers, messages, or actions |
+| P-E2E-09 | Provider API/webhook/action behavior | Provider sandbox credentials, callback endpoints, signed synthetic events, replayable event IDs, action fixtures | Valid events process once, duplicates are idempotent, invalid signatures/payloads fail, Server Actions authorize independently, and exact-window telemetry contains no raw secrets |
+| P-E2E-10 | Cleanup and evidence reconciliation | Named fixture owner, safe cleanup authority, retained logs/audit | Synthetic records are removed or retained per policy; provider/database/audit counts reconcile; no unrelated record changed |
+
+Execution order is fixed to limit blast radius: environment attestation → fixture snapshot → callback/link creation → customer lifecycle → notary lifecycle → payment redirects → negative matrix → token separation → webhook/action replay → exact-window telemetry → cleanup reconciliation. A failure stops only the affected provider phase; any possible real-world side effect stops the entire run.
+
+### 34d. Results from this run
+
+| ID | Status | Evidence and boundary |
+| --- | --- | --- |
+| P-PREFLIGHT-RELEASE | **PASS** | Current commit/deployment identity, Ready status, build provenance, aliases, and six surface responses verified read-only |
+| P-PREFLIGHT-AUTH | **PASS** | Two clean authenticated notary contexts plus one clean wrong-role realtor context; scope is read-only authentication/navigation only |
+| P-LOCAL-UNIT | **PASS** | 15 focused files, 170/170 tests passed: routing/method rejection, demo action rejection, FirmEasy HMAC/route/idempotency/client behavior, provider-mode parsing, privileged commercial-action gates, workflow hardening, download authorization, notary-seal state and scan validation |
+| P-LOCAL-INTEGRATION | **BLOCKED** | 2 suites could not initialize because local Supabase at `127.0.0.1:54321` was unavailable; 46/46 tests skipped before execution |
+| P-E2E-01–06 | **BLOCKED** | Provider-safe target, sinks, tokens, packet/upload fixtures, and mutation authorization unavailable |
+| P-E2E-07 | **PARTIAL** | Local routing/action negative tests pass; real browser/provider-backed negative mutations were not run because no harmless target, safe environment, or audit evidence was available |
+| P-E2E-08 | **BLOCKED** | No valid demo token and production-shaped synthetic token pair supplied |
+| P-E2E-09 | **PARTIAL** | Local FirmEasy webhook/API/action contract tests pass; provider-backed callback execution, replay, and exact-window telemetry were not run |
+| P-E2E-10 | **BLOCKED** | No state-changing fixture was authorized or created, so provider/database cleanup and audit reconciliation could not run |
+| P-TELEMETRY | **BLOCKED** | No authenticated Supabase Logs API token/audit reader for this window; browser observations alone are insufficient |
+
+No provider workflow, callback workflow, upload/signing lifecycle, payment redirect, certification, demo/production token-separation case, or provider-backed negative mutation is marked PASS.
+
+### 34e. Blocker records
+
+#### BLK-PROVIDER-ENV — BLOCKED
+
+- **Severity:** Release-evidence blocker; no demonstrated product regression.
+- **Exact reproduction steps:** (1) Inspect the current deployment and production environment-variable names without retrieving values. (2) Compare available evidence to the required provider-safety manifest. (3) Observe that no provider-safe staging origins, sandbox attestations, sink owners, isolated storage namespace, or named harmless mutation targets are available. (4) Stop before the first state-changing browser action.
+- **Expected versus actual:** Expected an explicitly identified staging/preview target or per-provider sandbox/stub evidence with allowed synthetic actions. Actual evidence identifies production and encrypted configuration names only; it cannot prove that any side effect is safe.
+- **Exact route and UTC:** Preflight covered `veradoc.pe/`, `app.veradoc.pe/auth/login`, `notario.veradoc.pe/auth/login`, `admin.veradoc.pe/auth/login`, and `demo.veradoc.pe/` at `2026-09-18T04:23:40Z`; no token-bearing or mutation route was invoked.
+- **Deployment ID:** `dpl_czHsnN2pTCXCtVx8SrMd49cVM759`.
+- **Sanitized error or stack:** `Provider-safe target and provider-mode attestations unavailable; state-changing execution intentionally not started.`
+- **Likely failing layer:** QA environment/provider configuration and authorization, not known product code.
+- **Second clean context:** Not applicable to environment attestation. The separate authentication preflight did pass in two clean notary contexts, but does not satisfy provider safety.
+- **Recommended next diagnostic:** Name the provider-safe staging/preview environment or explicitly select dedicated synthetic production data, then attest one provider class at a time and supply its safe sink/fixture before that phase runs.
+
+#### BLK-LOCAL-SUPABASE — BLOCKED
+
+- **Severity:** Test-infrastructure blocker; no demonstrated product regression.
+- **Exact reproduction steps:** (1) From commit `8fcc16b`, leave `SUPABASE_TEST_URL` unset so the integration harness uses its documented local default. (2) Run `npm run test:integration`. (3) Observe fixture setup attempting `127.0.0.1:54321`. (4) Both suites stop in setup and all 46 tests are skipped.
+- **Expected versus actual:** Expected a running disposable local Supabase instance with the repository migrations. Actual connection failed before any integration test body or mutation ran.
+- **Exact route and UTC:** Local Supabase Auth setup endpoint at `127.0.0.1:54321`, observed at approximately `2026-09-18T04:25:26Z`; no public route was involved.
+- **Deployment ID:** Not applicable to the local integration harness; production baseline is `dpl_czHsnN2pTCXCtVx8SrMd49cVM759`.
+- **Sanitized error or stack:** `TypeError: fetch failed; connect ECONNREFUSED 127.0.0.1:54321` during synthetic test-user creation. No credential or token value was logged.
+- **Likely failing layer:** Local disposable Supabase test infrastructure.
+- **Second clean context:** Both independent integration suites hit the same setup blocker; no test context executed.
+- **Recommended next diagnostic:** Start a disposable local Supabase stack with the repository migrations, verify its health, then rerun `npm run test:integration`; do not point this harness at production.
+
+#### BLK-TELEMETRY-AUDIT — BLOCKED
+
+- **Severity:** Release-evidence blocker; absence of evidence, not a product failure.
+- **Exact reproduction steps:** (1) Run the sanitized two-context browser preflight from `2026-09-18T04:25:53.219Z` to `04:27:12.640Z`. (2) Check approved local inputs for a read-only Supabase Management Logs credential or audit reader. (3) Observe that `SUPABASE_ACCESS_TOKEN` and an approved audit surface are unavailable. (4) Do not infer database/provider success from browser rendering.
+- **Expected versus actual:** Expected an authenticated, exact-window aggregate query with retained log coverage plus audit evidence for any mutation. Actual browser authentication evidence is present, but no authenticated database/provider telemetry query can be executed for this window.
+- **Exact route and UTC:** `https://notario.veradoc.pe/paquetes/[packet-id]`, `2026-09-18T04:25:53.219Z`–`04:27:12.640Z`.
+- **Deployment ID:** `dpl_czHsnN2pTCXCtVx8SrMd49cVM759`.
+- **Sanitized error or stack:** `SUPABASE_ACCESS_TOKEN with analytics_logs_read and approved audit visibility unavailable.`
+- **Likely failing layer:** QA observability access.
+- **Second clean context:** Browser behavior reproduced successfully in the second clean context; telemetry remained unavailable for both.
+- **Recommended next diagnostic:** Provide the approved read-only telemetry mechanism, then query only aggregate sanitized counters bounded to the exact future workflow window before assigning any end-to-end PASS.
+
+### 34f. Completion-condition impact and next input
+
+This run does not change the transition to complete. Completion condition 8 is removed from product scope. Conditions 3, 4, 7, 10, 11, 13, and 14 remain at most PARTIAL/BLOCKED for the provider-backed scope: fresh generated links and callbacks, fresh/legacy signing, exclusive-notary certification, demo side-effect isolation with real token separation, provider/API/action behavior, the full manual matrix, and correlated production telemetry are not proven end to end. Condition 15 remains BLOCKED on the separately authorized rollback exercise.
+
+The next required input is the target environment decision from the one-question protocol: provider-safe staging/preview, or dedicated synthetic data in production. Selecting production would not by itself authorize provider calls, account/data creation, or mutations; each provider class and named synthetic phase would still require its own safety declaration and authorization.
+
+### 34g. Sanitized decision ledger
+
+| UTC | Decision | Effect |
+| --- | --- | --- |
+| `2026-09-18T04:59:15Z` | The release owner selected dedicated synthetic data in production as the target environment. | Production remains read-only until each provider class is confirmed safe and the named synthetic mutations are explicitly authorized. This decision does not authorize real messages, payments, signatures, certifications, tax actions, provider callbacks, account creation, or data mutation. |
+| `2026-09-18T05:09:08Z` | The release owner explicitly authorized all setup and execution needed for synthetic production testing and confirmed that the product is pre-MVP with zero users. | Clearly labeled synthetic database/storage/browser mutations and cleanup became authorized. Real payment capture and any token/message delivery to an unproven sink remained safety-gated. |
+
+## 35. Authorized synthetic-production provider workflow run — 2026-09-18T05:09:08Z–05:28:43Z
+
+**Package result: PARTIAL, with three release-blocking findings.** This section supersedes section 34's statement that all state-changing workflows were unauthorized. The authorization was expanded, a provider-safe production run was performed, and all temporary fixtures were reconciled. No product code or external-provider configuration was changed.
+
+### 35a. Release, authorization, and cleanup
+
+| Field | Result |
+| --- | --- |
+| Git commit | `8fcc16bffb902afc65b06eb66ded7a3ceb129feb` |
+| Deployment | `dpl_czHsnN2pTCXCtVx8SrMd49cVM759`, Ready / Production |
+| Browser | Chrome `152.0.7977.83`, a new browser context for every actor/check |
+| Data class | Visibly labeled synthetic contracts, people, addresses, identifiers, phone numbers, and provider test recipients only |
+| Temporary prerequisite | One active `LIMA` coverage row for `qa-active-notary`; inserted idempotently and removed at the end |
+| External payments | None; no Mercado Pago request was sent |
+| External signing/OTP | None; FirmEasy and WhatsApp sends were stopped before invocation |
+| Cleanup query | `2026-09-18T05:29Z`: 0 temporary coverage rows, 0 run-created synthetic packets, 0 synthetic signing tokens, and 0 recent document objects |
+
+Resend's documented provider-test recipients were selected for synthetic signer data. They were stored only in short-lived signing fixtures that were deleted; the external invitation send itself was not authorized by the execution safety gate and did not occur.
+
+### 35b. Executed result matrix
+
+| Workflow | Status | Current evidence |
+| --- | --- | --- |
+| Fresh production signing link | **PASS** | Anonymous `https://app.veradoc.pe/firma/[token]` returned 200 and rendered the unique synthetic property; no auth cookie or browser error |
+| Copied link in second clean context | **PASS** | The same fresh link independently rendered the same fixture in a second clean context |
+| Legacy apex signing link | **PASS** | Apex `/firma/[token]` returned 307 and settled at the identical app-host token path with the correct legacy fixture |
+| Demo/production token separation | **PASS** | Production token failed on demo; known demo token failed on production; known demo token remained usable only on demo |
+| Token side effects | **PASS** | Both production tokens remained `pending`, with no OTP verification or consumption; fixtures were deleted afterward |
+| Invalid auth callback failure | **PASS** | App, notary, and legacy apex returned 307 to their local `auth/login?error=auth`; admin returned the intentional 404 because admin has no approved callback-based flow |
+| Authenticated customer PDF upload | **FAIL — 2/2** | Active realtor authentication succeeded, then valid synthetic PDF upload failed with storage RLS in two independent contexts |
+| Full customer upload/signing lifecycle | **BLOCKED** | The step-1 upload FAIL prevents packet creation through the product path; OTP delivery is also unsafe because the active provider logs the raw OTP |
+| Fresh emailed signing links / FirmEasy | **BLOCKED** | Current encrypted configuration does not prove a FirmEasy sandbox, and the customer packet cannot be created through the UI |
+| OAuth positive callback | **BLOCKED** | No disposable Google sandbox identity or captured one-time callback was available; only invalid-code failure behavior was exercised |
+| Payment preparation/redirects | **BLOCKED with schema readiness FAIL** | Upload blocks the browser path; additionally, production lacks the commercial-payment RPC called before Mercado Pago |
+| Notary certification | **BLOCKED** | No lifecycle-created, fully signed assigned packet exists because upload/signing cannot complete; no certification mutation or provider action was invoked |
+| Negative privileged mutations | **PARTIAL** | Existing wrong-role browser denial and focused local action/RLS tests remain valid; new production mutation attempts were not made without a lifecycle-created harmless target and exact audit/log evidence |
+| Provider webhooks/actions | **PARTIAL** | Focused local FirmEasy HMAC, normalization, replay/idempotency, and privileged-action tests pass; no provider-signed production webhook was sent |
+| Exact-window telemetry | **PARTIAL** | Authenticated Supabase Management API database queries proved policy/function/fixture state and cleanup; exact-window Auth, Vercel function, email-provider, FirmEasy, and Mercado Pago event telemetry was not available |
+
+The clean PASS artifact for the signing and separation checks is `artifacts/provider-signing-token-production/evidence-2026-09-18T05-28-25-423Z.json`. The customer upload failure artifact is `artifacts/provider-e2e-production/evidence-2026-09-18T05-17-02-865Z.json`. Token paths, raw token values, credentials, cookie values, and UUIDs are sanitized or omitted.
+
+### 35c. Failure P-001 — authenticated realtor upload denied by storage RLS
+
+- **Severity:** Critical / release-blocking. A customer cannot create the first contract packet through the production wizard.
+- **Exact reproduction steps:** (1) Start a clean Chrome context. (2) authenticate `qa-active-realtor` at `https://app.veradoc.pe/auth/login`. (3) Open `/agente/nuevo-paquete`. (4) Select a valid PDF whose first page says `SYNTHETIC TEST - NOT A REAL CONTRACT`. (5) Observe the upload toast. (6) Repeat from a second independently authenticated clean context with a separately generated PDF.
+- **Expected versus actual:** Expected the private `documents` upload to succeed and step 1 to show `Cargado`. Actual server action response was HTTP 200 but the UI returned `Error al subir: new row violates row-level security policy`; no storage object or packet row was created.
+- **Exact route and UTC:** `https://app.veradoc.pe/agente/nuevo-paquete`; context 1 `2026-09-18T05:17:03.097Z`–`05:17:11.451Z`; context 2 `05:17:11.462Z`–`05:17:19.613Z`.
+- **Deployment ID:** `dpl_czHsnN2pTCXCtVx8SrMd49cVM759`.
+- **Sanitized error or stack:** `uploadLeaseDocument -> Supabase Storage upload -> Error al subir: new row violates row-level security policy`. The browser recorded POST 200 and no page exception, HTTP 4xx/5xx, token, credential, or personal datum.
+- **Likely failing layer:** Storage authorization/order-of-operations. The deployed `Realtor uploads to own packets` INSERT policy requires `user_owns_packet(packet-id)`, while `uploadLeaseDocument` uploads to `packets/{new-id}/lease_original.pdf` before `createLeasePacket` inserts the corresponding `lease_packets` row. The policy predicate therefore cannot be true for the intended first upload.
+- **Second clean context:** Yes; identical failure in context 2.
+- **Recommended next diagnostic:** Choose one atomic design: create an authorized draft packet before storage upload, or issue a narrowly scoped server-side/signed upload that binds the object path to the authenticated realtor and then compensates on failure. Add an integration test that proves the initial object and packet ownership transition, rollback/orphan cleanup, wrong-owner denial, and retry idempotency before retesting production.
+
+### 35d. Failure P-002 — production OTP provider logs the raw OTP
+
+- **Severity:** Critical security defect. Invoking production OTP delivery would place an authentication secret and recipient phone number in application logs.
+- **Exact reproduction steps:** Safe source-level reproduction only: (1) inspect `sendOtpAction` in `lib/actions/signing.ts`; (2) follow its `getWhatsAppProvider().sendOtp(phone, otp)` call; (3) inspect `DevWhatsAppProvider.sendOtp` in `lib/services/whatsapp-service.ts`; (4) observe the raw interpolation at line 87. The live action was deliberately not invoked.
+- **Expected versus actual:** Expected a production-safe WhatsApp provider or a safe sink that never logs raw OTPs. Actual provider selection returns the development provider, whose implementation executes `console.log` with both raw OTP and phone.
+- **Exact route and UTC:** Affected route is `https://app.veradoc.pe/firma/[token]/verificar`; source/config review occurred during `2026-09-18T04:40Z`–`05:09Z`. No token-bearing route was opened beyond the safe landing page.
+- **Deployment ID:** `dpl_czHsnN2pTCXCtVx8SrMd49cVM759`.
+- **Sanitized error or stack:** `sendOtpAction -> getWhatsAppProvider -> DevWhatsAppProvider.sendOtp -> console.log("[DEV WhatsApp] OTP [redacted] -> [phone-redacted]")`.
+- **Likely failing layer:** Messaging-provider selection and secret-safe logging.
+- **Second clean context:** Not run; repeating the live action would intentionally duplicate the secret exposure. The deterministic source path is present once for every invocation.
+- **Recommended next diagnostic:** Replace the provider selection with an explicit environment-gated production/sandbox provider, remove all raw-OTP/phone logging, add log-capture assertions that forbid OTP/token values, configure an approved message sink, then run send/verify/replay/rate-limit cases with exact provider and audit telemetry.
+
+### 35e. Failure P-003 — deployed payment schema lacks the RPC required by the application
+
+- **Severity:** High / release-blocking for payment activation.
+- **Exact reproduction steps:** (1) Inspect deployed PostgreSQL functions through the authenticated Supabase Management API. (2) confirm legacy `claim_payment_attempt` and `process_payment_success` exist. (3) query for `claim_commercial_payment_attempt` and `process_commercial_payment_success`. (4) inspect `preparePaymentAction` and `confirmPacketPayment`, which call those commercial functions unconditionally. (5) Observe that the commercial migration is intentionally unapplied in production.
+- **Expected versus actual:** Expected the RPCs required by the deployed application bundle to exist before the payment UI can prepare an attempt. Actual production has neither commercial RPC; the application would return the PostgREST missing-function error before a Mercado Pago request.
+- **Exact route and UTC:** Intended route `https://app.veradoc.pe/agente/nuevo-paquete`, payment step; schema/source comparison executed during `2026-09-18T04:35Z`–`05:09Z`. The live payment button was not reached because P-001 blocks step 1.
+- **Deployment ID:** `dpl_czHsnN2pTCXCtVx8SrMd49cVM759`.
+- **Sanitized error or stack:** `preparePaymentAction -> admin.rpc("claim_commercial_payment_attempt") -> function absent from deployed schema`; `confirmPacketPayment -> admin.rpc("process_commercial_payment_success") -> function absent from deployed schema`.
+- **Likely failing layer:** Application/database release compatibility and migration gate, before the external payment provider.
+- **Second clean context:** The deployed-schema result is global and was rechecked through independent function inventory/source references; browser reproduction was not possible in either clean context because both stopped at P-001.
+- **Recommended next diagnostic:** Resolve the commercial-accounting rollout decision, deploy the application and required migration as one compatible release, verify the RPC signatures from the deployed bundle, then use Mercado Pago test credentials/cards and a webhook capture to test approved/rejected/pending/idempotent outcomes without real funds.
+
+### 35f. Historical/superseded — former blocker P-004
+
+> Superseded on 2026-09-18. Notary invitations were removed from product scope, so this is not a current blocker or acceptance requirement. It is retained only as an accurate record of the earlier test boundary.
+
+- **Severity:** Release-evidence blocker; no product failure is claimed.
+- **Exact reproduction steps:** (1) Select the documented Resend provider test recipient. (2) prepare the ordinary admin invitation workflow using the dedicated QA admin and AAL2. (3) Before submission, observe that the action would create a Supabase Auth user and transmit a single-use invitation credential to an external provider-controlled address. (4) The execution safety gate rejects the action; stop without sending.
+- **Expected versus actual:** Expected explicit authorization for that exact credential-bearing external send plus a mailbox/provider event sink able to return the message and delivery event. Actual broad production-test authorization was not accepted as sufficiently specific for the single-use token destination, and no readable sink exists.
+- **Exact route and UTC:** Proposed `https://admin.veradoc.pe/` invitation tab and `https://notario.veradoc.pe/auth/callback?invitation=[token]`; stopped before route mutation at approximately `2026-09-18T05:19Z`.
+- **Deployment ID:** `dpl_czHsnN2pTCXCtVx8SrMd49cVM759`.
+- **Sanitized error or stack:** `Execution rejected: single-use invitation link would be sent to an external test address while local admin TOTP material is used.` No invitation, Auth user, email, or token was created.
+- **Likely failing layer:** Test authorization/evidence-sink boundary, not established product behavior.
+- **Second clean context:** Not applicable; no first send was authorized.
+- **Recommended next diagnostic:** Explicitly authorize one invitation to the named provider test address after accepting that the provider will receive the single-use token, and provide a safe inbox/event retrieval method. Then prove canonical notary-host callback, host-only session establishment, acceptance, replay denial, audit event, and cleanup.
+
+### 35g. Blocker P-005 — notary certification, provider webhooks, and negative mutation matrix
+
+- **Severity:** Release-evidence blocker; no certification/provider PASS can be claimed.
+- **Exact reproduction steps:** (1) Run the customer wizard with a valid synthetic PDF. (2) Observe P-001 at step 1 in both contexts. (3) Inspect prerequisites for a fully signed assigned packet, safe FirmEasy callback, safe notary workflow, and exact audit/log readers. (4) Stop before fabricating a completed lifecycle or invoking a certification/provider mutation that would bypass the failed product path.
+- **Expected versus actual:** Expected a product-created paid/signed synthetic packet, provider-safe signatures, an assigned QA notary, and correlated audit/provider telemetry. Actual lifecycle stops before packet creation; FirmEasy sandbox mode and external callback evidence are unproven; no complete packet exists.
+- **Exact route and UTC:** Upstream route `https://app.veradoc.pe/agente/nuevo-paquete` at `2026-09-18T05:17:03.097Z`–`05:17:19.613Z`; downstream `https://notario.veradoc.pe/paquetes/[packet-id]` certification route was not invoked.
+- **Deployment ID:** `dpl_czHsnN2pTCXCtVx8SrMd49cVM759`.
+- **Sanitized error or stack:** `Blocked by P-001 storage RLS; no fully signed packet; provider sandbox/callback and exact mutation-audit evidence unavailable.`
+- **Likely failing layer:** Upstream product upload plus QA/provider configuration and observability.
+- **Second clean context:** Yes for the upstream blocker; P-001 reproduced in two clean contexts. Certification/provider mutation itself was not run.
+- **Recommended next diagnostic:** Fix and deploy P-001 and P-002, activate only an attested FirmEasy sandbox/stub, complete a two-party synthetic packet, then run assigned-notary certification once and attempt wrong-notary, wrong-role, wrong-state, wrong-host, replay, and unsigned-webhook mutations while correlating database audit, function logs, and provider event IDs.
+
+### 35h. Callback and telemetry details
+
+Invalid-code callback probes ran at `2026-09-18T05:20:46.563Z`–`05:20:48.183Z`:
+
+- app callback: 307 to `https://app.veradoc.pe/auth/login?error=auth`;
+- historical notary callback with a synthetic invalid invitation value: 307 to `https://notario.veradoc.pe/auth/login?error=auth` (superseded; the retired parameter must now fail closed);
+- legacy apex callback: 307 to `https://veradoc.pe/auth/login?error=auth`;
+- admin callback: 404, matching the routing policy because admin currently permits password login and MFA only.
+
+These are PASS only for the historical invalid-token failure routing that was observed. Current acceptance requires the retired invitation parameter to fail closed, while magic-link, confirmation, password-recovery, and OAuth exchange remain separate tests.
+
+Database-side evidence was available through the authenticated Supabase Management API: deployed storage policies, function inventory, exact synthetic row counts, unchanged token status, and final cleanup were queried. Exact-window Auth logs, Vercel function logs, provider delivery events, webhook events, and provider action telemetry were not captured for this window. Therefore browser/database checks are reported at their observed scope only, and the overall provider workflow remains **PARTIAL**.
+
+### 35i. Final disposition
+
+- **PASS:** current release/surfaces, focused local suite (170/170), authenticated read-only preflight, invalid callback failure routing, fresh/copy/legacy signing entry, token non-consumption, demo/production token separation, and fixture cleanup.
+- **FAIL:** initial authenticated realtor PDF upload (P-001); production OTP secret-safe provider behavior (P-002, source-proven); payment application/schema compatibility (P-003, deployed-schema proven).
+- **BLOCKED/PARTIAL:** magic links, confirmation/recovery and positive OAuth, complete customer signing, notary certification, real provider redirects/callbacks/webhooks, new privileged-mutation matrix, and exact-window provider/auth telemetry.
+- **No PASS is claimed** for any provider-backed action lacking authentication, provider, audit, or telemetry evidence.
+
+## 36. Historical/superseded appendix — authorized notary invitation submission (2026-09-18T05:40:45Z–05:45:22Z)
+
+> This appendix preserves a mutation that actually occurred and its cleanup evidence. The feature is retired, P-004A is closed by scope removal rather than by a delivery PASS, and none of this section is a current acceptance prerequisite.
+
+**Result: PARTIAL.** The release owner explicitly authorized one Supabase notary invitation containing a single-use token to Resend's documented provider test recipient, using the dedicated QA admin and locally retained QA TOTP seed. The application submission and Supabase acceptance are proven. External provider delivery, message contents, link retrieval, and the positive callback are not proven and are not marked PASS.
+
+### 36a. Executed evidence
+
+| Check | Result |
+| --- | --- |
+| Recipient preflight | **PASS** — 0 matching Auth users and 0 invitation rows before the run |
+| Admin password authentication | **PASS** — `admin/active`, two secure host-only cookie chunks |
+| Admin MFA | **PASS** — challenge HTTP 200, verify HTTP 200, resulting JWT `aal2` |
+| Privileged Server Action | **PASS at application boundary** — POST 200 and visible `Invitación enviada.` |
+| Application invitation row | **PASS** — one `pending` notary invitation for `LIMA`, created `2026-09-18T05:45:22.740955Z`, expiring seven days later |
+| Supabase Auth acceptance | **PASS** — one invited user; `invited_at` and `confirmation_sent_at` both `2026-09-18T05:45:22.790737Z` |
+| Resend delivery | **PARTIAL / unverified** — no provider delivery event, bounce event, or message sink was readable |
+| Message/link contents | **BLOCKED** — no mailbox interface was available; the single-use token was never read or exposed |
+| Positive notary callback | **BLOCKED** — no auth code/link was available to open; no callback session was created |
+| Exact-window Auth audit table | **NO RETAINED EVIDENCE** — 0 rows from `05:45:08Z` through `05:45:30Z`; database timestamps corroborate creation but do not substitute for delivery/callback telemetry |
+| Cleanup | **PASS** — invitation row and never-confirmed, never-signed-in Auth user deleted; both final counts 0 |
+
+The sanitized browser artifact is `artifacts/provider-invitation-production/evidence-2026-09-18T05-45-08-757Z.json`. It contains no password, TOTP seed/code, invitation token, auth code, cookie value, user UUID, or query string.
+
+### 36b. Former blocker P-004A — removed from product scope
+
+- **Severity:** Release-evidence blocker; no delivery or callback product failure is established.
+- **Exact reproduction steps:** (1) Start a clean Chrome context. (2) authenticate `qa-active-admin` at `https://admin.veradoc.pe/auth/login`. (3) complete TOTP and prove AAL2. (4) Open the `Invitaciones` tab. (5) submit one invitation for the approved provider test recipient with province/department `LIMA`. (6) observe `Invitación enviada.` (7) query only non-token invitation/Auth timestamps. (8) attempt to correlate a delivery event or retrieve the email; observe that no provider event reader or mailbox exists. (9) delete the pending application invitation and never-confirmed Auth user.
+- **Expected versus actual:** Expected application acceptance, provider delivery telemetry, retrievable email contents, a fresh callback link, host-scoped notary session establishment, and replay rejection. Actual application and Supabase acceptance succeeded, but provider delivery, email contents, callback, and replay were unobservable.
+- **Exact route and UTC:** `https://admin.veradoc.pe/` from `2026-09-18T05:45:08.757Z` to `05:45:22.492Z`; invitation accepted visibly at `05:45:22.479Z`. Intended callback `https://notario.veradoc.pe/auth/callback?invitation=[token]` was not invoked.
+- **Deployment ID:** `dpl_czHsnN2pTCXCtVx8SrMd49cVM759`.
+- **Sanitized error or stack:** No application exception. Evidence gap: `Supabase confirmation_sent_at present; provider delivery event and mailbox contents unavailable; positive callback not executed.` Navigation-only `net::ERR_ABORTED` cancellations occurred during login/MFA redirects and were non-material.
+- **Likely failing layer:** QA email observability/message-sink access. Application authorization, AAL2 enforcement, invitation insertion, and Supabase Auth invitation acceptance completed successfully.
+- **Second clean context:** Not run. The authorization covered one single-use invitation, and duplicating the external token-bearing send would not resolve the missing mailbox/provider-event evidence.
+- **Recommended next diagnostic:** Provide read-only Resend event/log access or a controlled inbox that exposes the received message without forwarding secrets into test artifacts. Send one new invitation, open its link in a fresh context, verify the session remains on `notario.veradoc.pe`, complete acceptance, replay the consumed link, correlate Auth/provider/audit events, then clean up the synthetic account.
+
+### 36c. Updated invitation disposition
+
+- **Application invitation mutation:** PASS at authenticated AAL2 and database-acceptance scope.
+- **Supabase invitation request acceptance:** PASS based on `invited_at` and `confirmation_sent_at`.
+- **Resend delivery:** PARTIAL; no delivery telemetry.
+- **Fresh emailed link and positive notary callback:** BLOCKED; email contents were unavailable.
+- **Cleanup:** PASS; no matching invitation or Auth user remains.
+
+## 37. Invitation-removal rollout — 2026-09-18T22:31:52Z–23:19:42Z
+
+**Current result: application, Auth-template, and database removal deployed and verified.**
+
+### 37a. Pre-removal and post-deployment gates
+
+- Live pre-removal inventory found exactly one active, confirmed notary profile with a matching Auth user; `profiles.invited_by` was null.
+- Invitation counts were zero for every status. There were zero pending invited Auth users without profiles and zero unrecognized notary Auth users.
+- The prior provider-test invitation row and never-confirmed Auth user were both absent.
+- The latest physical Supabase backup was `COMPLETED` at `2026-09-18T07:38:47.925Z`; PITR was disabled.
+- Supabase Auth used `https://app.veradoc.pe` as Site URL and exact app/notary/apex/local callback allowlist entries. The former VeraDoc-specific invite subject/template was inventoried without recording its content.
+- Immediately before the schema-removal approval request, production still had zero pending invitations, zero total invitation rows, and zero profileless pending Auth invitees.
+
+### 37b. First deployment and fail-closed verification
+
+Deployment `dpl_58qbvGJKQeeZrgCNXM54Lqm464dU` is Ready/Production and owns the apex, `www`, app, notary, admin, and demo aliases. Its build generated 46 static pages and no `/auth/invite/[token]` route.
+
+For each of apex, app, notary, admin, and demo, both GET and POST requests to `/auth/invite/obsolete` returned 404 with no `Location` and no `Set-Cookie`. Invitation-bearing callbacks on apex, app, and notary also returned 404 with no redirect or cookie. An ordinary invalid app callback retained the expected 307 to `/auth/login?error=auth`.
+
+The read-only authenticated notary harness passed in two clean Chrome contexts: password login, queue/detail rendering, refresh/history navigation, two host-scoped auth-cookie chunks, zero console/page/HTTP-5xx errors, and correct wrong-role denial. The sanitized artifact is `artifacts/d3-notary-packet-detail/evidence-2026-09-18T22-34-42-926Z.json`.
+
+Admin password authentication reached the MFA gate and established two host-scoped cookie chunks. The retained QA TOTP seed did not elevate the new session in three attempts, so current-deployment AAL2 dashboard rendering and the visible absence of the former tab remain **BLOCKED by stale QA factor evidence** rather than claimed PASS. Source, focused tests, the production route manifest, and the prior AAL2 evidence prove the code path removal but do not substitute for a fresh AAL2 browser observation.
+
+### 37c. Repository verification
+
+- Focused removal/routing/callback suite: 44/44 PASS.
+- Full Vitest suite after production schema removal and final type reconciliation: 289/289 PASS across 35 files.
+- TypeScript: PASS after deleting only stale generated Next.js dev validators and again after synchronizing post-migration database types.
+- Changed-file ESLint: zero errors. Repository-wide ESLint is blocked by four unrelated pre-existing untracked `tmp-*.js` parser errors; those files were preserved.
+- Production build: PASS with inert process-local placeholders for the three required Supabase variables absent locally. The Vercel production build also passed.
+- Local Supabase integration testing is BLOCKED because Docker Desktop/daemon is unavailable on this machine.
+
+### 37d. Approved Auth-template and schema removal
+
+After the release owner explicitly approved the two production mutations, the zero-row gate was repeated and again returned zero pending invitations, zero total invitation rows, and zero profileless pending Auth invitees.
+
+- The Supabase invite subject and body were reset to generic platform content using only `{{ .ConfirmationURL }}`. An immediate production read-back matched both values exactly. SMTP and the confirmation, magic-link, and recovery templates remained present.
+- The forward-only migration `20260918230000_remove_notary_invitations.sql` ran as one transaction after the application removal was live. It asserted that no pending invitation existed, then dropped `lookup_invitation(text)`, `invitations`, and `profiles.invited_by` in that order.
+- Post-migration catalog checks confirmed that the table, RPC, and column are absent and that no invitation-table policies or grants remain.
+- Only version `20260918230000` was marked applied in `supabase_migrations.schema_migrations`; the unrelated pending commercial-accounting migration was not pushed.
+- A fresh remote type generation confirmed that the invitation objects are absent. The checked-in file retains the already-tracked forward typings for the intentionally unapplied commercial-accounting migration, while its only diff for this rollout removes the invitation table, `profiles.invited_by`, its relationship, and `lookup_invitation`.
+- Final TypeScript, changed-file ESLint, Vitest, and Next.js production build checks passed. The build produced no `/auth/invite/[token]` route.
+- A bounded aggregate Supabase edge-log query covering `2026-09-18T22:31:52Z` through `2026-09-18T23:24:37.590Z` returned 322 edge rows, zero `/auth/v1/invite` calls, and zero `/rest/v1/invitations` calls.
+- Post-removal production probes repeated the complete five-host GET/POST retired-route matrix and the apex/app/notary invitation-callback matrix; every request returned 404 without `Location` or `Set-Cookie`.
+
+No Resend-side invitation automation could be inspected or removed because no narrow read-only Resend credential or integration is available. The repository contains no deployable invite template or invitation send path, and Supabase's active invite template is now generic; this external-provider inventory remains an evidence limitation rather than a remaining application or database invitation surface.
+
+## 38. Focused magic-link, recovery, and Google OAuth callback acceptance — 2026-09-19
+
+**Overall result: BLOCKED.** The focused non-mutating harness ran against production deployment `dpl_58qbvGJKQeeZrgCNXM54Lqm464dU` from `2026-09-19T00:28:45.901Z` through `2026-09-19T00:28:50.702Z`. It used two direct callback probes, one clean headless Chrome context for Google initiation, and an authenticated read-only Supabase Logs API aggregate. No password, email address, Google credential, auth code, state, token, cookie, or full query string was persisted.
+
+Sanitized artifact: `artifacts/auth-callback-acceptance/2026-09-19T00-28-45-901Z/report.md`.
+
+| Case | Result | Evidence |
+| --- | --- | --- |
+| Invalid callback baseline | **PASS** | `https://app.veradoc.pe/auth/callback` with a synthetic invalid code and with no code both returned HTTP 307 to the app login error route, with no `Set-Cookie`. |
+| Positive Google OAuth callback | **BLOCKED** | Chrome `152.0.7977.83` reached the Supabase authorization endpoint from the app login page, but no disposable Google sandbox identity or one-time callback capture was available. No exchange or session was claimed. |
+| Positive magic-link callback | **BLOCKED** | No controlled mailbox/message retrieval surface or disposable magic-link identity was available. The link was not retrieved or opened. |
+| Positive password-recovery callback | **BLOCKED** | No controlled mailbox/message retrieval surface or disposable recovery identity was available. The link was not retrieved or opened. |
+| Exact-window callback telemetry | **PARTIAL** | The Management API credential authenticated, but the exact run window returned zero retained edge-log rows. Callback correlation is therefore unproven. |
+
+### C-AUTH-01-GOOGLE-POSITIVE — BLOCKED
+
+- **Severity:** Release-evidence blocker; no development defect is established.
+- **Exact reproduction steps:** (1) Open `https://app.veradoc.pe/auth/login` in a new Chrome context. (2) Click `Continuar con Google`. (3) Authenticate with the disposable Google sandbox identity. (4) Capture the one-time provider callback in the same context without recording its code or query string. (5) Verify return to `app.veradoc.pe`, intended host-scoped session creation, and expected new-user profile-completion routing. (6) Repeat in a second clean context and correlate the bounded Auth/edge telemetry window.
+- **Expected versus actual behavior:** Expected: one Google OAuth code exchange on `app.veradoc.pe`, intended session, and new-realtor profile-completion routing. Actual: only initiation was observed; the browser reached the sanitized provider route `https://fyfcslzgahfbyezsnpxl.supabase.co/auth/v1/authorize`. The disposable identity and positive callback were unavailable.
+- **Exact route and UTC:** `https://fyfcslzgahfbyezsnpxl.supabase.co/auth/v1/authorize` at `2026-09-19T00:28:47.221Z`.
+- **Deployment ID:** `dpl_58qbvGJKQeeZrgCNXM54Lqm464dU`.
+- **Sanitized error or stack:** No application exception. Evidence boundary: provider initiation completed; one-time identity/callback evidence unavailable.
+- **Likely failing layer:** QA Google sandbox identity and callback-capture boundary; product behavior is not established as failing.
+- **Whether it reproduces in a second clean context:** Not run; a second initiation without a sandbox identity would not produce the required exchange evidence.
+- **Recommended next diagnostic:** Provide the disposable Google sandbox identity, confirm the Supabase/Google callback allowlist, capture the callback only in memory in two fresh contexts, and correlate Auth/edge telemetry for the exact run window.
+
+### C-AUTH-02-MAGIC-POSITIVE — BLOCKED
+
+- **Severity:** Release-evidence blocker.
+- **Exact reproduction steps:** (1) Create/select the disposable magic-link identity. (2) Trigger the supported email flow. (3) Retrieve the message through the controlled mailbox/message sink. (4) Open the one-time link in a clean context and verify the app-host exchange, session, and sanitized evidence. (5) Replay the link and verify safe rejection. (6) Repeat in a second clean context and correlate Auth/provider/edge telemetry.
+- **Expected versus actual behavior:** Expected: delivered message, one successful callback exchange on `app.veradoc.pe`, host-scoped session, replay denial, and correlated telemetry. Actual: no mailbox/message retrieval surface or disposable identity was available; no link, exchange, replay, or positive telemetry was observable.
+- **Exact route and UTC:** Intended `https://app.veradoc.pe/auth/callback` at run completion `2026-09-19T00:28:50.702Z`; no positive callback request was invoked.
+- **Deployment ID:** `dpl_58qbvGJKQeeZrgCNXM54Lqm464dU`.
+- **Sanitized error or stack:** `Required mailbox/message retrieval and disposable identity evidence unavailable.`
+- **Likely failing layer:** QA fixture/message-sink observability boundary, not established product behavior.
+- **Whether it reproduces in a second clean context:** Not run; without a retrievable one-time message, a second context cannot execute the positive exchange.
+- **Recommended next diagnostic:** Provision the disposable identity and controlled mailbox/API retrieval, trigger one message, open the link in two fresh contexts, verify replay denial, and correlate Supabase Auth plus provider/edge telemetry without retaining the link or code.
+
+### C-AUTH-03-RECOVERY-POSITIVE — BLOCKED
+
+- **Severity:** Release-evidence blocker.
+- **Exact reproduction steps:** (1) Create/select the disposable password-recovery identity. (2) Trigger the supported recovery email flow. (3) Retrieve the message through the controlled mailbox/message sink. (4) Open the one-time link in a clean context and verify the app-host exchange, recovery state, and sanitized evidence. (5) Replay the link and verify safe rejection. (6) Repeat in a second clean context and correlate Auth/provider/edge telemetry.
+- **Expected versus actual behavior:** Expected: delivered recovery message, one successful callback exchange on `app.veradoc.pe`, recovery session/state, replay denial, and correlated telemetry. Actual: no mailbox/message retrieval surface or disposable identity was available; no link, exchange, replay, or positive telemetry was observable.
+- **Exact route and UTC:** Intended `https://app.veradoc.pe/auth/callback` at run completion `2026-09-19T00:28:50.702Z`; no positive callback request was invoked.
+- **Deployment ID:** `dpl_58qbvGJKQeeZrgCNXM54Lqm464dU`.
+- **Sanitized error or stack:** `Required mailbox/message retrieval and disposable identity evidence unavailable.`
+- **Likely failing layer:** QA fixture/message-sink observability boundary, not established product behavior.
+- **Whether it reproduces in a second clean context:** Not run; without a retrievable one-time message, a second context cannot execute the positive exchange.
+- **Recommended next diagnostic:** Provision the disposable identity and controlled mailbox/API retrieval, trigger one recovery message, open the link in two fresh contexts, verify replay denial and password-reset state, and correlate Supabase Auth plus provider/edge telemetry without retaining the link or code.
+
+### C-AUTH-TELEMETRY — PARTIAL
+
+- **Severity:** High; required callback correlation evidence is unavailable.
+- **Exact reproduction steps:** (1) Run `npm run test:auth-callbacks` with the read-only Supabase Management API credential. (2) Query project `fyfcslzgahfbyezsnpxl` through the Logs API for `2026-09-19T00:28:45.901Z`–`2026-09-19T00:28:50.702Z`. (3) Aggregate only edge-log coverage and callback request/status counts; do not retrieve raw query strings, cookies, or tokens.
+- **Expected versus actual behavior:** Expected: retained authenticated edge-log coverage sufficient to correlate callback requests/statuses. Actual: authenticated query returned zero edge-log rows, with callback count 0; retention coverage is unproven.
+- **Exact route and UTC:** `https://app.veradoc.pe/auth/callback` at `2026-09-19T00:28:45.901Z`–`2026-09-19T00:28:50.702Z`.
+- **Deployment ID:** `dpl_58qbvGJKQeeZrgCNXM54Lqm464dU`.
+- **Sanitized error or stack:** `The exact window returned zero edge-log rows; retention coverage is unproven.`
+- **Likely failing layer:** Supabase Logs API retention/analytics visibility, not established application callback behavior.
+- **Whether it reproduces in a second clean context:** Telemetry is window-scoped; no second positive browser exchange was run.
+- **Recommended next diagnostic:** Repeat with a read-only token having `analytics_logs_read`, allow a retention delay if required, and rerun the same bounded aggregate over a window containing a completed positive exchange.
+
+This run does not close the requested positive callback gates. The invalid-code behavior remains the only callback behavior directly verified in this focused run; Google initiation is evidence of provider reachability only, not OAuth success.

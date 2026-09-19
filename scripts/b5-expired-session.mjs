@@ -34,14 +34,14 @@ function envBoolean(value, fallback) {
 export function sanitizeUrl(rawUrl) {
   try {
     const url = new URL(rawUrl);
-    return `${url.origin}${url.pathname
-      .replace(/\/firma\/[^/]+/gi, "/firma/[token]")
-      .replace(/\/auth\/invite\/[^/]+/gi, "/auth/invite/[token]")}`;
+    return `${url.origin}${url.pathname.replace(
+      /\/firma\/[^/]+/gi,
+      "/firma/[token]",
+    )}`;
   } catch {
     return String(rawUrl)
       .replace(/([?&][^=\s]+)=([^&\s]+)/g, "$1=[redacted]")
-      .replace(/\/firma\/[^/?\s]+/gi, "/firma/[token]")
-      .replace(/\/auth\/invite\/[^/?\s]+/gi, "/auth/invite/[token]");
+      .replace(/\/firma\/[^/?\s]+/gi, "/firma/[token]");
   }
 }
 

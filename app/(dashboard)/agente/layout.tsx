@@ -17,6 +17,7 @@ export default async function AgenteLayout({
     .from("lease_packets")
     .select("id", { count: "exact", head: true })
     .eq("created_by", profile?.id ?? "")
+    .eq("creation_state", "finalized")
     .in("status", ["all_signed", "needs_correction"]);
 
   return (

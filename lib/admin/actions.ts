@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   addCoverageSchema,
-  createInvitationSchema,
   updateCoverageSchema,
   userActionSchema,
 } from "@/lib/auth/schemas";
@@ -14,7 +13,6 @@ import {
   hashPrivatePromoCode,
   promoCodeHint,
 } from "@/lib/services/commercial-service";
-import { buildNotaryInvitationCallbackUrl } from "@/lib/routing/origins";
 import { hasRequiredAdminMfa } from "@/lib/auth/mfa";
 import { getCommercialAccountingUnavailableError } from "@/lib/admin/commercial-accounting";
 
@@ -52,140 +50,6 @@ async function verifyAdmin() {
   }
 
   return { error: null, admin, callerId: caller.id };
-}
-
-// ---------------------------------------------------------------------------
-// Notary invitation management
-// ---------------------------------------------------------------------------
-
-export async function createNotaryInvitation(
-  email: string,
-  province: string,
-  department?: string,
-): Promise<{ error?: string }> {
-  const parsed = createInvitationSchema.safeParse({
-    email,
-    province,
-    department,
-  });
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0].message };
-  }
-  const v = parsed.data;
-
-  const { error: authError, admin, callerId } = await verifyAdmin();
-  if (authError) return { error: authError };
-
-  const { data: invitation, error: insertError } = await admin
-    .from("invitations")
-    .insert({
-      email: v.email.trim().toLocaleLowerCase("es-PE"),
-      role: "notary",
-      invited_by: callerId,
-      metadata: {
-        province: normalizeCoverageText(v.province),
-        department: v.department ? normalizeCoverageText(v.department) : undefined,
-      },
-    })
-    .select("id, token")
-    .single();
-
-  if (insertError || !invitation) {
-    return { error: "Error al crear la invitación." };
-  }
-
-  const redirectUrl = buildNotaryInvitationCallbackUrl(invitation.token);
-
-  const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(
-    v.email,
-    { redirectTo: redirectUrl },
-  );
-
-  if (inviteError) {
-    await admin.from("invitations").delete().eq("id", invitation.id);
-    return { error: "Error al enviar la invitación por correo." };
-  }
-
-  revalidatePath("/admin");
-  return {};
-}
-
-export async function revokeInvitation(
-  invitationId: string,
-): Promise<{ error?: string }> {
-  const parsed = userActionSchema.safeParse({ userId: invitationId });
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0].message };
-  }
-
-  const { error: authError, admin } = await verifyAdmin();
-  if (authError) return { error: authError };
-
-  const { error } = await admin
-    .from("invitations")
-    .update({ status: "revoked" })
-    .eq("id", invitationId)
-    .eq("status", "pending");
-
-  if (error) {
-    return { error: "Error al revocar la invitación." };
-  }
-
-  revalidatePath("/admin");
-  return {};
-}
-
-export async function resendInvitation(
-  invitationId: string,
-): Promise<{ error?: string }> {
-  const parsed = userActionSchema.safeParse({ userId: invitationId });
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0].message };
-  }
-
-  const { error: authError, admin } = await verifyAdmin();
-  if (authError) return { error: authError };
-
-  const { data: invitation, error: lookupError } = await admin
-    .from("invitations")
-    .select("id, email, token, status, expires_at")
-    .eq("id", invitationId)
-    .single();
-
-  if (lookupError || !invitation) {
-    return { error: "Invitación no encontrada." };
-  }
-
-  if (invitation.status !== "pending") {
-    return { error: "Solo se pueden reenviar invitaciones pendientes." };
-  }
-
-  if (new Date(invitation.expires_at) <= new Date()) {
-    return { error: "La invitación ha expirado." };
-  }
-
-  const redirectUrl = buildNotaryInvitationCallbackUrl(invitation.token);
-
-  const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(
-    invitation.email,
-    { redirectTo: redirectUrl },
-  );
-
-  if (inviteError) {
-    return { error: "Error al reenviar la invitación." };
-  }
-
-  await admin
-    .from("invitations")
-    .update({
-      expires_at: new Date(
-        Date.now() + 7 * 24 * 60 * 60 * 1000,
-      ).toISOString(),
-    })
-    .eq("id", invitationId);
-
-  revalidatePath("/admin");
-  return {};
 }
 
 // ---------------------------------------------------------------------------

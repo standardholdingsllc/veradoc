@@ -1,11 +1,6 @@
 export const ADMIN_TABS = [
   { id: "overview", label: "Resumen", requiresCommercialAccounting: false },
   { id: "realtors", label: "Agentes", requiresCommercialAccounting: false },
-  {
-    id: "invitations",
-    label: "Invitaciones",
-    requiresCommercialAccounting: false,
-  },
   { id: "coverage", label: "Cobertura", requiresCommercialAccounting: false },
   {
     id: "payouts",

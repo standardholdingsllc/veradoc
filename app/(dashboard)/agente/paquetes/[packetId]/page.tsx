@@ -19,6 +19,7 @@ export default async function PaqueteDetallePage(
     .from("lease_packets")
     .select("*")
     .eq("id", packetId)
+    .eq("creation_state", "finalized")
     .single();
 
   if (!packet) {

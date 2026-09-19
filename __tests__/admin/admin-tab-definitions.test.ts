@@ -7,7 +7,6 @@ describe("admin tab definitions", () => {
     expect(getAdminTabs(false).map((tab) => tab.id)).toEqual([
       "overview",
       "realtors",
-      "invitations",
       "coverage",
       "users",
     ]);
@@ -17,7 +16,6 @@ describe("admin tab definitions", () => {
     expect(getAdminTabs(true).map((tab) => tab.id)).toEqual([
       "overview",
       "realtors",
-      "invitations",
       "coverage",
       "payouts",
       "finance",

@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { serverEnv } from "@/lib/env/server";
 import { processOutboxBatch } from "@/lib/services/notification-outbox";
 import { processNotaryWorkflowJobBatch } from "@/lib/services/notary-workflow-jobs";
+import { processUploadReservationCleanupBatch } from "@/lib/services/upload-reservation-cleanup";
 
 function getCronSecret(): string | undefined {
   return serverEnv.CRON_SECRET ?? serverEnv.OUTBOX_CRON_SECRET;
@@ -35,10 +36,12 @@ async function handleProcess(request: Request) {
     }
   }
   const notaryJobs = await processNotaryWorkflowJobBatch(admin, 10);
+  const uploadReservations = await processUploadReservationCleanupBatch(admin, 20);
   const result = await processOutboxBatch(admin, 20);
 
   return NextResponse.json({
     notaryJobs,
+    uploadReservations,
     lifecycle: lifecycleError ? { error: lifecycleError.message } : lifecycle,
     sent: result.sent,
     failed: result.failed,

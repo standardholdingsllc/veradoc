@@ -33,15 +33,6 @@ export function buildSigningCompletionUrl(rawToken: string): string {
   });
 }
 
-export function buildNotaryInvitationCallbackUrl(
-  invitationToken: string,
-): string {
-  return buildAbsoluteUrl(
-    { surface: "notary", path: "/auth/callback" },
-    { invitation: invitationToken },
-  );
-}
-
 export function buildNotaryPacketUrl(packetId: string): string {
   return buildAbsoluteUrl({ surface: "notary", path: `/paquetes/${packetId}` });
 }

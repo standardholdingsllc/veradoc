@@ -199,7 +199,7 @@ The other launch-critical gaps are deployed signing-RPC verification, durable ra
 ### 8.1. Global admin audit trail
 
 - Add a durable admin audit event model separate from packet-only history.
-- Log realtor approval/rejection, user suspension/reactivation, invitation resend/revoke, Lima postal-code validation results and blocks, notary assignment/notification attempts, notary status/SLA events, contract-configuration changes, payout configuration/payment, refunds, reconciliation, and recovery actions.
+- Log realtor approval/rejection, user suspension/reactivation, Lima postal-code validation results and blocks, notary assignment/notification attempts, notary status/SLA events, contract-configuration changes, payout configuration/payment, refunds, reconciliation, and recovery actions.
 - Standardize actor ID, target ID, timestamp, request ID, IP, user agent, reason, and before/after metadata.
 
 ### 8.2. Support search and recovery
@@ -388,7 +388,7 @@ Reference: `COMMERCIAL_ACCOUNTING_INTEGRATION_PLAN.md`.
 - Ensure production imports and bundles cannot fall back to mock state or provider stubs.
 - Document local Supabase startup/reset, required environment variables, migration workflow, remote linking, type regeneration, unit/integration tests, cron execution, and provider sandbox setup.
 - Document the canonical packet state model and the chosen evidence-completion invariant.
-- Replace placeholder notary identities in seed/demo data and invitation/coverage fixtures with the canonical Grover Paúl Morales Cama office record, or isolate them explicitly to demo-only; verify production assignment uses the same canonical profile and contract contact details.
+- Replace placeholder notary identities in seed/demo data and coverage fixtures with the canonical Grover Paúl Morales Cama office record, or isolate them explicitly to demo-only; verify production assignment uses the same canonical profile and contract contact details. The product must not expose a notary invitation or multi-notary provisioning mechanism.
 
 ---
 

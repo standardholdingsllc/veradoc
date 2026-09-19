@@ -113,6 +113,21 @@ describe("Proxy hostname routing", () => {
     expect(response.headers.get("location")).toBeNull();
   });
 
+  it.each([
+    "https://veradoc.pe",
+    "https://app.veradoc.pe",
+    "https://notario.veradoc.pe",
+    "https://admin.veradoc.pe",
+    "https://demo.veradoc.pe",
+  ])("rejects retired invitation links without cookies or redirects on %s", async (origin) => {
+    const response = await proxy(
+      new NextRequest(`${origin}/auth/invite/obsolete?secret=ignored`),
+    );
+    expect(response.status).toBe(404);
+    expect(response.headers.get("location")).toBeNull();
+    expect(response.headers.get("set-cookie")).toBeNull();
+  });
+
   it("rewrites demo signing routes only into the demo tree", async () => {
     const response = await proxy(
       new NextRequest("https://demo.veradoc.pe/firma/t"),

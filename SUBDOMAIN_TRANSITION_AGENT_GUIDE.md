@@ -93,7 +93,7 @@ At the time of this guide:
 - `lib/supabase/proxy.ts` copies Supabase cookie options but does not deliberately set a parent-domain cookie.
 - Several services derive one base URL from `SITE_URL`, `NEXT_PUBLIC_SITE_URL`, or `VERCEL_URL`.
 - Production signing links are built from a single site URL.
-- Notary invitation callbacks are built from a single base URL.
+- Notary packet links are built for the notary surface.
 - Some browser copy-link behavior uses `window.location.origin`.
 - Vercel currently associates the requested subdomains with the same latest production deployment.
 
@@ -229,11 +229,11 @@ Proxy checks are optimistic routing and early rejection only. Every Server Actio
 
 ### SD-INV-008 — Absolute URLs are typed by surface
 
-No production email, invitation, callback, signing link, payment redirect, webhook registration, or copied user link may derive from a generic site URL when the destination surface is known.
+No production email, callback, signing link, payment redirect, webhook registration, or copied user link may derive from a generic site URL when the destination surface is known.
 
 ### SD-INV-009 — Tokens are never logged
 
-Raw signing tokens, invitation tokens, OAuth codes, password-recovery codes, cookie values, authorization headers, and complete query strings on token-bearing routes MUST NOT be logged.
+Raw signing tokens, OAuth codes, password-recovery codes, cookie values, authorization headers, and complete query strings on token-bearing routes MUST NOT be logged.
 
 ### SD-INV-010 — Unknown hosts fail closed
 
@@ -248,11 +248,9 @@ Localhost and Vercel preview behavior must be explicit and environment-aware rat
 - Wrong-host mutations SHOULD return `404` to minimize route disclosure, or a documented `421 Misdirected Request` if operational diagnostics require it.
 - Server Actions MUST still authorize themselves even when the originating page was correctly routed.
 
-### SD-INV-012 — Existing issued links survive migration
+### SD-INV-012 — Signing links survive migration; retired notary invites fail closed
 
-Previously issued production signing and invitation links MUST continue to work for at least their maximum valid lifetime plus a documented safety margin.
-
-Do not remove legacy redirect compatibility until database/query analysis or business confirmation proves those links can no longer be valid.
+Previously issued production signing links MUST continue to work for at least their maximum valid lifetime plus a documented safety margin. Retired `/auth/invite/**` URLs and callbacks containing an obsolete `invitation` parameter MUST return a non-sensitive failure before session exchange, cookie creation, or cross-host redirect.
 
 ## 6. Hostname and route policy
 
@@ -365,7 +363,7 @@ veradoc.pe/auth/login      -> app.veradoc.pe/auth/login
 veradoc.pe/auth/signup     -> app.veradoc.pe/auth/signup
 ```
 
-Do not put `/auth/callback` or `/auth/invite/**` into this generic redirect table. Those routes may contain single-use credentials and origin-bound state; follow the compatibility requirements in section 7.4.1.
+Do not put `/auth/callback` into this generic redirect table. It may contain single-use credentials and origin-bound state; follow the compatibility requirements in section 7.4.1. Retired `/auth/invite/**` paths are rejected on every host.
 
 Start migration redirects as temporary `307` responses unless product and operations explicitly approve permanent caching. Promote stable GET/HEAD mappings to `308` only after:
 
@@ -413,7 +411,7 @@ Auth routes MUST be allowlisted per surface rather than granting every hostname 
 | Surface | Initially allowed auth routes |
 | --- | --- |
 | Application | `/auth/login`, `/auth/signup`, `/auth/callback`, `/auth/pending-approval`, `/auth/rejected`, and only other customer flows proven necessary |
-| Notary | `/auth/login`, `/auth/callback`, `/auth/invite/[token]`, and only other notary flows proven necessary |
+| Notary | `/auth/login`, `/auth/callback`, and only other notary flows proven necessary |
 | Admin | `/auth/login`; `/auth/callback` only if the approved admin identity mechanism requires it |
 | Marketing | No canonical auth UI; ordinary legacy GET/HEAD auth pages may redirect to the application surface during migration |
 | Demo | No production authentication routes |
@@ -462,37 +460,30 @@ External dashboard configuration is a state-changing operation. An agent MUST ob
 
 #### 7.4.1 Legacy auth callback compatibility
 
-Legacy `/auth/callback` and `/auth/invite/[token]` URLs require their own migration design. They are not ordinary pages.
+Legacy `/auth/callback` URLs require their own migration design. They are not ordinary pages. Retired `/auth/invite/[token]` URLs are no longer compatible routes and always fail closed.
 
 If a Supabase code is exchanged on `veradoc.pe`, the resulting host-scoped cookies belong to `veradoc.pe`; redirecting afterward to `notario.veradoc.pe` or `app.veradoc.pe` does not move those cookies. Conversely, redirecting an unexchanged code to a different host may fail when the auth flow depends on a PKCE verifier or other browser state stored for the original origin. Agents MUST NOT assume either strategy works.
 
 Before enforcing marketing-only apex behavior:
 
-1. Determine whether unexpired emails contain apex callback or invite URLs.
-2. Classify each legacy flow: notary invitation, realtor confirmation, OAuth, password recovery, or signer account flow.
+1. Determine whether unexpired emails contain apex callback URLs.
+2. Classify each legacy flow: realtor confirmation, OAuth, password recovery, or signer account flow.
 3. Determine whether that flow uses PKCE or other origin-bound browser state.
 4. Reproduce the real legacy link in a production-like environment.
 5. Choose an approved compatibility strategy.
 
 Acceptable strategies include:
 
-- Keep a narrowly scoped legacy callback/invite compatibility route on the apex until all issued links expire, then require a fresh login on the canonical surface.
-- Reissue and invalidate outstanding invitations when business rules and user communication permit it.
+- Keep a narrowly scoped legacy callback compatibility route on the apex until all issued links expire, then require a fresh login on the canonical surface.
 - Build the separately reviewed single-use session handoff described in section 7.2.
 
-A generic apex-to-subdomain redirect carrying an auth code is not an acceptable untested strategy. Callback query strings and invitation tokens must remain excluded from logs throughout compatibility handling.
+A generic apex-to-subdomain redirect carrying an auth code is not an acceptable untested strategy. Callback query strings must remain excluded from logs throughout compatibility handling.
 
-### 7.5 Notary invitations
+### 7.5 Exclusive notary provisioning
 
-Notary magic-link invitations MUST use:
+VeraDoc has one exclusive notary account provisioned operationally outside the product. The product MUST expose no invitation UI, email, public route, callback branch, API, or database mechanism for adding a notary. Adding or replacing the account requires a separately authorized operational procedure or future product change.
 
-```text
-https://notario.veradoc.pe/auth/callback?invitation={applicationInvitationToken}
-```
-
-The callback must preserve the application invitation token while exchanging the Supabase auth code. The raw invitation token and auth code MUST NOT enter logs, analytics events, error-reporting breadcrumbs, or referrer headers.
-
-After callback, acceptance stays on `notario.veradoc.pe`. Do not bounce the session through `app.veradoc.pe`.
+The existing notary continues to use password login on `notario.veradoc.pe`. Requests to `/auth/invite/**` and callbacks containing `invitation` MUST fail closed before any Supabase exchange and MUST NOT create cookies or redirect credentials between hosts.
 
 ### 7.6 Realtor signup and OAuth
 
@@ -587,7 +578,6 @@ Create specialized helpers for high-risk links, such as:
 ```text
 buildSigningEntryUrl(rawToken)
 buildSigningCompletionUrl(rawToken)
-buildNotaryInvitationCallbackUrl(invitationToken)
 buildNotaryPacketUrl(packetId)
 buildAdminDashboardUrl()
 ```
@@ -605,7 +595,6 @@ Agents MUST inventory and migrate all of these classes:
 - Supabase auth redirects.
 - Payment success/failure/pending redirects.
 - FirmEasy redirect/callback links.
-- Notary invitation links.
 - Signing links.
 - Dashboard notifications.
 - Open Graph and canonical metadata.
@@ -658,7 +647,7 @@ Before exposing material admin functionality, require:
 - Active-status verification on every privileged operation.
 - Mandatory MFA or an external identity gate.
 - A narrowly controlled admin membership process.
-- Audit events for approvals, invitations, role changes, suspensions, refunds, signing overrides, evidence access, and configuration changes.
+- Audit events for approvals, role changes, suspensions, refunds, signing overrides, evidence access, and configuration changes.
 - Re-authentication or step-up verification for highly destructive operations.
 - No client-provided role, user ID, packet owner, or approval status trusted without server verification.
 - Rate limits for authentication and sensitive mutations.
@@ -767,7 +756,7 @@ Tasks:
 2. Capture current production routes and redirect behavior without recording personal data.
 3. Inventory auth provider redirect allowlists.
 4. Inventory issued-link maximum lifetimes.
-5. Inventory unredeemed invitations and the callback origin embedded in outstanding links.
+5. Confirm retired notary invitation URLs and callback parameters fail closed.
 6. Inventory webhooks, payment callbacks, cron, and third-party return URLs.
 7. Decide whether demo remains same-deployment for phase one.
 8. Decide initial admin MFA/access gate.
@@ -776,7 +765,7 @@ Tasks:
 Exit criteria:
 
 - No unresolved owner for Supabase, Vercel, payment, FirmEasy, and messaging configuration.
-- Signing/invitation compatibility window is documented.
+- Signing compatibility window is documented.
 - Rollback owner and release window are named.
 
 ### WP-1 — Typed origins and URL builders
@@ -799,7 +788,7 @@ Required tests:
 - Paths beginning `//` are rejected.
 - Each role maps to the correct surface and path.
 - Signing links always use `APP_ORIGIN`.
-- Notary invitations always use `NOTARY_ORIGIN`.
+- Notary packet links always use `NOTARY_ORIGIN`.
 - Preview fallbacks cannot leak into production links.
 
 Exit criteria:
@@ -862,17 +851,16 @@ Goal: Make `notario.veradoc.pe` canonical with clean public paths.
 
 Tasks:
 
-1. Configure exact notary auth callback.
-2. Change notary invitation generation.
-3. Prove or replace every still-valid legacy apex invitation/callback path.
-4. Add notary public-to-internal rewrites.
-5. Migrate notary links and navigation to public paths.
-6. Redirect legacy apex notary GET/HEAD routes.
-7. Exercise packet queue, detail, certification, history, profile, and earnings flows.
+1. Configure the exact notary auth callback required by supported non-invitation flows.
+2. Prove retired invite paths and invitation-bearing callbacks fail closed on every host.
+3. Add notary public-to-internal rewrites.
+4. Migrate notary links and navigation to public paths.
+5. Redirect legacy apex notary dashboard GET/HEAD routes.
+6. Exercise password login, packet queue, detail, certification, history, profile, and earnings flows.
 
 Exit criteria:
 
-- A newly invited notary establishes the session on the notary hostname.
+- The exclusive notary establishes a password session on the notary hostname.
 - Notary navigation never exposes a redundant `/notario` prefix.
 - Notary actions remain server-authorized.
 
@@ -1062,8 +1050,8 @@ Run manual checks in a clean browser profile and in a second profile representin
 
 ### Notary
 
-- [ ] Invitation email points to `notario.veradoc.pe`.
-- [ ] Callback establishes a notary-host session.
+- [ ] Exclusive-notary password login establishes a notary-host session.
+- [ ] Retired invite paths and invitation-bearing callbacks fail closed without cookies or redirects.
 - [ ] Queue, packet, certification, history, profile, and earnings paths use clean URLs.
 - [ ] Customer and admin paths do not render.
 
@@ -1134,7 +1122,7 @@ Primary rollback:
 5. If new link generation is the problem, stop the affected notification job/channel before reverting data or deleting links.
 6. Verify signing, auth callback, webhook, and cron health.
 
-Never roll back by immediately deleting subdomains. New invitations or signing messages may already contain those hosts.
+Never roll back by immediately deleting subdomains. Signing messages may already contain those hosts.
 
 If a permanent 308 was shipped, browser caches may outlive the server rollback. This is why the first migration stage uses temporary redirects.
 
@@ -1166,7 +1154,7 @@ Recommended metrics:
 - Wrong-host mutation rejection count.
 - Demo production-action rejection count.
 
-Sanitize paths before logging. Convert token-bearing routes to templates such as `/firma/[token]` and `/auth/invite/[token]`. Hashing a token for logs is not automatically safe; omit it unless a security design explicitly requires correlation and defines keying and retention.
+Sanitize paths before logging. Convert token-bearing signing routes to templates such as `/firma/[token]`. Hashing a token for logs is not automatically safe; omit it unless a security design explicitly requires correlation and defines keying and retention.
 
 ## 19. Agent operating procedure
 
@@ -1176,7 +1164,7 @@ Every agent implementing a work package MUST follow this procedure.
 
 1. Read `AGENTS.md`.
 2. Read this guide completely.
-3. Read `AUTH_ONBOARDING_FRAMEWORK.md` for current role and invitation semantics.
+3. Read `AUTH_ONBOARDING_FRAMEWORK.md` for current role and provisioning semantics.
 4. Read the relevant bundled Next.js 16 docs, at minimum the Proxy guide and API reference for routing work.
 5. Inspect `git status --short` and preserve unrelated user changes.
 6. Re-run targeted repository searches; do not assume the hotspot list is current.
@@ -1253,7 +1241,7 @@ A reviewer MUST reject the change if any answer below is unclear.
 ### URLs
 
 - [ ] Do signing links always use `app`?
-- [ ] Do notary invitations always use `notario`?
+- [ ] Do retired notary invite URLs fail closed on every host?
 - [ ] Do admin links always use `admin`?
 - [ ] Is `VERCEL_URL` excluded from durable production links?
 - [ ] Are user-controlled absolute redirects rejected?
@@ -1300,7 +1288,7 @@ The subdomain transition is complete only when all of the following are true:
 5. Sessions remain host-scoped.
 6. Server-side authorization remains effective independently of Proxy.
 7. Fresh and legacy signing links complete successfully.
-8. Notary invitations complete entirely on the notary surface.
+8. Retired notary invite URLs and callback parameters fail closed without session creation.
 9. Admin access includes the approved additional control.
 10. Demo cannot cause production side effects.
 11. APIs, webhooks, cron, and Server Actions never depend on cross-host redirects.
@@ -1374,6 +1362,6 @@ At minimum, create decision records for:
 - Keeping demo in the production deployment or splitting it.
 - The approved admin MFA or identity-gate mechanism.
 - The host policy for every webhook and cron endpoint.
-- The duration of legacy signing and invitation redirects.
+- The duration of legacy signing redirects.
 - Any cross-origin session handoff proposal.
 - Any parent-domain cookie proposal, which is prohibited unless this guide is explicitly superseded by an approved security design.

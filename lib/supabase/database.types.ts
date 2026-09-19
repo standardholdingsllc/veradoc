@@ -140,53 +140,6 @@ export type Database = {
         }
         Relationships: []
       }
-      invitations: {
-        Row: {
-          accepted_at: string | null
-          created_at: string | null
-          email: string
-          expires_at: string
-          id: string
-          invited_by: string
-          metadata: Json | null
-          role: string
-          status: string
-          token: string
-        }
-        Insert: {
-          accepted_at?: string | null
-          created_at?: string | null
-          email: string
-          expires_at?: string
-          id?: string
-          invited_by: string
-          metadata?: Json | null
-          role: string
-          status?: string
-          token?: string
-        }
-        Update: {
-          accepted_at?: string | null
-          created_at?: string | null
-          email?: string
-          expires_at?: string
-          id?: string
-          invited_by?: string
-          metadata?: Json | null
-          role?: string
-          status?: string
-          token?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "invitations_invited_by_fkey"
-            columns: ["invited_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       invoices: {
         Row: {
           accepted_at: string | null
@@ -366,8 +319,11 @@ export type Database = {
           archival_hold_reason: string | null
           archival_hold_until: string | null
           certified_at: string | null
+          cleanup_claim_expires_at: string | null
+          cleanup_claim_token: string | null
           created_at: string | null
           created_by: string
+          creation_state: string
           department: string | null
           deposit_amount: number | null
           district: string | null
@@ -390,6 +346,7 @@ export type Database = {
           status: string
           submitted_to_notary_at: string | null
           updated_at: string | null
+          upload_reservation_expires_at: string | null
         }
         Insert: {
           archive_policy_version?: string | null
@@ -399,8 +356,11 @@ export type Database = {
           archival_hold_reason?: string | null
           archival_hold_until?: string | null
           certified_at?: string | null
+          cleanup_claim_expires_at?: string | null
+          cleanup_claim_token?: string | null
           created_at?: string | null
           created_by: string
+          creation_state?: string
           department?: string | null
           deposit_amount?: number | null
           district?: string | null
@@ -423,6 +383,7 @@ export type Database = {
           status?: string
           submitted_to_notary_at?: string | null
           updated_at?: string | null
+          upload_reservation_expires_at?: string | null
         }
         Update: {
           archive_policy_version?: string | null
@@ -432,8 +393,11 @@ export type Database = {
           archival_hold_reason?: string | null
           archival_hold_until?: string | null
           certified_at?: string | null
+          cleanup_claim_expires_at?: string | null
+          cleanup_claim_token?: string | null
           created_at?: string | null
           created_by?: string
+          creation_state?: string
           department?: string | null
           deposit_amount?: number | null
           district?: string | null
@@ -456,6 +420,7 @@ export type Database = {
           status?: string
           submitted_to_notary_at?: string | null
           updated_at?: string | null
+          upload_reservation_expires_at?: string | null
         }
         Relationships: [
           {
@@ -1762,7 +1727,6 @@ export type Database = {
           email: string
           full_name: string
           id: string
-          invited_by: string | null
           license_number: string | null
           phone: string | null
           province: string | null
@@ -1782,7 +1746,6 @@ export type Database = {
           email: string
           full_name: string
           id: string
-          invited_by?: string | null
           license_number?: string | null
           phone?: string | null
           province?: string | null
@@ -1802,7 +1765,6 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
-          invited_by?: string | null
           license_number?: string | null
           phone?: string | null
           province?: string | null
@@ -1815,13 +1777,6 @@ export type Database = {
           {
             foreignKeyName: "profiles_approved_by_fkey"
             columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "profiles_invited_by_fkey"
-            columns: ["invited_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -2143,6 +2098,54 @@ export type Database = {
       }
     }
     Functions: {
+      claim_lease_upload_cleanup: {
+        Args: { p_limit?: number }
+        Returns: {
+          claim_token: string
+          packet_id: string
+          storage_path: string
+        }[]
+      }
+      complete_lease_upload_cleanup: {
+        Args: { p_claim_token: string; p_packet_id: string }
+        Returns: boolean
+      }
+      finalize_lease_packet: {
+        Args: {
+          p_department: string
+          p_deposit_amount: number
+          p_district: string
+          p_lease_end: string
+          p_lease_start: string
+          p_packet_id: string
+          p_property_address: string
+          p_property_unit: string
+          p_province: string
+          p_rental_amount: number
+          p_signers: Json
+        }
+        Returns: Json
+      }
+      mark_lease_packet_uploaded: {
+        Args: {
+          p_actor_id: string
+          p_document_hash: string
+          p_packet_id: string
+        }
+        Returns: {
+          creation_state: string
+          packet_id: string
+        }[]
+      }
+      reserve_lease_packet_upload: {
+        Args: { p_document_hash: string; p_packet_id: string }
+        Returns: {
+          creation_state: string
+          document_hash: string
+          packet_id: string
+          upload_reservation_expires_at: string
+        }[]
+      }
       approve_notary_monthly_payout: {
         Args: {
           p_notary_comprobante_reference: string
@@ -2450,17 +2453,6 @@ export type Database = {
       is_active_admin: { Args: never; Returns: boolean }
       is_active_notary: { Args: { p_user_id: string }; Returns: boolean }
       is_active_realtor: { Args: never; Returns: boolean }
-      lookup_invitation: {
-        Args: { p_token: string }
-        Returns: {
-          email: string
-          expires_at: string
-          id: string
-          invited_by: string
-          role: string
-          status: string
-        }[]
-      }
       lookup_signing_context: {
         Args: { p_token_hash: string }
         Returns: {

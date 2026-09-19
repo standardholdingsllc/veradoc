@@ -29,33 +29,49 @@ async function getAuthenticatedUserId(): Promise<string | null> {
   return user?.id ?? null;
 }
 
-function normalizeAddressKey(
-  address: string,
-  unit: string | undefined,
-  district: string,
-): string {
-  return [address, unit, district]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
 // ---------------------------------------------------------------------------
 // Upload Lease Document
 // ---------------------------------------------------------------------------
 
+async function verifyCanonicalUpload(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  storagePath: string,
+  expectedHash: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data, error } = await supabase.storage
+    .from("documents")
+    .download(storagePath);
+
+  if (error || !data) {
+    return { ok: false, error: error?.message ?? "Objeto no encontrado." };
+  }
+
+  const actualHash = computeSha256(Buffer.from(await data.arrayBuffer()));
+  if (actualHash !== expectedHash) {
+    return { ok: false, error: "El archivo almacenado no coincide con la reserva." };
+  }
+  return { ok: true };
+}
+
 export async function uploadLeaseDocument(
   formData: FormData,
 ): Promise<ActionResult<{ storagePath: string; fileHash: string; packetId: string }>> {
-  const userId = await getAuthenticatedUserId();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const userId = user?.id ?? null;
   if (!userId) return { error: "No autenticado." };
 
   const file = formData.get("file") as File | null;
+  const packetIdValue = formData.get("packetId");
   if (!file) return { error: "Archivo requerido." };
+  if (
+    typeof packetIdValue !== "string" ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(packetIdValue)
+  ) {
+    return { error: "Identificador de carga inválido." };
+  }
 
   if (file.type !== "application/pdf") {
     return { error: "Solo se aceptan archivos PDF." };
@@ -82,10 +98,22 @@ export async function uploadLeaseDocument(
   }
 
   const fileHash = computeSha256(buffer);
-  const packetId = crypto.randomUUID();
+  const packetId = packetIdValue;
   const storagePath = `packets/${packetId}/lease_original.pdf`;
 
-  const supabase = await createClient();
+  const { error: reservationError } = await supabase.rpc(
+    "reserve_lease_packet_upload",
+    { p_packet_id: packetId, p_document_hash: fileHash },
+  );
+  if (reservationError) {
+    const conflict = reservationError.message.includes("reservation_conflict");
+    return {
+      error: conflict
+        ? "La reserva de carga entra en conflicto con otro archivo."
+        : "No se pudo reservar la carga del documento.",
+    };
+  }
+
   const { error: uploadError } = await supabase.storage
     .from("documents")
     .upload(storagePath, buffer, {
@@ -93,8 +121,26 @@ export async function uploadLeaseDocument(
       upsert: false,
     });
 
-  if (uploadError) {
-    return { error: `Error al subir: ${uploadError.message}` };
+  const verification = await verifyCanonicalUpload(
+    supabase,
+    storagePath,
+    fileHash,
+  );
+  if (!verification.ok) {
+    if (uploadError) {
+      return { error: `Error al subir: ${uploadError.message}` };
+    }
+    return { error: verification.error };
+  }
+
+  const admin = createAdminClient();
+  const { error: stateError } = await admin.rpc("mark_lease_packet_uploaded", {
+    p_packet_id: packetId,
+    p_actor_id: userId,
+    p_document_hash: fileHash,
+  });
+  if (stateError) {
+    return { error: "El documento se cargó, pero no se pudo confirmar. Vuelva a intentarlo." };
   }
 
   return { data: { storagePath, fileHash, packetId } };
@@ -117,8 +163,6 @@ export async function createLeasePacket(
   const data = parsed.data;
 
   const supabase = await createClient();
-  const admin = createAdminClient();
-
   // Duplicate check
   const { data: dupResult } = await supabase.rpc("check_duplicate_lease", {
     p_property_address: data.property.address,
@@ -152,82 +196,29 @@ export async function createLeasePacket(
   const propertyProvince = normalizeCoverageText(coveredProvince);
   const propertyDepartment = normalizeCoverageText(data.property.department);
 
-  // Insert lease_packets (session client -- RLS: created_by = auth.uid())
-  const { error: packetError } = await supabase.from("lease_packets").insert({
-    id: data.packetId,
-    created_by: userId,
-    status: "draft",
-    property_address: data.property.address,
-    property_unit: data.property.unit ?? null,
-    district: data.property.district,
-    province: propertyProvince,
-    department: propertyDepartment,
-    rental_amount: data.leaseTerms.monthlyRent,
-    deposit_amount: data.leaseTerms.depositAmount,
-    lease_start_date: data.leaseTerms.startDate,
-    lease_end_date: data.leaseTerms.expirationDate,
-    document_hash: data.fileHash,
+  const { error: finalizeError } = await supabase.rpc("finalize_lease_packet", {
+    p_packet_id: data.packetId,
+    p_property_address: data.property.address,
+    p_property_unit: data.property.unit ?? "",
+    p_district: data.property.district,
+    p_province: propertyProvince,
+    p_department: propertyDepartment,
+    p_rental_amount: data.leaseTerms.monthlyRent,
+    p_deposit_amount: data.leaseTerms.depositAmount,
+    p_lease_start: data.leaseTerms.startDate,
+    p_lease_end: data.leaseTerms.expirationDate,
+    p_signers: data.signers.map((signer) => ({
+      role_in_lease: signer.roleInLease,
+      signer_email: signer.email,
+      signer_full_name: signer.fullName,
+      signer_dni: signer.dni,
+      signer_whatsapp: signer.whatsapp,
+    })),
   });
 
-  if (packetError) {
-    return { error: `Error al crear paquete: ${packetError.message}` };
+  if (finalizeError) {
+    return { error: `Error al finalizar paquete: ${finalizeError.message}` };
   }
-
-  // Insert signers (session client -- RLS: packet_id in own packets)
-  const signerRows = data.signers.map((s) => ({
-    packet_id: data.packetId,
-    role_in_lease: s.roleInLease,
-    signer_email: s.email,
-    signer_full_name: s.fullName,
-    signer_dni: s.dni,
-    signer_whatsapp: s.whatsapp,
-    status: "invited",
-  }));
-
-  const { error: signerError } = await supabase
-    .from("packet_signers")
-    .insert(signerRows);
-
-  if (signerError) {
-    return { error: `Error al agregar firmantes: ${signerError.message}` };
-  }
-
-  // Insert document record (session client)
-  await supabase.from("packet_documents").insert({
-    packet_id: data.packetId,
-    document_type: "lease_original",
-    storage_path: data.storagePath,
-    file_hash: data.fileHash,
-    uploaded_by: userId,
-  });
-
-  // Audit log (admin client -- service_role only)
-  await admin.from("packet_audit_log").insert({
-    packet_id: data.packetId,
-    actor_id: userId,
-    action: "packet_created",
-    metadata: {
-      property_address: data.property.address,
-      normalized_key: normalizeAddressKey(
-        data.property.address,
-        data.property.unit,
-        data.property.district,
-      ),
-    },
-  });
-
-  await admin.from("packet_audit_log").insert({
-    packet_id: data.packetId,
-    actor_id: userId,
-    action: "document_hash_recorded",
-    metadata: {
-      stage: "initial_upload",
-      algorithm: "SHA-256",
-      hash: data.fileHash,
-      storage_path: data.storagePath,
-      document_type: "lease_original",
-    },
-  });
 
   revalidatePath("/agente");
   return { data: { packetId: data.packetId } };

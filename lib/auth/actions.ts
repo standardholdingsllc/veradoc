@@ -15,7 +15,6 @@ import {
   createSignerAccountSchema,
   googleRealtorSignupSchema,
   loginSchema,
-  notaryInviteSchema,
   realtorSignupSchema,
   rejectRealtorSchema,
 } from "@/lib/auth/schemas";
@@ -188,108 +187,6 @@ export async function signupRealtor(
   void notifyRealtorSignupReceived({ email: v.email, fullName: v.fullName });
 
   return {};
-}
-
-// ---------------------------------------------------------------------------
-// Accept notary invitation (two-token handoff)
-// ---------------------------------------------------------------------------
-
-export async function acceptNotaryInvite(
-  data: {
-    token: string;
-    password: string;
-    fullName: string;
-    dni?: string;
-    accreditationNumber?: string;
-    province: string;
-    department?: string;
-    phone?: string;
-  },
-): Promise<{ error?: string; redirect?: string }> {
-  const parsed = notaryInviteSchema.safeParse(data);
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0].message };
-  }
-  const v = parsed.data;
-
-  if (!(await isAllowedRequestSurface(["notary", "marketing"]))) {
-    return { error: "La invitación debe abrirse en notario.veradoc.pe." };
-  }
-
-  const supabase = await createClient();
-  const admin = createAdminClient();
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return { error: "Sesión inválida. Utilice el enlace de invitación nuevamente." };
-  }
-
-  const { data: invitations, error: lookupError } = await supabase.rpc(
-    "lookup_invitation",
-    { p_token: v.token },
-  );
-
-  if (lookupError || !invitations || invitations.length === 0) {
-    return { error: "Invitación inválida, expirada o ya utilizada." };
-  }
-
-  const invitation = invitations[0];
-
-  if (invitation.email.toLowerCase() !== user.email?.toLowerCase()) {
-    return { error: "Esta invitación no corresponde a su cuenta." };
-  }
-
-  const { error: passwordError } = await supabase.auth.updateUser({
-    password: v.password,
-  });
-
-  if (passwordError) {
-    return { error: "Error al establecer la contraseña." };
-  }
-
-  const { error: metaError } = await admin.auth.admin.updateUserById(user.id, {
-    app_metadata: { role: "notary" as ProfileRole, status: "active" },
-  });
-
-  if (metaError) {
-    return { error: "Error al configurar la cuenta de notario." };
-  }
-
-  const { error: profileError } = await admin.from("profiles").insert({
-    id: user.id,
-    role: "notary",
-    status: "active",
-    full_name: v.fullName,
-    email: user.email!,
-    phone: v.phone || null,
-    dni: v.dni || null,
-    accreditation_number: v.accreditationNumber || null,
-    province: v.province,
-    department: v.department || null,
-    invited_by: invitation.invited_by || null,
-  });
-
-  if (profileError) {
-    await admin.auth.admin.updateUserById(user.id, {
-      app_metadata: { role: null, status: null },
-    });
-    return { error: "Error al crear el perfil de notario. Intente nuevamente." };
-  }
-
-  const { error: acceptError } = await admin
-    .from("invitations")
-    .update({ status: "accepted", accepted_at: new Date().toISOString() })
-    .eq("id", invitation.id);
-
-  if (acceptError) {
-    console.error("Failed to mark invitation as accepted:", acceptError);
-  }
-
-  return { redirect: buildAbsoluteUrl(getPublicTargetForRole("notary")) };
 }
 
 // ---------------------------------------------------------------------------

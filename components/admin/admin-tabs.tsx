@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Tabs } from "@/components/ui/tabs";
 import { OverviewMetrics } from "./overview-metrics";
 import { RealtorQueue } from "./realtor-queue";
-import { NotaryInvitations } from "./notary-invitations";
 import { NotaryCoverage } from "./notary-coverage";
 import { UserManagement } from "./user-management";
 import { NotaryPayouts } from "./notary-payouts";
@@ -26,17 +25,6 @@ interface AdminTabsProps {
     license_number: string | null;
     phone: string | null;
     created_at: string | null;
-  }[];
-  invitations: {
-    id: string;
-    email: string;
-    role: string;
-    status: string;
-    expires_at: string;
-    accepted_at: string | null;
-    metadata: Record<string, unknown> | null;
-    created_at: string;
-    invited_by: string;
   }[];
   coverage: {
     id: string;
@@ -115,7 +103,6 @@ interface AdminTabsProps {
 
 export function AdminTabs({
   pendingRealtors,
-  invitations,
   coverage,
   notaries,
   metrics,
@@ -137,9 +124,6 @@ export function AdminTabs({
       {activeTab === "overview" && <OverviewMetrics metrics={metrics} />}
       {activeTab === "realtors" && (
         <RealtorQueue pendingRealtors={pendingRealtors} />
-      )}
-      {activeTab === "invitations" && (
-        <NotaryInvitations invitations={invitations} />
       )}
       {activeTab === "coverage" && (
         <NotaryCoverage coverage={coverage} notaries={notaries} />

@@ -9,6 +9,9 @@ import { getPublicTargetForRole } from "@/lib/routing/targets";
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const { searchParams, origin } = requestUrl;
+  if (searchParams.has("invitation")) {
+    return new NextResponse(null, { status: 404 });
+  }
   const surface = classifyHost(requestUrl.host, {
     vercelEnvironment: process.env.VERCEL_ENV,
     vercelHostname: [
@@ -18,7 +21,6 @@ export async function GET(request: Request) {
   }).surface;
 
   const code = searchParams.get("code");
-  const invitationToken = searchParams.get("invitation");
   const next = searchParams.get("next") ?? "/";
 
   if (code) {
@@ -26,14 +28,6 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      // If this callback carries a VeraDoc invitation token (notary invite flow),
-      // redirect to the invite acceptance page instead of the default destination.
-      if (invitationToken) {
-        return NextResponse.redirect(
-          `${origin}${AUTH_ROUTES.invitePrefix}/${invitationToken}`,
-        );
-      }
-
       // For non-invite flows, check if the user has a role to route them correctly.
       const {
         data: { user },

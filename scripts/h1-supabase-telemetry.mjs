@@ -87,15 +87,15 @@ function readConfig() {
 export function sanitizeUrl(rawUrl) {
   try {
     const url = new URL(rawUrl);
-    let pathname = url.pathname
-      .replace(/\/firma\/[^/]+/gi, "/firma/[token]")
-      .replace(/\/auth\/invite\/[^/]+/gi, "/auth/invite/[token]");
+    const pathname = url.pathname.replace(
+      /\/firma\/[^/]+/gi,
+      "/firma/[token]",
+    );
     return `${url.origin}${pathname}`;
   } catch {
     return String(rawUrl)
       .replace(/([?&][^=\s]+)=([^&\s]+)/g, "$1=[redacted]")
-      .replace(/\/firma\/[^/?\s]+/gi, "/firma/[token]")
-      .replace(/\/auth\/invite\/[^/?\s]+/gi, "/auth/invite/[token]");
+      .replace(/\/firma\/[^/?\s]+/gi, "/firma/[token]");
   }
 }
 
@@ -112,8 +112,7 @@ export function sanitizeText(value, maxLength = 2_000) {
     .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "[email-redacted]")
     .replace(/(password|passwd|access_token|refresh_token|cookie)(\s*[:=]\s*)[^\s,;}]+/gi, "$1$2[redacted]")
     .replace(/(sb-[A-Za-z0-9_-]+-auth-token(?:\.\d+)?)(=)[^;\s]+/gi, "$1$2[redacted]")
-    .replace(/\/firma\/[^/?\s]+/gi, "/firma/[token]")
-    .replace(/\/auth\/invite\/[^/?\s]+/gi, "/auth/invite/[token]");
+    .replace(/\/firma\/[^/?\s]+/gi, "/firma/[token]");
   return text.length > maxLength ? `${text.slice(0, maxLength)}…[truncated]` : text;
 }
 
