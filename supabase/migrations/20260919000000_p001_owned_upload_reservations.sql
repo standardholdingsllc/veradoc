@@ -19,8 +19,6 @@ GRANT veradoc_packet_rpc_owner TO postgres;
 -- CREATE is required transiently for PostgreSQL function ownership transfer.
 -- It is revoked at the end of this migration before the transaction commits.
 GRANT USAGE, CREATE ON SCHEMA public TO veradoc_packet_rpc_owner;
-GRANT USAGE ON SCHEMA auth TO veradoc_packet_rpc_owner;
-GRANT EXECUTE ON FUNCTION auth.uid() TO veradoc_packet_rpc_owner;
 GRANT SELECT ON public.profiles, public.notary_coverage, public.registry_entries TO veradoc_packet_rpc_owner;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.lease_packets TO veradoc_packet_rpc_owner;
 GRANT SELECT, INSERT ON public.packet_signers, public.packet_documents, public.packet_audit_log TO veradoc_packet_rpc_owner;
@@ -62,7 +60,10 @@ SECURITY DEFINER
 SET search_path = ''
 AS $$
 DECLARE
-  v_actor uuid := auth.uid();
+  v_actor uuid := COALESCE(
+    NULLIF(current_setting('request.jwt.claim.sub', true), ''),
+    NULLIF(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'
+  )::uuid;
   v_packet public.lease_packets%ROWTYPE;
 BEGIN
   IF v_actor IS NULL OR NOT EXISTS (
@@ -181,7 +182,10 @@ SECURITY DEFINER
 SET search_path = ''
 AS $$
 DECLARE
-  v_actor uuid := auth.uid();
+  v_actor uuid := COALESCE(
+    NULLIF(current_setting('request.jwt.claim.sub', true), ''),
+    NULLIF(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'
+  )::uuid;
   v_packet public.lease_packets%ROWTYPE;
   v_signer jsonb;
   v_path text := 'packets/' || p_packet_id::text || '/lease_original.pdf';
