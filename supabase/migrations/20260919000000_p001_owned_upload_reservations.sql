@@ -23,6 +23,7 @@ GRANT SELECT ON public.profiles, public.notary_coverage, public.registry_entries
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.lease_packets TO veradoc_packet_rpc_owner;
 GRANT SELECT, INSERT ON public.packet_signers, public.packet_documents, public.packet_audit_log TO veradoc_packet_rpc_owner;
 GRANT SELECT ON public.payments, public.notary_assignments, public.notary_certifications TO veradoc_packet_rpc_owner;
+GRANT USAGE ON SEQUENCE public.lease_packet_code_seq TO veradoc_packet_rpc_owner;
 
 ALTER TABLE public.lease_packets
   ADD COLUMN IF NOT EXISTS creation_state text NOT NULL DEFAULT 'finalized',
