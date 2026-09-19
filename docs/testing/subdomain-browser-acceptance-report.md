@@ -1541,7 +1541,9 @@ Resend's documented provider-test recipients were selected for synthetic signer 
 
 The clean PASS artifact for the signing and separation checks is `artifacts/provider-signing-token-production/evidence-2026-09-18T05-28-25-423Z.json`. The customer upload failure artifact is `artifacts/provider-e2e-production/evidence-2026-09-18T05-17-02-865Z.json`. Token paths, raw token values, credentials, cookie values, and UUIDs are sanitized or omitted.
 
-### 35c. Failure P-001 — authenticated realtor upload denied by storage RLS
+### 35c. Historical failure P-001 — authenticated realtor upload denied by storage RLS
+
+> **Resolved in production on 2026-09-19.** The observations below remain the accurate record for deployment `dpl_czHsnN2pTCXCtVx8SrMd49cVM759`. Section 39 contains the compatibility rollout, two-clean-context acceptance evidence, database/Storage verification, and privilege hardening that supersede this failure disposition.
 
 - **Severity:** Critical / release-blocking. A customer cannot create the first contract packet through the production wizard.
 - **Exact reproduction steps:** (1) Start a clean Chrome context. (2) authenticate `qa-active-realtor` at `https://app.veradoc.pe/auth/login`. (3) Open `/agente/nuevo-paquete`. (4) Select a valid PDF whose first page says `SYNTHETIC TEST - NOT A REAL CONTRACT`. (5) Observe the upload toast. (6) Repeat from a second independently authenticated clean context with a separately generated PDF.
@@ -1616,10 +1618,10 @@ These are PASS only for the historical invalid-token failure routing that was ob
 
 Database-side evidence was available through the authenticated Supabase Management API: deployed storage policies, function inventory, exact synthetic row counts, unchanged token status, and final cleanup were queried. Exact-window Auth logs, Vercel function logs, provider delivery events, webhook events, and provider action telemetry were not captured for this window. Therefore browser/database checks are reported at their observed scope only, and the overall provider workflow remains **PARTIAL**.
 
-### 35i. Final disposition
+### 35i. Final disposition for the original 2026-09-18 run
 
 - **PASS:** current release/surfaces, focused local suite (170/170), authenticated read-only preflight, invalid callback failure routing, fresh/copy/legacy signing entry, token non-consumption, demo/production token separation, and fixture cleanup.
-- **FAIL:** initial authenticated realtor PDF upload (P-001); production OTP secret-safe provider behavior (P-002, source-proven); payment application/schema compatibility (P-003, deployed-schema proven).
+- **FAIL at the time of this run:** initial authenticated realtor PDF upload (P-001, subsequently resolved and accepted in section 39); production OTP secret-safe provider behavior (P-002, source-proven); payment application/schema compatibility (P-003, deployed-schema proven).
 - **BLOCKED/PARTIAL:** magic links, confirmation/recovery and positive OAuth, complete customer signing, notary certification, real provider redirects/callbacks/webhooks, new privileged-mutation matrix, and exact-window provider/auth telemetry.
 - **No PASS is claimed** for any provider-backed action lacking authentication, provider, audit, or telemetry evidence.
 
@@ -1777,3 +1779,102 @@ Sanitized artifact: `artifacts/auth-callback-acceptance/2026-09-19T00-28-45-901Z
 - **Recommended next diagnostic:** Repeat with a read-only token having `analytics_logs_read`, allow a retention delay if required, and rerun the same bounded aggregate over a window containing a completed positive exchange.
 
 This run does not close the requested positive callback gates. The invalid-code behavior remains the only callback behavior directly verified in this focused run; Google initiation is evidence of provider reachability only, not OAuth success.
+
+## 39. P-001 owned-upload remediation rollout and production acceptance — 2026-09-19
+
+**Current result: P-001 PASS for reservation, upload, and atomic packet finalization.** The original failure in section 35c is resolved. The acceptance run also reached and independently reproduced P-003 at the payment boundary; no payment-provider request was sent. P-002 and downstream signing/notary/provider gates are not closed by this result.
+
+### 39a. Implemented lifecycle
+
+The deployed flow now reserves an owned `lease_packets` row before writing the PDF to Storage:
+
+1. the browser supplies a stable packet UUID;
+2. `reserve_lease_packet_upload` creates or reuses an owned `uploading` reservation;
+3. the server derives `packets/{packetId}/lease_original.pdf` and uploads through the authenticated client;
+4. the service role marks the reservation `uploaded` after verifying the stored object hash;
+5. `finalize_lease_packet` locks and revalidates the reservation, writes the packet fields, two signers, original-document row, and audit events in one transaction, then marks it `finalized`;
+6. incomplete reservations remain excluded from the realtor dashboard and are eligible for the bounded expiry/claim cleanup worker.
+
+The application does not accept an arbitrary client storage path. Existing packet rows defaulted to `creation_state = finalized`; business `status` remains independently `draft` until later lifecycle transitions.
+
+### 39b. Production migration corrections discovered during rollout
+
+The compatibility migration was not marked applied until its catalog state was independently verified. Several hosted-PostgreSQL details were found and corrected during the rollout:
+
+- function ownership transfer required the non-login RPC owner to be granted to the migration role and required transient `CREATE` on `public`; the schema-creation privilege is revoked before commit;
+- Supabase default function privileges had left explicit API-role grants after a `PUBLIC` revoke, so each RPC now revokes `PUBLIC`, `anon`, `authenticated`, and `service_role` before granting only its intended caller;
+- the hosted migration role could not confer access to the managed `auth` schema on the custom owner, so authenticated RPCs derive the actor UUID from the trusted request JWT settings rather than calling `auth.uid()`;
+- the existing packet-code trigger requires `nextval`, so the owner received only `USAGE` on `public.lease_packet_code_seq`.
+
+A rollback-only production invocation then proved that `reserve_lease_packet_upload` returned an `uploading` reservation without retaining its diagnostic row.
+
+### 39c. Deployment and build evidence
+
+| Check | Result |
+| --- | --- |
+| Compatibility migration | **PASS** — `20260919000000` is applied and recorded in production |
+| Application deployment used for browser acceptance | **PASS** — `dpl_A6om2gHkvEUiren8wQ4BbRGrEmd3` |
+| Final GitHub-aligned production deployment | **PASS** — `dpl_7upsB4QrXbDGSrWamf33KMMY985x`, commit `ad661b0`, status `Ready` |
+| Vercel build | **PASS** — Next.js `16.2.6` compiled, TypeScript completed, and 46 static pages generated |
+| Hardening migration | **PASS** — `20260919010000` is applied and recorded in production |
+| Unrelated commercial migration | **NOT APPLIED** — `20260910160000` remains intentionally pending |
+| Canonical domains | **PASS** — apex, `www`, demo, and app login returned HTTP 200; unauthenticated notary/admin requests resolved to their host-local login routes |
+
+The final production deployment owns the apex, `www`, app, demo, notary, admin, and Vercel production aliases.
+
+### 39d. Two-clean-context browser acceptance
+
+Sanitized artifact: `artifacts/provider-e2e-production/evidence-2026-09-19T04-34-35-308Z.json`.
+
+The harness ran in Chrome `152.0.7977.83` against `https://app.veradoc.pe/agente/nuevo-paquete` from `2026-09-19T04:34:35.308Z` through `04:35:03.170Z`. Each context created a separate synthetic PDF and authenticated independently as the active QA realtor.
+
+| Check | Context 1 | Context 2 |
+| --- | --- | --- |
+| Active realtor authentication | **PASS** | **PASS** |
+| Initial PDF reservation/upload | **PASS** | **PASS** |
+| Filename plus `Cargado` shown | **PASS** | **PASS** |
+| Advance beyond step 1 | **PASS** | **PASS** |
+| Contract and two signer forms | **PASS** | **PASS** |
+| Atomic packet finalization | **PASS** | **PASS** |
+| Payment boundary reached | **PASS** | **PASS** |
+| External Mercado Pago request | **0 requests** | **0 requests** |
+| Observed terminal condition | Missing `claim_commercial_payment_attempt` RPC | Missing `claim_commercial_payment_attempt` RPC |
+
+The harness calls this terminal condition `EXPECTED_FAILURE_REPRODUCED` and the aggregate result `FAIL_CONFIRMED` because it was originally built to prove P-003 safely before contacting Mercado Pago. Those labels do **not** mean P-001 failed: both contexts completed the P-001 upload and finalization path before reaching the separate payment-schema incompatibility.
+
+### 39e. Independent database and Storage verification
+
+The two synthetic addresses from the successful run were queried through the authenticated Supabase Management API. Each packet independently had:
+
+- `creation_state = finalized` and business `status = draft`;
+- exactly one `lease_original` document row;
+- the canonical `packets/{packetId}/lease_original.pdf` path;
+- a document hash matching `lease_packets.document_hash`;
+- exactly one corresponding object in the private `documents` bucket;
+- exactly two signer rows; and
+- exactly two audit rows.
+
+The acceptance environment initially contained no active notary-coverage rows, which correctly disabled step 2. One coverage row tied to the existing active QA notary was inserted solely to complete the synthetic acceptance path. The exact temporary row was deleted after the run, and the verification count was zero.
+
+Two reservations from the earlier coverage-blocked attempt remain non-finalized and hidden from the dashboard. They retain their ordinary 24-hour expiration and are candidates for the scheduled cleanup worker. Their eventual object/row deletion was not observed in this acceptance window, so expiry cleanup remains **PARTIAL evidence**, not PASS. The two finalized synthetic packets remain as acceptance evidence.
+
+### 39f. Privilege-hardening verification
+
+After the two-context browser run passed, migration `20260919010000` revoked direct authenticated mutations. Production catalog checks confirmed:
+
+- authenticated has no direct `INSERT` or `UPDATE` on `lease_packets`;
+- authenticated has no direct `INSERT` or `UPDATE` on `packet_documents`;
+- authenticated has no direct `INSERT` on `packet_signers`;
+- authenticated retains EXECUTE on reservation and finalization only;
+- anonymous has no reservation EXECUTE privilege;
+- service role retains only the intended upload-marking and cleanup RPC execution;
+- all five RPCs are owned by the non-login `veradoc_packet_rpc_owner` and use an empty function `search_path`;
+- the owner has no `CREATE` privilege on `public`; and
+- the owner has only the required sequence usage for packet-code allocation.
+
+### 39g. Current disposition
+
+- **PASS:** P-001 owned reservation, authenticated Storage upload, visible `Cargado`, retry-stable packet identity in the deployed client, atomic packet finalization, canonical document row/path/hash, signer/audit creation, wrong-role RPC exposure hardening, production build, deployment, and canonical-domain smoke checks.
+- **PARTIAL:** timed expiry cleanup. The claim/complete implementation and privileges are deployed, but the two newly abandoned reservations had not expired during this acceptance window.
+- **FAIL / still open:** P-003. Both clean contexts reached the payment action and received the missing `claim_commercial_payment_attempt` schema-cache error before any provider request. The commercial migration remains intentionally unapplied.
+- **UNCHANGED:** P-002 and the positive signing, OTP, payment-provider, webhook, notary-certification, and exact-window provider telemetry gates remain governed by their own evidence and are not closed by P-001.
