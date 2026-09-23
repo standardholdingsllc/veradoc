@@ -16,15 +16,16 @@ into the demo project. Configure the demo deployment with:
 - `DEMO_TOKEN_ENCRYPTION_KEY`
 - `DEMO_CONTROL_SECRET`
 - `DEMO_EMAIL_API_KEY` and `DEMO_EMAIL_FROM` only when sandbox email is enabled
-- the ordinary typed origins, with `DEMO_ORIGIN=https://veradoc-demo.vercel.app`
+- the ordinary typed origins, with `DEMO_ORIGIN=https://demo.veradoc.pe`
 
 Configure the admin deployment with `DEMO_CONTROL_ORIGIN` and the same
 `DEMO_CONTROL_SECRET`. The secret is used only by the authenticated, MFA-gated
 admin server action; it is never exposed to browser JavaScript.
 
-The Vercel project URL is the initial test origin. Moving `demo.veradoc.pe`
-from the existing project is a separate subdomain-transition rollout gate;
-when that move is approved, update both origin variables together.
+`demo.veradoc.pe` is assigned to the isolated demo project. Its
+`veradoc-demo.vercel.app` alias remains available for staging and recovery;
+preview and development origins still use that alias rather than the public
+canonical hostname.
 
 Generate independent random values for the encryption and control secrets. Do
 not reuse any production provider secret.

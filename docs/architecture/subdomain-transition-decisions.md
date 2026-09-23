@@ -45,6 +45,24 @@ capability model, separate deployment, email boundary, and kill switch remain.
 - Required tests: Live Redis cross-browser acceptance, expiry and revocation, atomic conflict behavior, email idempotency/rate limiting, and kill-switch 404 behavior.
 - Follow-up trigger: Reassess capacity and polling if the free command quota is approached.
 
+## SD-DEC-011 — Canonical demo domain moves to the isolated project
+
+- Date: 2026-09-23
+- Owner: VeraDoc engineering
+- Work package: WP-6 / WP-8
+- Problem: The shared demo works on the isolated Vercel URL, but the public `demo.veradoc.pe` hostname still serves the older browser-local demo from the production project.
+- Chosen option: Assign only `demo.veradoc.pe` to `veradoc-demo` after setting its production `DEMO_ORIGIN` and the admin project's production `DEMO_CONTROL_ORIGIN` to the canonical HTTPS origin and verifying the new production deployment.
+- Rejected options: Continue serving the old demo at the public URL or move the entire `veradoc.pe` domain ownership or other application subdomains.
+- Security impact: The public demo receives no production Supabase, payment, signing-provider, or messaging credentials; its synthetic workspace state remains isolated and expiring.
+- Authentication/cookie impact: Demo capability cookies remain host-only. Existing browser-local demo state does not migrate; presenters must start a new workspace.
+- Generated-link impact: Newly copied signer and notary links use `https://demo.veradoc.pe`; previously generated `veradoc-demo.vercel.app` links remain valid on that alias until their workspace expires.
+- External-system impact: Vercel project assignment changes for this one subdomain; Vercel-managed DNS and TLS remain unchanged. No provider callback or Supabase setting changes.
+- Migration compatibility: The old demo is synthetic and transient. Its in-browser state is not imported into Redis.
+- Observability: Verify project assignment, TLS, demo rewrite, noindex, route isolation, and the three-browser presenter-to-signer-to-notary flow on the canonical domain.
+- Rollback: Use Vercel's project-domain move API to move `demo.veradoc.pe` from `veradoc-demo` back to project `veradoc` (`prj_bvdafikrFeX68sFINMCOnHCFBLZt`); keep the isolated project alias available for access to workspaces created before rollback. Revert the two production origin variables if the rollback persists.
+- Required tests: Public route and negative API checks, generated canonical links, cross-browser signer completion and notary review, reset revocation, and existing routing/unit tests.
+- Follow-up trigger: Revisit the assignment if production demo traffic or domain behavior regresses.
+
 ## SD-DEC-009 historical details
 
 - Date: 2026-09-21
