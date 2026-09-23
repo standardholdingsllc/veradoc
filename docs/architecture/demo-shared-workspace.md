@@ -1,0 +1,61 @@
+# Shared demo workspace deployment
+
+The demo is a separately deployed VeraDoc surface. Its shared workspace state
+uses a dedicated Upstash Redis resource connected only to the `veradoc-demo`
+Vercel project. It must never receive production Supabase credentials, payment
+credentials, signing-provider credentials, or production storage credentials.
+
+## Deployment configuration
+
+The Upstash resource is provisioned on the Free plan in `iad1` with automatic
+upgrades disabled. Vercel injects `KV_REST_API_URL` and `KV_REST_API_TOKEN`
+into the demo project. Configure the demo deployment with:
+
+- `KV_REST_API_URL` and `KV_REST_API_TOKEN` from the Vercel integration
+- `DEMO_ISOLATED_DEPLOYMENT=true`
+- `DEMO_TOKEN_ENCRYPTION_KEY`
+- `DEMO_CONTROL_SECRET`
+- `DEMO_EMAIL_API_KEY` and `DEMO_EMAIL_FROM` only when sandbox email is enabled
+- the ordinary typed origins, with `DEMO_ORIGIN=https://veradoc-demo.vercel.app`
+
+Configure the admin deployment with `DEMO_CONTROL_ORIGIN` and the same
+`DEMO_CONTROL_SECRET`. The secret is used only by the authenticated, MFA-gated
+admin server action; it is never exposed to browser JavaScript.
+
+The Vercel project URL is the initial test origin. Moving `demo.veradoc.pe`
+from the existing project is a separate subdomain-transition rollout gate;
+when that move is approved, update both origin variables together.
+
+Generate independent random values for the encryption and control secrets. Do
+not reuse any production provider secret.
+
+Seed `veradoc:demo:v1:control` once with
+`{"enabled":true,"updatedAt":"1970-01-01T00:00:00.000Z","updatedBy":null}`.
+The demo fails closed if this key is missing. Workspace, capability, delivery,
+and rate-limit keys expire in Redis. Expiration is also checked in application
+code, so an expired capability is unusable even before Redis removes its key.
+
+The same codebase still contains production routes. The demo deployment uses
+`DEMO_ISOLATED_DEPLOYMENT=true`, which allows it to build without production
+Supabase credentials; those routes cannot access production data there.
+
+## Email boundary
+
+The only permitted recipients are:
+
+- `jonahllarson@gmail.com`
+- `Kimberlydayanara08@gmail.com` (normalized case-insensitively)
+
+The UI limits selection to those recipients and the server enforces the same
+allowlist. Deliveries are idempotent and limited to five per recipient per
+workspace in a rolling 15-minute window. The sandbox email key must be distinct
+from `EMAIL_API_KEY`.
+
+## Kill switch
+
+An active admin who satisfies the configured MFA requirement can use the
+`Demo` tab in the admin dashboard. Disabling the demo updates the isolated
+control row through the authenticated server-to-server channel. Demo layouts
+and every demo API check that row and return a non-sensitive 404 while disabled.
+
+If the demo backend or control row is unavailable, the public demo fails closed.

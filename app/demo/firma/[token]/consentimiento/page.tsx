@@ -10,7 +10,7 @@ import { useSignerContext } from "@/components/signing/use-signer-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ERRORS, SIGNER, TOAST } from "@/lib/i18n/labels";
-import { acceptConsent } from "@/lib/services/signer-service";
+import { useDemoWorkspace } from "@/components/demo/demo-workspace-provider";
 import { cn } from "@/lib/utils";
 
 const CONSENT_PARAGRAPHS = [
@@ -30,6 +30,7 @@ const PAST_CONSENT_STATUSES = new Set([
 
 export default function SignerConsentimientoPage() {
   const router = useRouter();
+  const { mutateSigner } = useDemoWorkspace();
   const context = useSignerContext();
   const [accepted, setAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -50,20 +51,20 @@ export default function SignerConsentimientoPage() {
     );
   }
 
-  const { basePath, packet, signer } = context;
+  const { basePath, signer, token } = context;
 
   if (PAST_CONSENT_STATUSES.has(signer.status)) {
     return null;
   }
 
-  function handleContinue() {
+  async function handleContinue() {
     if (!accepted || loading) {
       return;
     }
 
     setLoading(true);
     try {
-      acceptConsent(signer.id, packet.id);
+      await mutateSigner(token, { type: "accept_consent" });
       toast.success(TOAST.consentimientoAceptado);
       router.push(`${basePath}/identidad`);
     } catch {

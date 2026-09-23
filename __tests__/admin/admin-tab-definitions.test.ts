@@ -9,6 +9,7 @@ describe("admin tab definitions", () => {
       "realtors",
       "coverage",
       "users",
+      "demo",
     ]);
   });
 
@@ -21,6 +22,7 @@ describe("admin tab definitions", () => {
       "finance",
       "refunds",
       "users",
+      "demo",
     ]);
   });
 });

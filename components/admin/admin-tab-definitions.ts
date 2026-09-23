@@ -10,6 +10,7 @@ export const ADMIN_TABS = [
   { id: "finance", label: "Finanzas", requiresCommercialAccounting: true },
   { id: "refunds", label: "Reembolsos", requiresCommercialAccounting: true },
   { id: "users", label: "Usuarios", requiresCommercialAccounting: false },
+  { id: "demo", label: "Demo", requiresCommercialAccounting: false },
 ] as const;
 
 export function getAdminTabs(commercialAccountingEnabled: boolean) {

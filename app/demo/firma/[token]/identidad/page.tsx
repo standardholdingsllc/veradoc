@@ -21,12 +21,8 @@ import {
   SIGNER,
   TOAST,
 } from "@/lib/i18n/labels";
-import {
-  completeLiveness,
-  uploadIdentity,
-  resumeAfterCorrection,
-} from "@/lib/services/signer-service";
 import { cn } from "@/lib/utils";
+import { useDemoWorkspace } from "@/components/demo/demo-workspace-provider";
 
 type UploadKey = "dniFront" | "dniBack" | "selfie";
 
@@ -52,6 +48,7 @@ const PAST_IDENTITY_STATUSES = new Set([
 
 export default function SignerIdentidadPage() {
   const router = useRouter();
+  const { mutateSigner } = useDemoWorkspace();
   const context = useSignerContext();
   const [uploads, setUploads] = useState<Record<UploadKey, UploadState>>({
     dniFront: "idle",
@@ -91,13 +88,13 @@ export default function SignerIdentidadPage() {
     );
   }
 
-  const { basePath, packet, signer } = context;
+  const { basePath, signer, token } = context;
 
   if (PAST_IDENTITY_STATUSES.has(signer.status)) {
     return null;
   }
 
-  function handleVerifyIdentity() {
+  async function handleVerifyIdentity() {
     if (!allUploaded || loading) {
       return;
     }
@@ -105,12 +102,12 @@ export default function SignerIdentidadPage() {
     setLoading(true);
     try {
       if (signer.status === "needs_correction") {
-        resumeAfterCorrection(signer.id, packet.id, "identity_recheck");
-        uploadIdentity(signer.id, packet.id);
+        await mutateSigner(token, { type: "resume_after_correction", scope: "identity_recheck" });
+        await mutateSigner(token, { type: "upload_identity" });
       } else if (signer.status === "consent_accepted") {
-        uploadIdentity(signer.id, packet.id);
+        await mutateSigner(token, { type: "upload_identity" });
       }
-      completeLiveness(signer.id, packet.id);
+      await mutateSigner(token, { type: "complete_liveness" });
       toast.success(TOAST.identidadVerificada);
       router.push(`${basePath}/revision`);
     } catch {

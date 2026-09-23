@@ -10,7 +10,7 @@ import { useSignerContext } from "@/components/signing/use-signer-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ERRORS, PAGE_TITLES, SIGNER, TOAST } from "@/lib/i18n/labels";
-import { verifyOtp } from "@/lib/services/signer-service";
+import { useDemoWorkspace } from "@/components/demo/demo-workspace-provider";
 import { cn } from "@/lib/utils";
 
 const PAST_OTP_STATUSES = new Set([
@@ -27,6 +27,7 @@ const PAST_OTP_STATUSES = new Set([
 
 export default function SignerVerificarPage() {
   const router = useRouter();
+  const { mutateSigner } = useDemoWorkspace();
   const context = useSignerContext();
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -47,13 +48,13 @@ export default function SignerVerificarPage() {
     );
   }
 
-  const { basePath, packet, signer } = context;
+  const { basePath, signer, token } = context;
 
   if (PAST_OTP_STATUSES.has(signer.status)) {
     return null;
   }
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!code.trim() || loading) {
       return;
@@ -61,7 +62,7 @@ export default function SignerVerificarPage() {
 
     setLoading(true);
     try {
-      verifyOtp(signer.id, packet.id, code.trim());
+      await mutateSigner(token, { type: "verify_otp", code: code.trim() });
       toast.success(TOAST.otpVerificado);
       router.push(`${basePath}/crear-cuenta`);
     } catch {

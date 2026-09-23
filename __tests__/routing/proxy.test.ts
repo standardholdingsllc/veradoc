@@ -147,6 +147,18 @@ describe("Proxy hostname routing", () => {
     expect(response.status).toBe(404);
   });
 
+  it("allows only the isolated demo API family on the demo hostname", async () => {
+    const allowed = await proxy(
+      new NextRequest("https://demo.veradoc.pe/api/demo/workspace", { method: "PUT" }),
+    );
+    expect(allowed.status).toBe(200);
+
+    const rejected = await proxy(
+      new NextRequest("https://demo.veradoc.pe/api/webhooks/firmeasy", { method: "POST" }),
+    );
+    expect(rejected.status).toBe(404);
+  });
+
   it("fails closed for unknown production hosts", async () => {
     const response = await proxy(new NextRequest("https://evil.example/"));
     expect(response.status).toBe(404);

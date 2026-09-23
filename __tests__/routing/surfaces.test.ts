@@ -60,4 +60,19 @@ describe("surface classification", () => {
     expect(result.surface).toBe("preview");
     expect(result.isProductionDeploymentHost).toBe(true);
   });
+
+  it("routes the isolated demo deployment host to the demo surface", () => {
+    const result = classifyHost("veradoc-demo.vercel.app", {
+      vercelEnvironment: "production",
+      vercelHostname: "veradoc-demo.vercel.app",
+      isolatedDemoDeployment: true,
+    });
+    expect(result.surface).toBe("demo");
+    expect(result.isProductionDeploymentHost).toBe(true);
+    expect(classifyHost("other-demo.vercel.app", {
+      vercelEnvironment: "production",
+      vercelHostname: "veradoc-demo.vercel.app",
+      isolatedDemoDeployment: true,
+    }).surface).toBe("unknown");
+  });
 });

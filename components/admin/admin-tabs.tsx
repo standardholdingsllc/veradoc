@@ -11,6 +11,7 @@ import { RefundPanel } from "./refund-panel";
 import { CommercialFinance } from "./commercial-finance";
 import type { PacketFinancialSummaryRow } from "@/lib/admin/queries";
 import { getAdminTabs } from "./admin-tab-definitions";
+import { DemoControl } from "./demo-control";
 
 interface AdminTabsProps {
   pendingRealtors: {
@@ -99,6 +100,7 @@ interface AdminTabsProps {
   financeRows: PacketFinancialSummaryRow[];
   commercialAccountingEnabled: boolean;
   initialTab?: string;
+  demoControl: { enabled: boolean; available: boolean; updatedAt?: string };
 }
 
 export function AdminTabs({
@@ -113,6 +115,7 @@ export function AdminTabs({
   financeRows,
   commercialAccountingEnabled,
   initialTab,
+  demoControl,
 }: AdminTabsProps) {
   const tabs = getAdminTabs(commercialAccountingEnabled);
   const [activeTab, setActiveTab] = useState(
@@ -137,6 +140,13 @@ export function AdminTabs({
       {commercialAccountingEnabled && activeTab === "refunds" && <RefundPanel />}
       {activeTab === "users" && (
         <UserManagement users={users} pageInfo={usersPageInfo} />
+      )}
+      {activeTab === "demo" && (
+        <DemoControl
+          initialEnabled={demoControl.enabled}
+          available={demoControl.available}
+          updatedAt={demoControl.updatedAt}
+        />
       )}
     </Tabs>
   );

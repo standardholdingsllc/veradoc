@@ -18,7 +18,7 @@ import {
   TOAST,
   UI,
 } from "@/lib/i18n/labels";
-import { reviewLease } from "@/lib/services/signer-service";
+import { useDemoWorkspace } from "@/components/demo/demo-workspace-provider";
 import { cn } from "@/lib/utils";
 
 const DEMO_PAGE_COUNT = 12;
@@ -32,6 +32,7 @@ const PAST_REVIEW_STATUSES = new Set([
 
 export default function SignerRevisionPage() {
   const router = useRouter();
+  const { mutateSigner } = useDemoWorkspace();
   const context = useSignerContext();
   const [reviewed, setReviewed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -52,20 +53,20 @@ export default function SignerRevisionPage() {
     );
   }
 
-  const { basePath, packet, signer, propertyAddress } = context;
+  const { basePath, packet, signer, propertyAddress, token } = context;
 
   if (PAST_REVIEW_STATUSES.has(signer.status)) {
     return null;
   }
 
-  function handleContinue() {
+  async function handleContinue() {
     if (!reviewed || loading) {
       return;
     }
 
     setLoading(true);
     try {
-      reviewLease(signer.id, packet.id);
+      await mutateSigner(token, { type: "review_lease" });
       router.push(`${basePath}/firmar`);
     } catch {
       toast.error(TOAST.errorGenerico);

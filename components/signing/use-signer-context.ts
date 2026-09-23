@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import type { LeasePacket, Signer } from "@/lib/domain/types";
 import { getSignerByToken } from "@/lib/services/signer-service";
 import { useSignerByToken, useUsers } from "@/lib/services/hooks";
@@ -18,6 +18,7 @@ export interface SignerContext {
 
 export function useSignerContext(): SignerContext | undefined {
   const params = useParams<{ token: string }>();
+  const pathname = usePathname();
   const token = params.token;
 
   const refreshKey = useSignerByToken(token) ?? token;
@@ -37,12 +38,12 @@ export function useSignerContext(): SignerContext | undefined {
 
     return {
       token,
-      basePath: `/firma/${token}`,
+      basePath: `${pathname.startsWith("/demo/") ? "/demo" : ""}/firma/${token}`,
       packet,
       signer,
       signerIndex,
       realtorName: realtor?.fullName ?? "Agente inmobiliario",
       propertyAddress: `${packet.property.address}${unit}, ${packet.property.district}`,
     };
-  }, [refreshKey, token, users]);
+  }, [pathname, refreshKey, token, users]);
 }

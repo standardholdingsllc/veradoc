@@ -12,6 +12,7 @@ import { AdminTabs } from "@/components/admin/admin-tabs";
 import { AdminLogoutButton } from "@/components/admin/admin-logout-button";
 import { isCommercialAccountingEnabled } from "@/lib/env/server";
 import { logoutAndRedirect } from "@/lib/auth/logout-actions";
+import { readAdminDemoControl } from "@/lib/demo/admin-control";
 
 interface AdminDashboardPageProps {
   searchParams?: Promise<{
@@ -38,10 +39,14 @@ export default async function AdminDashboardPage({
   const commercialDataPromise = commercialAccountingEnabled
     ? Promise.all([getNotaryPayoutAdminData(), getCommercialFinanceData()])
     : Promise.resolve(null);
+  const demoControlPromise = readAdminDemoControl()
+    .then((state) => ({ ...state, available: true }))
+    .catch(() => ({ enabled: false, available: false, updatedAt: undefined }));
 
-  const [coreData, commercialData] = await Promise.all([
+  const [coreData, commercialData, demoControl] = await Promise.all([
     coreDataPromise,
     commercialDataPromise,
+    demoControlPromise,
   ]);
   const [pendingRealtors, coverage, notaries, metrics, users] =
     coreData;
@@ -78,6 +83,7 @@ export default async function AdminDashboardPage({
           financeRows={financeData}
           commercialAccountingEnabled={commercialAccountingEnabled}
           initialTab={params.adminTab}
+          demoControl={demoControl}
         />
       </div>
     </div>

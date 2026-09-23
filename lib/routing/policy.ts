@@ -101,6 +101,20 @@ export function decideRoute(input: RouteDecisionInput): RouteDecision {
   }
 
   if (isApiPath(pathname)) {
+    if (matchesPrefix(pathname, "/api/demo")) {
+      if (
+        input.surface === "demo" ||
+        input.surface === "local" ||
+        (input.surface === "preview" && !input.isProductionDeploymentHost)
+      ) {
+        return {
+          kind: "allow",
+          reason: "HOST_PATH_ALLOWED",
+          internalPath: pathname as PublicPath,
+        };
+      }
+      return { kind: "reject", reason: "HOST_PATH_WRONG_SURFACE", status: 404 };
+    }
     if (
       input.surface === "marketing" ||
       input.surface === "local" ||
@@ -223,8 +237,8 @@ export function decideRoute(input: RouteDecisionInput): RouteDecision {
     };
   }
 
-  // Demo is entirely synthetic and does not need Server Actions. Reject every
-  // mutation at the hostname boundary, including forged production actions.
+  // Demo page mutations remain disabled. Shared-state mutations are accepted
+  // only through the explicitly classified /api/demo boundary above.
   if (!isSafeRedirectMethod(method)) {
     return { kind: "reject", reason: "HOST_METHOD_REJECTED", status: 404 };
   }

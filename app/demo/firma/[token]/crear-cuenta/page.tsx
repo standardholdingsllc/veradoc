@@ -16,7 +16,7 @@ import {
   SIGNER,
   TOAST,
 } from "@/lib/i18n/labels";
-import { createAccount } from "@/lib/services/signer-service";
+import { useDemoWorkspace } from "@/components/demo/demo-workspace-provider";
 import { cn } from "@/lib/utils";
 
 const PAST_ACCOUNT_STATUSES = new Set([
@@ -32,6 +32,7 @@ const PAST_ACCOUNT_STATUSES = new Set([
 
 export default function SignerCrearCuentaPage() {
   const router = useRouter();
+  const { mutateSigner } = useDemoWorkspace();
   const context = useSignerContext();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -54,7 +55,7 @@ export default function SignerCrearCuentaPage() {
     );
   }
 
-  const { basePath, packet, signer } = context;
+  const { basePath, signer, token } = context;
 
   if (PAST_ACCOUNT_STATUSES.has(signer.status)) {
     return null;
@@ -65,7 +66,7 @@ export default function SignerCrearCuentaPage() {
     password.trim().length > 0 &&
     confirmPassword.trim().length > 0;
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!canSubmit || loading) {
       return;
@@ -73,7 +74,7 @@ export default function SignerCrearCuentaPage() {
 
     setLoading(true);
     try {
-      createAccount(signer.id, packet.id);
+      await mutateSigner(token, { type: "create_account" });
       toast.success(SIGNER.cuentaCreada);
       router.push(`${basePath}/consentimiento`);
     } catch {

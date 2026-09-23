@@ -36,6 +36,7 @@ import {
   WIZARD,
 } from "@/lib/i18n/labels";
 import { cn } from "@/lib/utils";
+import { useDemoWorkspace } from "@/components/demo/demo-workspace-provider";
 
 const WIZARD_STEPS = [
   { number: 1, label: WIZARD.cargarContrato },
@@ -107,13 +108,14 @@ function createSignerEntry(
   role: "landlord" | "renter",
   defaults?: Partial<CreateSignerInput>,
 ): SignerFormEntry {
+  const isLandlord = role === "landlord";
   return {
     localId: `signer-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     roleInLease: role,
     fullName: defaults?.fullName ?? "",
-    email: defaults?.email ?? "",
-    whatsapp: defaults?.whatsapp ?? "+51",
-    dni: defaults?.dni ?? "",
+    email: defaults?.email ?? (isLandlord ? "jonahllarson@gmail.com" : "kimberlydayanara08@gmail.com"),
+    whatsapp: defaults?.whatsapp ?? (isLandlord ? "+51000000001" : "+51000000002"),
+    dni: defaults?.dni ?? (isLandlord ? "00111111" : "00222222"),
   };
 }
 
@@ -163,6 +165,7 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
 }
 
 export default function NuevoPaquetePage() {
+  const { saveNow, sendSigningEmails } = useDemoWorkspace();
   const [step, setStep] = useState(1);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -190,14 +193,14 @@ export default function NuevoPaquetePage() {
   const [signers, setSigners] = useState<SignerFormEntry[]>([
     createSignerEntry("landlord", {
       fullName: "María Elena Vargas Torres",
-      email: "maria.vargas@email.com",
-      whatsapp: "+51987654321",
+      email: "jonahllarson@gmail.com",
+      whatsapp: "+51000000001",
       dni: "00456789",
     }),
     createSignerEntry("renter", {
       fullName: "Carlos Alberto Mendoza Ruiz",
-      email: "carlos.mendoza@email.com",
-      whatsapp: "+51912345678",
+      email: "kimberlydayanara08@gmail.com",
+      whatsapp: "+51000000002",
       dni: "00876543",
     }),
   ]);
@@ -262,7 +265,7 @@ export default function NuevoPaquetePage() {
           (s) =>
             s.fullName.trim() !== "" &&
             s.email.trim() !== "" &&
-            s.dni.trim().length === 8,
+            /^00\d{6}$/.test(s.dni.trim()),
         );
       case 4:
         return true;
@@ -321,6 +324,7 @@ export default function NuevoPaquetePage() {
 
       confirmPayment(packet.id);
       setCreatedPacketId(packet.id);
+      const shared = await saveNow();
       setSigningLinks(
         packet.signers.map((signer) => ({
           name: signer.fullName,
@@ -328,7 +332,7 @@ export default function NuevoPaquetePage() {
             signer.roleInLease === "landlord"
               ? ROLES.landlord
               : ROLES.renter,
-          url: `/firma/${signer.secureLinkToken}`,
+          url: shared.links.signers[`${packet.id}:${signer.id}`] ?? "",
         })),
       );
       toast.success(TOAST.pagoConfirmado);
@@ -340,7 +344,7 @@ export default function NuevoPaquetePage() {
     }
   };
 
-  const handleSendLinks = () => {
+  const handleSendLinks = async () => {
     if (!createdPacketId || processing) {
       return;
     }
@@ -348,6 +352,7 @@ export default function NuevoPaquetePage() {
     setProcessing(true);
     try {
       const updated = sendSigningLinks(createdPacketId);
+      const shared = await saveNow();
       setSigningLinks(
         updated.signers.map((signer) => ({
           name: signer.fullName,
@@ -355,9 +360,10 @@ export default function NuevoPaquetePage() {
             signer.roleInLease === "landlord"
               ? ROLES.landlord
               : ROLES.renter,
-          url: `/firma/${signer.secureLinkToken}`,
+          url: shared.links.signers[`${updated.id}:${signer.id}`] ?? "",
         })),
       );
+      await sendSigningEmails(createdPacketId);
       toast.success(TOAST.enlacesEnviados);
     } catch {
       toast.error(TOAST.errorGenerico);
@@ -367,9 +373,7 @@ export default function NuevoPaquetePage() {
   };
 
   const copyLink = (url: string) => {
-    void navigator.clipboard.writeText(
-      `${window.location.origin}${url}`,
-    );
+    void navigator.clipboard.writeText(url);
     toast.success(TOAST.copiadoPortapapeles);
   };
 
@@ -692,14 +696,16 @@ export default function NuevoPaquetePage() {
                     <span className="text-xs font-medium text-muted">
                       {FORMS.correoElectronico}
                     </span>
-                    <input
-                      type="email"
+                    <select
                       value={signer.email}
                       onChange={(e) =>
                         updateSigner(signer.localId, "email", e.target.value)
                       }
                       className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                    />
+                    >
+                      <option value="jonahllarson@gmail.com">jonahllarson@gmail.com</option>
+                      <option value="kimberlydayanara08@gmail.com">Kimberlydayanara08@gmail.com</option>
+                    </select>
                   </label>
 
                   <label className="space-y-1">
@@ -709,9 +715,7 @@ export default function NuevoPaquetePage() {
                     <input
                       type="tel"
                       value={signer.whatsapp}
-                      onChange={(e) =>
-                        updateSigner(signer.localId, "whatsapp", e.target.value)
-                      }
+                      readOnly
                       className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                     />
                   </label>
@@ -723,6 +727,8 @@ export default function NuevoPaquetePage() {
                     <input
                       type="text"
                       maxLength={8}
+                      pattern="00[0-9]{6}"
+                      title="Use un DNI sintético del rango 00xxxxxx"
                       value={signer.dni}
                       onChange={(e) =>
                         updateSigner(

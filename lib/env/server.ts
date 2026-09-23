@@ -78,7 +78,13 @@ const schema = z.object({
     .default("https://apiperu.net/api"),
 });
 
-export const serverEnv = schema.parse(process.env);
+// The separately deployed demo carries no production Supabase credential.
+// A nonfunctional value keeps unrelated production modules buildable there.
+export const serverEnv = schema.parse({
+  ...process.env,
+  SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY ??
+    (process.env.DEMO_ISOLATED_DEPLOYMENT === "true" ? "demo-disabled" : undefined),
+});
 
 export function isDemoPaymentsEnabled(): boolean {
   return serverEnv.DEMO_PAYMENTS_ENABLED;

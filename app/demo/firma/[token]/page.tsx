@@ -19,7 +19,7 @@ import {
   TOAST,
   UI,
 } from "@/lib/i18n/labels";
-import { openLink } from "@/lib/services/signer-service";
+import { useDemoWorkspace } from "@/components/demo/demo-workspace-provider";
 import type { SignerStatus } from "@/lib/domain/types";
 
 function getResumeStep(status: SignerStatus): string | null {
@@ -53,6 +53,7 @@ function getResumeStep(status: SignerStatus): string | null {
 
 export default function SignerInicioPage() {
   const router = useRouter();
+  const { mutateSigner } = useDemoWorkspace();
   const context = useSignerContext();
   const [loading, setLoading] = useState(false);
   const resumeStep = context ? getResumeStep(context.signer.status) : null;
@@ -83,13 +84,13 @@ export default function SignerInicioPage() {
     );
   }
 
-  const { basePath, packet, signer, realtorName, propertyAddress } = context;
+  const { basePath, packet, signer, realtorName, propertyAddress, token } = context;
 
-  function handleStart() {
+  async function handleStart() {
     setLoading(true);
     try {
       if (signer.status === "link_sent") {
-        openLink(signer.id, packet.id);
+        await mutateSigner(token, { type: "open_link" });
       }
       router.push(`${basePath}/verificar`);
     } catch {

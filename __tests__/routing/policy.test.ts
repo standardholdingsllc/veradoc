@@ -14,6 +14,8 @@ describe("hostname route policy", () => {
     ["admin", "/", "GET", "rewrite", "/admin"],
     ["demo", "/firma/t", "GET", "rewrite", "/demo/firma/t"],
     ["demo", "/firma/t", "POST", "reject", undefined],
+    ["demo", "/api/demo/workspace", "POST", "allow", undefined],
+    ["app", "/api/demo/workspace", "POST", "reject", undefined],
     ["unknown", "/", "GET", "reject", undefined],
   ] as const)(
     "%s %s %s returns %s",

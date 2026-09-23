@@ -18,6 +18,7 @@ const LOCAL_SUBDOMAIN_SURFACES: Record<string, CanonicalSurface> = {
 export interface HostClassificationOptions {
   vercelEnvironment?: string;
   vercelHostname?: string | string[];
+  isolatedDemoDeployment?: boolean;
 }
 
 export interface HostClassification {
@@ -122,7 +123,7 @@ export function classifyHost(
   if (isProductionDeploymentHost) {
     return {
       hostname,
-      surface: "preview",
+      surface: options.isolatedDemoDeployment ? "demo" : "preview",
       isWww: false,
       isProductionDeploymentHost: true,
     };

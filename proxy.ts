@@ -145,6 +145,7 @@ export default async function proxy(request: NextRequest) {
   const hostRoutingMode = getHostRoutingMode();
   const classification = classifyHost(request.nextUrl.host, {
     vercelEnvironment: process.env.VERCEL_ENV,
+    isolatedDemoDeployment: process.env.DEMO_ISOLATED_DEPLOYMENT === "true",
     vercelHostname: [
       process.env.VERCEL_URL ?? "",
       process.env.VERCEL_PROJECT_PRODUCTION_URL ?? "",

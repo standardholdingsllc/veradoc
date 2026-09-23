@@ -1,6 +1,10 @@
 # VeraDoc subdomain transition decisions
 
-## SD-DEC-001 — Demo remains in the shared deployment for phase one
+## SD-DEC-001 — Demo remains in the shared deployment for phase one (superseded)
+
+Superseded by SD-DEC-009 after the product requirement for cross-browser,
+server-backed demo workspaces and sandbox email delivery activated the mandatory
+split-deployment gate.
 
 - Date: 2026-09-14
 - Owner: VeraDoc engineering
@@ -17,6 +21,47 @@
 - Rollback: Set `HOST_ROUTING_MODE=off` and promote the preceding deployment. Keep the domain assigned.
 - Required tests: Demo rewrites, internal-prefix cleanup, production-token isolation, and mutation rejection.
 - Follow-up trigger: Split the deployment before demo gains service-role access, persistent accounts, production storage, or any real provider integration.
+
+## SD-DEC-009 — Isolated shared demo workspace and administrative kill switch (superseded backend)
+
+The Supabase backend selection below was superseded by SD-DEC-010. The
+capability model, separate deployment, email boundary, and kill switch remain.
+
+## SD-DEC-010 — Redis backend for the shared demo workspace
+
+- Date: 2026-09-23
+- Owner: VeraDoc engineering
+- Work package: WP-8
+- Problem: The demo needs shared, expiring state without the cost of another Supabase project.
+- Chosen option: A dedicated free Upstash Redis resource connected only to the separate `veradoc-demo` Vercel project. Redis stores expiring workspace and capability keys; Lua scripts provide atomic version updates, email claims, and kill-switch audit writes.
+- Rejected options: A new paid Supabase project and sharing the production database or its privileged credentials.
+- Security impact: Demo keys are namespaced, expire after eight hours, and are inaccessible from the production Vercel project. The control key has no TTL and missing control state fails closed.
+- Authentication/cookie impact: Existing host-only presenter and notary capability cookies remain unchanged.
+- Generated-link impact: `DEMO_ORIGIN` remains the sole demo link origin.
+- External-system impact: One free Upstash Redis resource; no new Supabase project or production database migration.
+- Migration compatibility: Prior demo workspaces were not deployed and require no data migration.
+- Observability: Redis keys contain no raw signer capabilities. Bounded control audit entries and email delivery records remain server-only.
+- Rollback: Disable the demo through its control key or restore the preceding demo deployment.
+- Required tests: Live Redis cross-browser acceptance, expiry and revocation, atomic conflict behavior, email idempotency/rate limiting, and kill-switch 404 behavior.
+- Follow-up trigger: Reassess capacity and polling if the free command quota is approached.
+
+## SD-DEC-009 historical details
+
+- Date: 2026-09-21
+- Owner: VeraDoc engineering
+- Work package: WP-8
+- Problem: Copied signer links must resolve across independent browsers, demo state must converge between realtor, signer, and notary views, and administrators need an emergency shutdown control.
+- Chosen option: Deploy the demo surface separately with a dedicated non-production Supabase project, expiring workspace snapshots, hashed and encrypted role-scoped capabilities, same-origin demo APIs, a sandbox-only email credential, and an authenticated admin-to-demo control channel.
+- Rejected options: Production Supabase tables or credentials; browser-local state as the source of truth; domain-wide cookies; production notification providers; and unrestricted cross-origin APIs.
+- Security impact: Demo APIs accept only the demo/local/preview surfaces, signer mutations are applied server-side to the signer bound to the token, notary snapshot writes are server-restricted to notarial fields, and presenter access is scoped to one workspace. Demo tokens are distinct from production token shapes.
+- Authentication/cookie impact: Presenter and notary capabilities use host-only, HTTP-only, SameSite=Strict cookies. Production authentication remains unavailable on the demo surface.
+- Generated-link impact: Signer and notary links use the validated `DEMO_ORIGIN`; raw capabilities are encrypted when recoverability is required and hashes are used for lookup.
+- External-system impact: Requires a separate demo Supabase project, separate demo Vercel project/environment, sandbox Resend credential, and a shared admin control secret. No production provider configuration changes.
+- Migration compatibility: Existing browser-local workspaces are intentionally not migrated because they contain synthetic transient state. Opening the new demo creates an isolated eight-hour workspace.
+- Observability: Delivery rows record status and provider identifiers without logging raw capability tokens. Control changes have a dedicated audit table.
+- Rollback: Move `demo.veradoc.pe` back to the previous deployment or disable it from the admin control. Do not alter production origins, cookies, or provider settings.
+- Required tests: Cross-browser workspace hydration, signer capability isolation, notary-field restriction, expiry/reset revocation, demo API host/origin policy, email allowlist/rate limit/idempotency, kill-switch 404 behavior, and production/demo token separation.
+- Follow-up trigger: Reassess isolation before adding uploads, reusable demo accounts, non-synthetic data, or any provider beyond the sandbox email sink.
 
 ## SD-DEC-002 — Admin uses Supabase TOTP AAL2
 

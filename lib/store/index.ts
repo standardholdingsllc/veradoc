@@ -1,8 +1,8 @@
 "use client";
 
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
 import type { LeasePacket, RegistryEntry, User } from "@/lib/domain/types";
+import type { DemoSnapshot } from "@/lib/demo/types";
 import { MOCK_PACKETS, MOCK_REGISTRY, MOCK_USERS } from "./initial-data";
 
 interface VeraDocStore {
@@ -24,11 +24,11 @@ interface VeraDocStore {
   addPacket: (packet: LeasePacket) => void;
   addRegistryEntry: (entry: RegistryEntry) => void;
   updateRegistryEntry: (id: string, updates: Partial<RegistryEntry>) => void;
+  replaceSnapshot: (snapshot: DemoSnapshot) => void;
 }
 
 export const useVeraDocStore = create<VeraDocStore>()(
-  persist(
-    (set, get) => ({
+  (set, get) => ({
       users: MOCK_USERS,
       packets: MOCK_PACKETS,
       registry: MOCK_REGISTRY,
@@ -87,16 +87,11 @@ export const useVeraDocStore = create<VeraDocStore>()(
             entry.id === id ? { ...entry, ...updates } : entry,
           ),
         })),
-    }),
-    {
-      name: "veradoc-demo-store",
-      storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({
-        users: state.users,
-        packets: state.packets,
-        registry: state.registry,
-        currentRole: state.currentRole,
+      replaceSnapshot: (snapshot) => set({
+        users: snapshot.users,
+        packets: snapshot.packets,
+        registry: snapshot.registry,
+        currentRole: snapshot.currentRole,
       }),
-    },
-  ),
+  }),
 );

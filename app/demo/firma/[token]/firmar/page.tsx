@@ -15,7 +15,7 @@ import {
   SIGNER,
   TOAST,
 } from "@/lib/i18n/labels";
-import { simulateSignature } from "@/lib/services/signer-service";
+import { useDemoWorkspace } from "@/components/demo/demo-workspace-provider";
 import { toast } from "sonner";
 
 type SignPhase = "idle" | "processing" | "complete";
@@ -24,6 +24,7 @@ const PAST_SIGN_STATUSES = new Set(["signed", "complete"]);
 
 export default function SignerFirmarPage() {
   const router = useRouter();
+  const { mutateSigner } = useDemoWorkspace();
   const context = useSignerContext();
   const [phase, setPhase] = useState<SignPhase>("idle");
   const [loading, setLoading] = useState(false);
@@ -44,13 +45,13 @@ export default function SignerFirmarPage() {
     );
   }
 
-  const { basePath, packet, signer } = context;
+  const { basePath, signer, token } = context;
 
   if (PAST_SIGN_STATUSES.has(signer.status)) {
     return null;
   }
 
-  function handleSign() {
+  async function handleSign() {
     if (loading || phase !== "idle") {
       return;
     }
@@ -58,9 +59,9 @@ export default function SignerFirmarPage() {
     setLoading(true);
     setPhase("processing");
 
-    window.setTimeout(() => {
+    window.setTimeout(async () => {
       try {
-        simulateSignature(signer.id, packet.id);
+        await mutateSigner(token, { type: "simulate_signature" });
         setPhase("complete");
         setLoading(false);
       } catch {
