@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -19,6 +19,7 @@ import {
   EvidenceSectionNav,
   type EvidenceSectionId,
 } from "@/components/evidence/evidence-section-nav";
+import { useEvidenceSectionNavigation } from "@/components/evidence/use-evidence-section-navigation";
 import { HashDisplay } from "@/components/evidence/hash-display";
 import { SignatureValidationPanel } from "@/components/evidence/signature-validation-panel";
 import { SignerEvidenceCard } from "@/components/evidence/signer-evidence-card";
@@ -61,7 +62,9 @@ function EvidenceSection({
   children: React.ReactNode;
   className?: string;
 }) {
-  const sectionIndex = EVIDENCE_SECTIONS.findIndex((section) => section.id === id);
+  const sectionIndex = EVIDENCE_SECTIONS
+    .filter((section) => section.id !== "realtor-verification")
+    .findIndex((section) => section.id === id);
 
   return (
     <section
@@ -161,15 +164,12 @@ const SYSTEM_FLAG_LABELS: Record<string, string> = {
 export default function NotaryEvidenceReviewPage() {
   const params = useParams<{ packetId: string }>();
   const packetId = params.packetId;
-  const [activeSection, setActiveSection] =
-    useState<EvidenceSectionId>("summary");
   const [startingReview, setStartingReview] = useState(false);
   const [authorityTitle, setAuthorityTitle] = useState("");
   const [authorityOwners, setAuthorityOwners] = useState("");
   const [authorityResult, setAuthorityResult] = useState<"verified" | "observation" | "not_found">("verified");
   const [authorityNotes, setAuthorityNotes] = useState("");
   const [, setRefreshKey] = useState(0);
-  const mainRef = useRef<HTMLDivElement>(null);
 
   const packet = usePacketById(packetId);
   const users = useUsers();
@@ -201,18 +201,17 @@ export default function NotaryEvidenceReviewPage() {
     packet?.status === "needs_correction" ||
     packet?.status === "rejected";
 
+  const { activeSection, selectSection } = useEvidenceSectionNavigation({
+    showDecision: showDecisionSection,
+    headerId: "demo-notary-review-header",
+  });
+
   const realtorName =
     users.find((user) => user.id === packet?.createdByRealtorId)?.fullName ??
     "—";
 
   const hashEntries =
     packet?.evidenceReport?.documentHashHistory ?? packet?.documentHashes ?? [];
-
-  const handleSectionSelect = useCallback((id: EvidenceSectionId) => {
-    setActiveSection(id);
-    const element = document.getElementById(id);
-    element?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
 
   const handleStartReview = useCallback(async () => {
     if (!packetId || startingReview) {
@@ -258,7 +257,7 @@ export default function NotaryEvidenceReviewPage() {
 
   return (
     <div className="flex min-h-full flex-col">
-      <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90">
+      <header id="demo-notary-review-header" className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-6">
           <div className="min-w-0 flex-1">
             <Link
@@ -313,16 +312,16 @@ export default function NotaryEvidenceReviewPage() {
 
       <div className="flex min-h-0 flex-1">
         <aside className="hidden w-[200px] shrink-0 border-r border-border bg-surface/30 lg:block">
-          <div className="sticky top-[var(--notary-header-offset,120px)] max-h-[calc(100vh-120px)] overflow-y-auto">
+          <div className="sticky top-[var(--notary-header-offset,120px)]">
             <EvidenceSectionNav
               activeSection={activeSection}
-              onSectionSelect={handleSectionSelect}
+              onSectionSelect={selectSection}
               showDecision={showDecisionSection}
             />
           </div>
         </aside>
 
-        <div ref={mainRef} className="min-w-0 flex-1 overflow-y-auto px-4 py-6 md:px-8">
+        <div className="min-w-0 flex-1 overflow-y-auto px-4 py-6 md:px-8">
           {packet.evidenceReport?.summaryForNotary ? (
             <Card className="mb-8 border-secondary/30 bg-secondary/5">
               <CardContent className="pt-4">

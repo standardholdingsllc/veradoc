@@ -41,8 +41,8 @@ const PdfViewer = dynamic(
 );
 import {
   EvidenceSectionNav,
-  type EvidenceSectionId,
 } from "@/components/evidence/evidence-section-nav";
+import { useEvidenceSectionNavigation } from "@/components/evidence/use-evidence-section-navigation";
 import { DocumentHashTimeline } from "@/components/evidence/document-hash-timeline";
 import { HashDisplay } from "@/components/evidence/hash-display";
 import {
@@ -129,7 +129,6 @@ interface EvidenceReviewClientProps {
 
 export function EvidenceReviewClient({ data }: EvidenceReviewClientProps) {
   const router = useRouter();
-  const [activeSection, setActiveSection] = useState<EvidenceSectionId>("summary");
   const [isPending, startTransition] = useTransition();
 
   const isPreview = data.packet.status === "pending_notary";
@@ -153,6 +152,12 @@ export function EvidenceReviewClient({ data }: EvidenceReviewClientProps) {
     (STATUS_LABELS as Record<string, string>)[data.packet.status] ??
     data.packet.status;
 
+  const { activeSection, selectSection } = useEvidenceSectionNavigation({
+    showDecision: !isPreview,
+    showRealtorVerification: true,
+    headerId: "notary-review-header",
+  });
+
   const handleStartReview = () => {
     startTransition(async () => {
       try {
@@ -167,19 +172,10 @@ export function EvidenceReviewClient({ data }: EvidenceReviewClientProps) {
     });
   };
 
-  const scrollTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
-  const handleSectionSelect = (id: EvidenceSectionId) => {
-    setActiveSection(id);
-    scrollTo(id);
-  };
-
   return (
     <div className="mx-auto w-full max-w-7xl">
       {/* Header */}
-      <div className="sticky top-0 z-10 border-b border-border bg-background px-4 py-3 md:px-6">
+      <div id="notary-review-header" className="sticky top-0 z-10 border-b border-border bg-background px-4 py-3 md:px-6">
         <div className="flex flex-wrap items-center gap-3">
           <Link
             href="/"
@@ -234,11 +230,12 @@ export function EvidenceReviewClient({ data }: EvidenceReviewClientProps) {
       <div className="flex flex-col lg:flex-row">
         {/* Sidebar nav */}
         <aside className="hidden w-[220px] shrink-0 border-r border-border lg:block">
-          <div className="sticky top-14">
+          <div className="sticky top-20">
             <EvidenceSectionNav
               activeSection={activeSection}
-              onSectionSelect={handleSectionSelect}
+              onSectionSelect={selectSection}
               showDecision={!isPreview}
+              showRealtorVerification
             />
           </div>
         </aside>

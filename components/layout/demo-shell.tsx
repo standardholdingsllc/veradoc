@@ -63,7 +63,12 @@ function DemoShellContent({ children }: Readonly<{ children: React.ReactNode }>)
       </header>
       <DemoModeBanner />
       {showShell ? (
-        <DashboardShell sidebar={<SidebarNav />}>{children}</DashboardShell>
+        <DashboardShell
+          sidebar={<SidebarNav />}
+          mainClassName={/^\/(?:demo\/)?notario\/paquetes\//.test(pathname) ? "overflow-visible" : undefined}
+        >
+          {children}
+        </DashboardShell>
       ) : (
         <main className="flex-1">{children}</main>
       )}

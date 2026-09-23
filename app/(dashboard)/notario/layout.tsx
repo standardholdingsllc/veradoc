@@ -22,6 +22,7 @@ export default async function NotarioLayout({
 
   return (
     <DashboardShell
+      mainClassName="overflow-visible"
       sidebar={
         <ProductionSidebarNav
           role="notary"

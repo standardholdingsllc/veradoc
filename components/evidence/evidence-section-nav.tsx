@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import {
   AlertTriangle,
   CheckSquare,
@@ -27,6 +28,7 @@ export const EVIDENCE_SECTION_IDS = [
   "property-evidence",
   "registry-check",
   "audit-trail",
+  "realtor-verification",
   "system-flags",
   "checklist",
   "decision",
@@ -48,6 +50,7 @@ export const EVIDENCE_SECTIONS: {
   { id: "property-evidence", label: EVIDENCE.evidenciaPropiedad, icon: Home },
   { id: "registry-check", label: EVIDENCE.verificacionRegistro, icon: Fingerprint },
   { id: "audit-trail", label: EVIDENCE.registrosSesion, icon: History },
+  { id: "realtor-verification", label: "Verificación del agente", icon: ShieldCheck },
   { id: "system-flags", label: EVIDENCE.banderasSistema, icon: AlertTriangle },
   { id: "checklist", label: EVIDENCE.listaVerificacion, icon: CheckSquare },
   { id: "decision", label: EVIDENCE.panelDecision, icon: Gavel },
@@ -57,6 +60,7 @@ interface EvidenceSectionNavProps {
   activeSection: EvidenceSectionId;
   onSectionSelect: (id: EvidenceSectionId) => void;
   showDecision?: boolean;
+  showRealtorVerification?: boolean;
   className?: string;
 }
 
@@ -64,16 +68,38 @@ export function EvidenceSectionNav({
   activeSection,
   onSectionSelect,
   showDecision = true,
+  showRealtorVerification = false,
   className,
 }: EvidenceSectionNavProps) {
-  const sections = showDecision
-    ? EVIDENCE_SECTIONS
-    : EVIDENCE_SECTIONS.filter((section) => section.id !== "decision");
+  const navRef = useRef<HTMLElement>(null);
+  const sections = EVIDENCE_SECTIONS.filter(
+    (section) =>
+      (showDecision || section.id !== "decision") &&
+      (showRealtorVerification || section.id !== "realtor-verification"),
+  );
+
+  useEffect(() => {
+    const nav = navRef.current;
+    const button = nav?.querySelector<HTMLElement>(`[data-section-id="${activeSection}"]`);
+    if (!nav || !button) return;
+
+    const navBounds = nav.getBoundingClientRect();
+    const buttonBounds = button.getBoundingClientRect();
+    if (buttonBounds.top < navBounds.top + 12 || buttonBounds.bottom > navBounds.bottom - 12) {
+      nav.scrollTo({
+        top: nav.scrollTop + buttonBounds.top - navBounds.top - nav.clientHeight / 2 + button.clientHeight / 2,
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+      });
+    }
+  }, [activeSection]);
 
   return (
     <nav
+      ref={navRef}
       aria-label="Secciones de evidencia"
-      className={cn("flex flex-col", className)}
+      className={cn("flex max-h-[calc(100dvh-8rem)] flex-col overflow-y-auto", className)}
     >
       <div className="border-b border-border px-3 py-3">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted">
@@ -88,6 +114,8 @@ export function EvidenceSectionNav({
             <li key={section.id}>
               <button
                 type="button"
+                data-section-id={section.id}
+                aria-current={active ? "step" : undefined}
                 onClick={() => onSectionSelect(section.id)}
                 className={cn(
                   "flex w-full items-start gap-2 rounded-md px-2 py-2 text-left text-xs transition-colors",

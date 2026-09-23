@@ -8,12 +8,14 @@ export interface DashboardShellProps {
   children: React.ReactNode;
   sidebar: React.ReactNode;
   className?: string;
+  mainClassName?: string;
 }
 
 export function DashboardShell({
   children,
   sidebar,
   className,
+  mainClassName,
 }: DashboardShellProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -53,7 +55,7 @@ export function DashboardShell({
         {sidebar}
       </aside>
 
-      <main className="min-w-0 flex-1 overflow-y-auto">{children}</main>
+      <main className={cn("min-w-0 flex-1 overflow-y-auto", mainClassName)}>{children}</main>
     </div>
   );
 }
