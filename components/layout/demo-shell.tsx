@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Toaster } from "sonner";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
@@ -38,6 +40,27 @@ function DemoShellContent({ children }: Readonly<{ children: React.ReactNode }>)
   return (
     <div className="flex min-h-screen flex-col">
       <Toaster position="top-right" richColors closeButton />
+      <header className="sticky top-0 z-40 border-b border-border/80 bg-surface/95 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-[1200px] items-center px-4">
+          <Link
+            href="/"
+            className="flex shrink-0 items-center gap-3"
+            aria-label="VeraDoc.pe — inicio de la demostración"
+          >
+            <Image
+              src="/brand/veradoc-icon-transparent.svg"
+              alt=""
+              width={44}
+              height={56}
+              priority
+              className="h-10 w-auto"
+            />
+            <span className="font-serif text-2xl font-semibold leading-none text-primary">
+              VeraDoc.pe
+            </span>
+          </Link>
+        </div>
+      </header>
       <DemoModeBanner />
       {showShell ? (
         <DashboardShell sidebar={<SidebarNav />}>{children}</DashboardShell>
