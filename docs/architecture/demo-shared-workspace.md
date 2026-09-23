@@ -27,6 +27,12 @@ admin server action; it is never exposed to browser JavaScript.
 preview and development origins still use that alias rather than the public
 canonical hostname.
 
+The demo project's Git production branch currently defaults to `main`, where
+the shared-demo implementation has not yet been merged. Its project-level
+Ignored Build Step skips `main` builds so an unrelated main push cannot replace
+the public demo. Production releases use an explicit verified deployment until
+the code is merged; remove that guard when branch tracking is corrected.
+
 Generate independent random values for the encryption and control secrets. Do
 not reuse any production provider secret.
 

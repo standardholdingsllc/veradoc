@@ -57,6 +57,7 @@ capability model, separate deployment, email boundary, and kill switch remain.
 - Authentication/cookie impact: Demo capability cookies remain host-only. Existing browser-local demo state does not migrate; presenters must start a new workspace.
 - Generated-link impact: Newly copied signer and notary links use `https://demo.veradoc.pe`; previously generated `veradoc-demo.vercel.app` links remain valid on that alias until their workspace expires.
 - External-system impact: Vercel project assignment changes for this one subdomain; Vercel-managed DNS and TLS remain unchanged. No provider callback or Supabase setting changes.
+- Release tracking: Until the shared-demo branch is merged, the isolated project's Ignored Build Step skips `main` builds so the default Git production branch cannot replace the live demo with older code. Explicit verified production deployments remain possible; remove the guard when production branch tracking is corrected.
 - Migration compatibility: The old demo is synthetic and transient. Its in-browser state is not imported into Redis.
 - Observability: Verify project assignment, TLS, demo rewrite, noindex, route isolation, and the three-browser presenter-to-signer-to-notary flow on the canonical domain.
 - Rollback: Use Vercel's project-domain move API to move `demo.veradoc.pe` from `veradoc-demo` back to project `veradoc` (`prj_bvdafikrFeX68sFINMCOnHCFBLZt`); keep the isolated project alias available for access to workspaces created before rollback. Revert the two production origin variables if the rollback persists.
