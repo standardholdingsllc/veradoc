@@ -68,12 +68,20 @@ describe("shared demo workspace", () => {
       reviewChecklist: [],
       observations: "Revisión sintética",
     };
+    notary.snapshot.packets[0].demoNotaryPriority = "urgent";
+    notary.snapshot.packets[0].demoAuthorityCheck = {
+      titleNumber: "DEMO-123", result: "verified", ownerNames: "Persona de ejemplo", notes: "Consulta simulada", checkedAt: new Date().toISOString(),
+    };
+    notary.snapshot.packets[0].demoSealWorkflow = { signedDocumentPreparedAt: new Date().toISOString() };
     notary.snapshot.packets[0].updatedAt = new Date().toISOString();
 
     await saveDemoWorkspace(notaryToken, "notary", notary.version, notary.snapshot);
     const presenter = await getDemoWorkspaceByAccessToken(created.presenterToken, "presenter");
     expect(presenter.snapshot.packets[0].property.address).toBe(originalAddress);
     expect(presenter.snapshot.packets[0].notaryReview?.observations).toBe("Revisión sintética");
+    expect(presenter.snapshot.packets[0].demoNotaryPriority).toBe("urgent");
+    expect(presenter.snapshot.packets[0].demoAuthorityCheck?.titleNumber).toBe("DEMO-123");
+    expect(presenter.snapshot.packets[0].demoSealWorkflow?.signedDocumentPreparedAt).toBeTruthy();
     await deleteDemoWorkspace(created.presenterToken);
   });
 

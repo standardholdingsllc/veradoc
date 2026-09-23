@@ -81,6 +81,20 @@ export interface LeasePacket {
   documentHashes: DocumentHashEntry[];
   evidenceReport?: EvidenceReport;
   notaryReview?: NotaryReview;
+  demoNotaryPriority?: "urgent" | "high" | "normal" | "low";
+  demoAuthorityCheck?: {
+    titleNumber: string;
+    result: "verified" | "observation" | "not_found";
+    ownerNames: string;
+    notes: string;
+    checkedAt: string;
+  };
+  demoSealWorkflow?: {
+    signedDocumentPreparedAt?: string;
+    attestedAt?: string;
+    reportPreparedAt?: string;
+    publishedAt?: string;
+  };
   registryCheck: { status: string; matchFound: boolean; matchDetails?: string };
   auditEvents: AuditEvent[];
   renewalEligibility: { eligible: boolean; availableAfter?: string };
@@ -145,6 +159,7 @@ export interface Signer {
   otpStatus: "pending" | "sent" | "verified";
   accountCreated: boolean;
   consentAccepted: boolean;
+  demoConsentVersion?: string;
   consentTimestamp?: string;
   identityEvidence: IdentityEvidence;
   signatureEvidence?: SignatureEvidence;

@@ -17,12 +17,14 @@ import {
   UI,
 } from "@/lib/i18n/labels";
 import { checkDuplicate } from "@/lib/services/registry-service";
+import { setDemoNotaryPriority } from "@/lib/services/notary-service";
 import { usePackets, useUsers } from "@/lib/services/hooks";
 import { cn } from "@/lib/utils";
 
 type QueueTab =
   | "pendientes"
   | "en_revision"
+  | "pendiente_sello"
   | "certificados"
   | "requieren_correccion"
   | "rechazados";
@@ -41,6 +43,11 @@ const TAB_CONFIG: {
     id: "en_revision",
     label: NOTARY_QUEUE.enRevision,
     statuses: ["under_notary_review"],
+  },
+  {
+    id: "pendiente_sello",
+    label: NOTARY_QUEUE.pendienteSello,
+    statuses: ["awaiting_notary_seal"],
   },
   {
     id: "certificados",
@@ -158,18 +165,18 @@ export default function NotarioDashboardPage() {
   const certifiedThisMonth = certifiedPackets.filter((packet) =>
     isSameMonth(packet.notaryReview?.certifiedAt ?? packet.updatedAt),
   );
-  const partnerRate = 80;
   const pendingReviewCount = packets.filter(
     (packet) =>
       packet.status === "ready_for_notary" ||
-      packet.status === "under_notary_review",
+      packet.status === "under_notary_review" || packet.status === "awaiting_notary_seal",
   ).length;
 
   const filteredPackets = useMemo(() => {
+    const rank = { urgent: 0, high: 1, normal: 2, low: 3 };
     return packets
       .filter((packet) => currentConfig.statuses.includes(packet.status))
       .sort(
-        (a, b) =>
+        (a, b) => rank[a.demoNotaryPriority ?? "normal"] - rank[b.demoNotaryPriority ?? "normal"] ||
           new Date(getSubmitDate(b) ?? b.updatedAt).getTime() -
           new Date(getSubmitDate(a) ?? a.updatedAt).getTime(),
       );
@@ -217,9 +224,9 @@ export default function NotarioDashboardPage() {
           icon={Scale}
         />
         <NotaryMetricCard
-          label={NOTARY_ACCOUNT.pagoPartner}
-          value={formatCurrency(certifiedThisMonth.length * partnerRate)}
-          detail={NOTARY_ACCOUNT.estimadoPago}
+          label="Estimación ilustrativa"
+          value={formatCurrency(certifiedThisMonth.length * 80)}
+          detail="Ejemplo: S/80 por certificado; contabilidad no habilitada"
           icon={Banknote}
         />
         <NotaryMetricCard
@@ -294,6 +301,7 @@ export default function NotarioDashboardPage() {
                   <th className="px-4 py-3 font-semibold">
                     {DASHBOARD.fechaEnvio}
                   </th>
+                  <th className="px-4 py-3 font-semibold">Prioridad</th>
                   <th className="px-4 py-3 font-semibold">{UI.estado}</th>
                 </tr>
               </thead>
@@ -308,7 +316,7 @@ export default function NotarioDashboardPage() {
                     >
                       <td className="px-4 py-3">
                         <Link
-                          href={`/notario/paquetes/${packet.id}`}
+                          href={packet.status === "awaiting_notary_seal" ? `/notario/paquetes/${packet.id}/certificar` : `/notario/paquetes/${packet.id}`}
                           className="font-mono text-sm font-semibold text-secondary hover:underline"
                         >
                           {packet.packetCode}
@@ -341,6 +349,15 @@ export default function NotarioDashboardPage() {
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-muted">
                         {submitDate ? formatDateTime(submitDate) : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <label className="sr-only" htmlFor={`priority-${packet.id}`}>Prioridad de {packet.packetCode}</label>
+                        <select id={`priority-${packet.id}`} value={packet.demoNotaryPriority ?? "normal"}
+                          disabled={["certified", "certified_with_observations", "rejected"].includes(packet.status)}
+                          onChange={(event) => setDemoNotaryPriority(packet.id, event.target.value as NonNullable<LeasePacket["demoNotaryPriority"]>)}
+                          className="rounded border border-border bg-background px-2 py-1 text-xs">
+                          <option value="urgent">Urgente</option><option value="high">Alta</option><option value="normal">Normal</option><option value="low">Baja</option>
+                        </select>
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge status={packet.status} />

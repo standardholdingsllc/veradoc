@@ -22,6 +22,8 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
   notary: [
     { label: SIDEBAR.panel, href: "/notario", exact: true },
     { label: SIDEBAR.colaNotarial, href: "/notario/cola" },
+    { label: "Historial", href: "/notario/historial" },
+    { label: "Perfil", href: "/notario/perfil" },
     { label: SIDEBAR.registro, href: "/registro" },
   ],
   landlord: [

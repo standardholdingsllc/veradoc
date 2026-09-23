@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -101,6 +102,10 @@ function SummaryCard({ label, count, highlight }: SummaryCardProps) {
 
 export default function AgenteDashboardPage() {
   const packets = usePackets();
+  const [statusFilter, setStatusFilter] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [query, setQuery] = useState("");
 
   const activeCount = packets.filter(
     (packet) => !TERMINAL_STATUSES.includes(packet.status),
@@ -130,7 +135,18 @@ export default function AgenteDashboardPage() {
     (packet) => packet.status === "needs_correction",
   ).length;
 
-  const sortedPackets = [...packets].sort(
+  const pendingPaymentsCount = packets.filter((packet) =>
+    packet.status === "awaiting_payment" || packet.payment.status === "pending",
+  ).length;
+
+  const sortedPackets = packets.filter((packet) => {
+    const searchText = `${packet.packetCode} ${packet.property.address}`.toLocaleLowerCase("es-PE");
+    const createdDay = packet.createdAt.slice(0, 10);
+    return (!statusFilter || packet.status === statusFilter)
+      && (!fromDate || createdDay >= fromDate)
+      && (!toDate || createdDay <= toDate)
+      && (!query.trim() || searchText.includes(query.trim().toLocaleLowerCase("es-PE")));
+  }).sort(
     (a, b) =>
       new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
   );
@@ -154,12 +170,13 @@ export default function AgenteDashboardPage() {
         </Link>
       </header>
 
-      <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
         <SummaryCard label={DASHBOARD.paquetesActivos} count={activeCount} />
         <SummaryCard
           label={DASHBOARD.esperandoFirmantes}
           count={waitingSignersCount}
         />
+        <SummaryCard label={DASHBOARD.pagosPendientes} count={pendingPaymentsCount} highlight />
         <SummaryCard
           label={DASHBOARD.listosParaNotario}
           count={readyForNotaryCount}
@@ -175,6 +192,24 @@ export default function AgenteDashboardPage() {
         />
       </div>
 
+      <div className="mb-4 flex flex-wrap items-end gap-3">
+        <label className="space-y-1 text-xs text-muted">{UI.estado}
+          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="block rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground">
+            <option value="">{UI.todos}</option>
+            {(Object.entries(PACKET_STATUS_CONFIG) as [PacketStatus, { label: string }][]).map(([value, config]) => <option key={value} value={value}>{config.label}</option>)}
+          </select>
+        </label>
+        <label className="space-y-1 text-xs text-muted">Desde
+          <input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} className="block rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground" />
+        </label>
+        <label className="space-y-1 text-xs text-muted">Hasta
+          <input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} className="block rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground" />
+        </label>
+        <label className="space-y-1 text-xs text-muted">Buscar
+          <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Dirección o código..." className="block rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground" />
+        </label>
+      </div>
+
       <Card>
         <CardHeader className="border-b border-border pb-4">
           <CardTitle className="text-base">{UI.paquetes}</CardTitle>
@@ -187,6 +222,7 @@ export default function AgenteDashboardPage() {
                 <th className="px-3 py-3 font-medium">{UI.propiedad}</th>
                 <th className="hidden px-3 py-3 font-medium md:table-cell">{ROLES.landlord}</th>
                 <th className="hidden px-3 py-3 font-medium md:table-cell">{ROLES.renter}</th>
+                <th className="px-3 py-3 font-medium">{UI.firmantes}</th>
                 <th className="px-3 py-3 font-medium">{UI.estado}</th>
                 <th className="hidden px-3 py-3 font-medium lg:table-cell">{UI.proximaAccion}</th>
                 <th className="hidden px-3 py-3 font-medium xl:table-cell">{DASHBOARD.ultimaActividad}</th>
@@ -211,6 +247,7 @@ export default function AgenteDashboardPage() {
                   </td>
                   <td className="hidden px-3 py-3 md:table-cell">{getLandlordName(packet)}</td>
                   <td className="hidden px-3 py-3 md:table-cell">{getRenterName(packet)}</td>
+                  <td className="px-3 py-3 font-mono text-xs text-muted">{packet.signers.filter((signer) => ["signed", "complete"].includes(signer.status)).length}/{packet.signers.length}</td>
                   <td className="px-3 py-3">
                     <StatusBadge status={packet.status} />
                   </td>
@@ -222,6 +259,7 @@ export default function AgenteDashboardPage() {
                   </td>
                 </tr>
               ))}
+              {sortedPackets.length === 0 && <tr><td colSpan={8} className="px-3 py-8 text-center text-sm text-muted">{UI.sinResultados}</td></tr>}
             </tbody>
           </table>
         </CardContent>

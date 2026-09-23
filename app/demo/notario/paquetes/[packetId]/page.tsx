@@ -23,16 +23,13 @@ import { HashDisplay } from "@/components/evidence/hash-display";
 import { SignatureValidationPanel } from "@/components/evidence/signature-validation-panel";
 import { SignerEvidenceCard } from "@/components/evidence/signer-evidence-card";
 import { ChecklistPanel } from "@/components/notary/checklist-panel";
-import {
-  DecisionPanel,
-  DecisionResultSummary,
-} from "@/components/notary/decision-panel";
+import { DemoNotaryDecisionPanel } from "@/components/demo/notary-decision-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getPacketById } from "@/lib/services/packet-service";
-import { startReview } from "@/lib/services/notary-service";
+import { recordDemoAuthorityCheck, startReview } from "@/lib/services/notary-service";
 import { checkDuplicate } from "@/lib/services/registry-service";
 import {
   formatCurrency,
@@ -167,6 +164,10 @@ export default function NotaryEvidenceReviewPage() {
   const [activeSection, setActiveSection] =
     useState<EvidenceSectionId>("summary");
   const [startingReview, setStartingReview] = useState(false);
+  const [authorityTitle, setAuthorityTitle] = useState("");
+  const [authorityOwners, setAuthorityOwners] = useState("");
+  const [authorityResult, setAuthorityResult] = useState<"verified" | "observation" | "not_found">("verified");
+  const [authorityNotes, setAuthorityNotes] = useState("");
   const [, setRefreshKey] = useState(0);
   const mainRef = useRef<HTMLDivElement>(null);
 
@@ -196,6 +197,7 @@ export default function NotaryEvidenceReviewPage() {
   const showDecisionSection =
     isUnderReview || isDecisionComplete || packet?.status === "certified" ||
     packet?.status === "certified_with_observations" ||
+    packet?.status === "awaiting_notary_seal" ||
     packet?.status === "needs_correction" ||
     packet?.status === "rejected";
 
@@ -446,6 +448,40 @@ export default function NotaryEvidenceReviewPage() {
                 },
               ]}
             />
+            <div className="mt-5 rounded-md border border-border p-4">
+              <h3 className="text-sm font-semibold text-primary">Verificación de autoridad de propiedad · simulación</h3>
+              {packet.demoAuthorityCheck ? (
+                <div className="mt-3 space-y-1 text-sm">
+                  <p>Partida: {packet.demoAuthorityCheck.titleNumber}</p>
+                  <p>Titulares: {packet.demoAuthorityCheck.ownerNames}</p>
+                  <p>Resultado: {packet.demoAuthorityCheck.result === "verified" ? "Verificada" : packet.demoAuthorityCheck.result === "observation" ? "Con observación" : "No encontrada"}</p>
+                  {packet.demoAuthorityCheck.notes && <p>Notas: {packet.demoAuthorityCheck.notes}</p>}
+                  <p className="text-xs text-muted">Registrada: {formatDateTime(packet.demoAuthorityCheck.checkedAt)}</p>
+                </div>
+              ) : <p className="mt-2 text-sm text-muted">Aún no se registra una consulta en este expediente demo.</p>}
+              {isUnderReview && <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <label className="text-xs text-muted">Número de partida
+                  <input value={authorityTitle} onChange={(event) => setAuthorityTitle(event.target.value)} className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                </label>
+                <label className="text-xs text-muted">Titulares consultados
+                  <input value={authorityOwners} onChange={(event) => setAuthorityOwners(event.target.value)} className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                </label>
+                <label className="text-xs text-muted">Resultado
+                  <select value={authorityResult} onChange={(event) => setAuthorityResult(event.target.value as typeof authorityResult)} className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+                    <option value="verified">Verificada</option><option value="observation">Con observación</option><option value="not_found">No encontrada</option>
+                  </select>
+                </label>
+                <label className="text-xs text-muted">Notas o referencia
+                  <input value={authorityNotes} onChange={(event) => setAuthorityNotes(event.target.value)} className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                </label>
+                <Button type="button" disabled={!authorityTitle.trim() || !authorityOwners.trim() || (authorityResult !== "verified" && !authorityNotes.trim())} onClick={() => {
+                  try {
+                    recordDemoAuthorityCheck(packet.id, { titleNumber: authorityTitle, ownerNames: authorityOwners, result: authorityResult, notes: authorityNotes });
+                    toast.success("Consulta simulada registrada");
+                  } catch (error) { toast.error(error instanceof Error ? error.message : TOAST.errorGenerico); }
+                }}>Registrar consulta simulada</Button>
+              </div>}
+            </div>
           </EvidenceSection>
 
           <EvidenceSection id="registry-check" title={EVIDENCE.verificacionRegistro}>
@@ -536,24 +572,25 @@ export default function NotaryEvidenceReviewPage() {
           {showDecisionSection ? (
             <EvidenceSection id="decision" title={EVIDENCE.panelDecision}>
               {showDecisionPanel ? (
-                <DecisionPanel packetId={packet.id} />
+                <DemoNotaryDecisionPanel packetId={packet.id} />
               ) : isUnderReview && !checklistComplete ? (
                 <p className="rounded-md border border-border bg-surface/50 px-4 py-6 text-sm text-muted">
                   Complete todos los elementos de la lista de verificación para
                   habilitar el panel de decisión.
                 </p>
+              ) : packet.status === "awaiting_notary_seal" ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted">La evidencia fue aprobada. Continúe con la certificación simulada y su publicación.</p>
+                  <Link href={`/notario/paquetes/${packet.id}/certificar`} className="inline-flex rounded-md bg-secondary px-4 py-2 text-sm font-medium text-white">Continuar certificación</Link>
+                </div>
               ) : (
-                <DecisionResultSummary
-                  decision={packet.notaryReview?.decision}
-                  observations={packet.notaryReview?.observations}
-                  rejectionReason={packet.notaryReview?.rejectionReason}
-                  correctionReason={packet.notaryReview?.correctionReason}
-                  certifiedAt={
-                    packet.notaryReview?.certifiedAt
-                      ? formatDateTime(packet.notaryReview.certifiedAt)
-                      : undefined
-                  }
-                />
+                <Card><CardContent className="space-y-2 pt-4 text-sm">
+                  <p className="font-semibold text-primary">Decisión registrada: {packet.notaryReview?.decision ?? packet.status}</p>
+                  {packet.notaryReview?.observations && <p>{packet.notaryReview.observations}</p>}
+                  {packet.notaryReview?.correctionReason && <p>{packet.notaryReview.correctionReason}</p>}
+                  {packet.notaryReview?.rejectionReason && <p>{packet.notaryReview.rejectionReason}</p>}
+                  {packet.notaryReview?.certifiedAt && <p className="text-xs text-muted">{formatDateTime(packet.notaryReview.certifiedAt)}</p>}
+                </CardContent></Card>
               )}
             </EvidenceSection>
           ) : null}

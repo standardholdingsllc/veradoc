@@ -118,6 +118,9 @@ function restrictNotarySnapshot(current: DemoSnapshot, proposed: DemoSnapshot): 
       documentHashes: clone(next.documentHashes),
       evidenceReport: next.evidenceReport ? clone(next.evidenceReport) : undefined,
       notaryReview: next.notaryReview ? clone(next.notaryReview) : undefined,
+      demoNotaryPriority: next.demoNotaryPriority,
+      demoAuthorityCheck: next.demoAuthorityCheck ? clone(next.demoAuthorityCheck) : undefined,
+      demoSealWorkflow: next.demoSealWorkflow ? clone(next.demoSealWorkflow) : undefined,
       registryCheck: clone(next.registryCheck),
       auditEvents: clone(next.auditEvents),
     };

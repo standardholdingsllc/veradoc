@@ -34,7 +34,6 @@ export default function SignerCrearCuentaPage() {
   const router = useRouter();
   const { mutateSigner } = useDemoWorkspace();
   const context = useSignerContext();
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -62,9 +61,7 @@ export default function SignerCrearCuentaPage() {
   }
 
   const canSubmit =
-    email.trim().length > 0 &&
-    password.trim().length > 0 &&
-    confirmPassword.trim().length > 0;
+    password.length >= 8 && password === confirmPassword;
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -97,6 +94,7 @@ export default function SignerCrearCuentaPage() {
           <CardTitle className="text-xl">{PAGE_TITLES.crearCuenta}</CardTitle>
         </CardHeader>
         <CardContent>
+          <p className="mb-4 text-sm text-muted">Esta cuenta se simula para recorrer el flujo. No se crea una sesión real.</p>
           <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
             <div className="flex flex-col gap-2">
               <label htmlFor="email" className="text-sm font-medium">
@@ -106,8 +104,8 @@ export default function SignerCrearCuentaPage() {
                 id="email"
                 type="email"
                 autoComplete="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                value={signer.email}
+                readOnly
                 className={inputClassName}
               />
             </div>
@@ -122,6 +120,7 @@ export default function SignerCrearCuentaPage() {
                 autoComplete="new-password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
+                minLength={8}
                 className={inputClassName}
               />
             </div>
@@ -136,9 +135,13 @@ export default function SignerCrearCuentaPage() {
                 autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
+                minLength={8}
                 className={inputClassName}
               />
             </div>
+
+            {password.length > 0 && password.length < 8 && <p className="text-sm text-error">La contraseña debe tener al menos 8 caracteres.</p>}
+            {confirmPassword.length > 0 && password !== confirmPassword && <p className="text-sm text-error">Las contraseñas no coinciden.</p>}
 
             <Button
               type="submit"

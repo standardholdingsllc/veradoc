@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ERRORS, SIGNER, TOAST } from "@/lib/i18n/labels";
 import { useDemoWorkspace } from "@/components/demo/demo-workspace-provider";
+import { DEMO_CONSENT_VERSION } from "@/lib/demo/constants";
 import { cn } from "@/lib/utils";
 
 const CONSENT_PARAGRAPHS = [
@@ -84,6 +85,7 @@ export default function SignerConsentimientoPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
+          <p className="text-xs font-medium text-muted">Texto de ejemplo · versión {DEMO_CONSENT_VERSION}. La aceptación se registra solo en este espacio demo.</p>
           <div className="flex flex-col gap-4 text-sm leading-relaxed text-muted">
             {CONSENT_PARAGRAPHS.map((paragraph) => (
               <p key={paragraph}>{paragraph}</p>

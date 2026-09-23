@@ -7,6 +7,7 @@ import type {
 import { canTransition, transition } from "@/lib/domain/packet-machine";
 import { canTransitionSigner, transitionSigner } from "@/lib/domain/signer-machine";
 import type { DemoSignerAction, DemoSnapshot } from "./types";
+import { DEMO_CONSENT_VERSION } from "./constants";
 
 const DEVICE = "Demo compartida / navegador aislado";
 
@@ -149,8 +150,9 @@ export function applyDemoSignerAction(
       });
       break;
     case "accept_consent":
-      transitionSignerState(packet, signerIndex, { type: "accept_consent" }, "Consentimiento demo aceptado", {
+      transitionSignerState(packet, signerIndex, { type: "accept_consent" }, `Consentimiento demo ${DEMO_CONSENT_VERSION} aceptado`, {
         consentAccepted: true,
+        demoConsentVersion: DEMO_CONSENT_VERSION,
         consentTimestamp: new Date().toISOString(),
       });
       break;
