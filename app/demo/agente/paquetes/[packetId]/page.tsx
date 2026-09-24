@@ -25,6 +25,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import {
   generateEvidenceReport,
   getPacketById,
+  sendSigningLinks,
   submitToNotary,
 } from "@/lib/services/packet-service";
 import { checkDuplicate } from "@/lib/services/registry-service";
@@ -49,7 +50,7 @@ export default function PaqueteDetallePage() {
   const params = useParams<{ packetId: string }>();
   const packetId = params.packetId;
   const [processing, setProcessing] = useState(false);
-  const { saveNow, refresh } = useDemoWorkspace();
+  const { saveNow, refresh, sendSigningEmails } = useDemoWorkspace();
 
   const packet = usePacketById(packetId);
 
@@ -103,6 +104,31 @@ export default function PaqueteDetallePage() {
   const handleSendReminder = useCallback(() => {
     toast.success(TOAST.recordatorioEnviado);
   }, []);
+
+  const handleSendSigningLinks = useCallback(async () => {
+    if (!packet || packet.status !== "ready_to_send" || processing) {
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const updated = sendSigningLinks(packet.id);
+      const saved = await saveNow();
+      const persistedPacket = saved.snapshot.packets.find(
+        (entry) => entry.id === packet.id,
+      );
+      if (persistedPacket?.status !== updated.status) {
+        throw new Error("DEMO_SIGNING_LINKS_NOT_PERSISTED");
+      }
+      await sendSigningEmails(packet.id);
+      toast.success(TOAST.enlacesEnviados);
+    } catch {
+      await refresh().catch(() => undefined);
+      toast.error(TOAST.errorGenerico);
+    } finally {
+      setProcessing(false);
+    }
+  }, [packet, processing, refresh, saveNow, sendSigningEmails]);
 
   const handleAdvanceSigners = useCallback(async () => {
     if (!packet || processing) {
@@ -427,12 +453,19 @@ export default function PaqueteDetallePage() {
               </Button>
 
               {currentPacket.status === "ready_to_send" ? (
-                <Link href="/agente/nuevo-paquete">
-                  <Button variant="outline" className="mt-2 w-full justify-start">
+                <Button
+                  variant="outline"
+                  className="mt-2 w-full justify-start"
+                  onClick={handleSendSigningLinks}
+                  disabled={processing}
+                >
+                  {processing ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
                     <Send className="size-4" />
-                    {ACTIONS.enviarEnlaces}
-                  </Button>
-                </Link>
+                  )}
+                  {ACTIONS.enviarEnlaces}
+                </Button>
               ) : null}
             </CardContent>
           </Card>
