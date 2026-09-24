@@ -43,11 +43,13 @@ import {
   WIZARD,
 } from "@/lib/i18n/labels";
 import { usePacketById } from "@/lib/services/hooks";
+import { useDemoWorkspace } from "@/components/demo/demo-workspace-provider";
 
 export default function PaqueteDetallePage() {
   const params = useParams<{ packetId: string }>();
   const packetId = params.packetId;
   const [processing, setProcessing] = useState(false);
+  const { saveNow, refresh } = useDemoWorkspace();
 
   const packet = usePacketById(packetId);
 
@@ -75,20 +77,28 @@ export default function PaqueteDetallePage() {
     }
   }, [packetId, processing]);
 
-  const handleSubmitToNotary = useCallback(() => {
+  const handleSubmitToNotary = useCallback(async () => {
     if (!packetId || processing) {
       return;
     }
     setProcessing(true);
     try {
-      submitToNotary(packetId);
+      const submitted = submitToNotary(packetId);
+      const saved = await saveNow();
+      const persistedPacket = saved.snapshot.packets.find(
+        (entry) => entry.id === packetId,
+      );
+      if (persistedPacket?.status !== submitted.status) {
+        throw new Error("DEMO_SUBMISSION_NOT_PERSISTED");
+      }
       toast.success(TOAST.paqueteEnviadoNotario);
     } catch {
+      await refresh().catch(() => undefined);
       toast.error(TOAST.errorGenerico);
     } finally {
       setProcessing(false);
     }
-  }, [packetId, processing]);
+  }, [packetId, processing, refresh, saveNow]);
 
   const handleSendReminder = useCallback(() => {
     toast.success(TOAST.recordatorioEnviado);
