@@ -8,8 +8,10 @@ import {
   ArrowLeft,
   Bell,
   CheckCircle2,
+  Download,
   FileText,
   Loader2,
+  Receipt,
   Scale,
   Send,
   Shield,
@@ -46,11 +48,26 @@ import {
 import { usePacketById } from "@/lib/services/hooks";
 import { useDemoWorkspace } from "@/components/demo/demo-workspace-provider";
 import { getDemoEmailErrorMessage } from "@/lib/demo/email-error-message";
+import type { LeasePacket } from "@/lib/domain/types";
+
+async function downloadDemoInvoice(packet: LeasePacket) {
+  const { createDemoInvoiceDocument } = await import("@/lib/demo/invoice-document");
+  const bytes = await createDemoInvoiceDocument(packet);
+  const blobBytes = new Uint8Array(bytes.byteLength);
+  blobBytes.set(bytes);
+  const url = URL.createObjectURL(new Blob([blobBytes.buffer], { type: "application/pdf" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `muestra-comprobante-${packet.packetCode.toLowerCase()}.pdf`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function PaqueteDetallePage() {
   const params = useParams<{ packetId: string }>();
   const packetId = params.packetId;
   const [processing, setProcessing] = useState(false);
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
   const { saveNow, refresh, sendSigningEmails } = useDemoWorkspace();
 
   const packet = usePacketById(packetId);
@@ -166,6 +183,20 @@ export default function PaqueteDetallePage() {
       setProcessing(false);
     }
   }, [packet, processing]);
+
+  const handleDownloadDemoInvoice = useCallback(async () => {
+    if (downloadingInvoice) return;
+    const invoicePacket = packet ?? getPacketById(packetId);
+    if (!invoicePacket) return;
+    setDownloadingInvoice(true);
+    try {
+      await downloadDemoInvoice(invoicePacket);
+    } catch {
+      toast.error("No se pudo generar la muestra del comprobante.");
+    } finally {
+      setDownloadingInvoice(false);
+    }
+  }, [downloadingInvoice, packet, packetId]);
 
   if (!packet) {
     const fallback = getPacketById(packetId);
@@ -401,6 +432,44 @@ export default function PaqueteDetallePage() {
               </dl>
             </CardContent>
           </Card>
+
+          {currentPacket.payment.status === "paid" ? (
+            <Card>
+              <CardHeader className="border-b border-border pb-4">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Receipt className="size-4 text-muted" />
+                  Comprobante de pago (demo)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 pt-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs text-muted">Estado</span>
+                  <Badge variant="success">Disponible · demo</Badge>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs text-muted">Referencia demo</span>
+                  <span className="font-mono text-sm">{currentPacket.packetCode}</span>
+                </div>
+                <p className="text-xs text-warning">
+                  Muestra sin validez tributaria. No es una factura emitida por SUNAT.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 w-full"
+                  onClick={handleDownloadDemoInvoice}
+                  disabled={downloadingInvoice}
+                >
+                  {downloadingInvoice ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Download className="size-4" />
+                  )}
+                  Descargar muestra PDF
+                </Button>
+              </CardContent>
+            </Card>
+          ) : null}
 
           <Card>
             <CardHeader className="border-b border-border pb-4">
