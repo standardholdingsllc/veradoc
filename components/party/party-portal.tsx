@@ -106,17 +106,10 @@ function usePartyPackets(role: PartyRole): PartyPacket[] {
   const currentUser = useCurrentUser();
 
   return useMemo(() => {
-    const matchingUserDni =
-      currentUser?.role === role ? currentUser.dni : undefined;
-
     return packets
       .flatMap((packet) =>
         packet.signers
-          .filter(
-            (signer) =>
-              signer.roleInLease === role &&
-              (!matchingUserDni || signer.dni === matchingUserDni),
-          )
+          .filter((signer) => signer.roleInLease === role)
           .map((signer) => ({ packet, signer })),
       )
       .sort(
@@ -124,7 +117,7 @@ function usePartyPackets(role: PartyRole): PartyPacket[] {
           new Date(b.packet.updatedAt).getTime() -
           new Date(a.packet.updatedAt).getTime(),
       );
-  }, [currentUser?.dni, currentUser?.role, packets, role]);
+  }, [packets, role]);
 }
 
 function SummaryCard({
