@@ -56,7 +56,7 @@ Within one temporary demo workspace, the demo can walk through:
 19. recording a simulated property-authority result and approving evidence for the pending-seal stage, or returning or rejecting the packet;
 20. inspecting registry results and a duplicate-address warning;
 21. showing landlord and renter contract views;
-22. completing four simulated certification steps, publishing to the parties, and showing a simulated certified-document download and renewal affordance.
+22. downloading a watermarked print sample, recording PDF scan metadata, attesting to the simulated seal, preparing the report, publishing to the parties, and showing a simulated certified-document download and renewal affordance.
 
 The demo banner says `Modo demostración — datos simulados`. Keep it visible and use it as the first visual reminder to the audience.
 
@@ -72,6 +72,8 @@ The following statements must remain true throughout the presentation:
 - The signer account form records simulated progress in the workspace. It does not create a real authentication account or session.
 - The identity cards are clickable simulations. No image is uploaded and no identity provider is called.
 - The signing screen describes a redirect to an IOFE provider, but the demo completes locally after a short simulated processing delay.
+- The print action creates a watermarked, two-page sample from packet metadata; it is not the signed contract. The scan control validates a selected PDF in the browser and stores only its file name, page count, size, and SHA-256 hash in the temporary demo workspace. The file contents are not uploaded or retained.
+- The seal, signature, scan validation, attestation, certification report, and publication remain simulated. No real notarial seal or certification is issued.
 - Payment displays demo values and uses a placeholder method. It does not charge a card or connect to a payment provider.
 - Registry records, property evidence, hashes, certificate details, audit events, and notary outputs are sample data or generated in the temporary demo workspace.
 - `Descargar contrato` and `Descargar contrato certificado` show a simulated download confirmation. They do not deliver a production document file.
@@ -663,7 +665,7 @@ Do not execute multiple terminal decisions on the same packet unless you reset t
 1. In `Evidencia de propiedad`, record a synthetic title number, owner names, result, and notes. Explain that this is a recorded demo check, not a live SUNARP lookup.
 2. Complete the checklist, then click `Aprobar evidencia para sello` and confirm.
 3. Return to the queue and open `Pendiente de sello`.
-4. Open the packet’s certification page. Register document preparation, attestation, and report preparation in order.
+4. Open the packet’s certification page. Download the watermarked print sample, select a PDF scan, confirm the attestation checklist, and prepare the simulated report in order. The selected file’s contents are not stored.
 5. Click `Publicar documento simulado`.
 6. Open `Certificados`, then use the direct landlord and renter detail links on the certification page. The certified document record, final hash stage, and registry entry are synthetic workspace data. The role dashboards use seeded demo personas, so a newly certified packet may not appear in their filtered lists.
 

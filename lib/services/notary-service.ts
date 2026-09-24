@@ -223,7 +223,13 @@ export function approveDemoEvidenceForSeal(packetId: string): LeasePacket {
     "Evidencia aprobada para certificación simulada", { notaryReview, demoSealWorkflow: {} });
 }
 
-export function advanceDemoSeal(packetId: string, step: "prepare_document" | "attest" | "prepare_report" | "publish"): LeasePacket {
+type DemoNotarialScan = NonNullable<NonNullable<LeasePacket["demoSealWorkflow"]>["notarialScan"]>;
+
+export function advanceDemoSeal(
+  packetId: string,
+  step: "prepare_document" | "upload_scan" | "attest" | "prepare_report" | "publish",
+  scan?: DemoNotarialScan,
+): LeasePacket {
   const adapter = getPacketAdapter();
   const packet = adapter.getById(packetId);
   if (!packet || packet.status !== "awaiting_notary_seal") throw new Error("Paquete no pendiente de sello");
@@ -231,7 +237,26 @@ export function advanceDemoSeal(packetId: string, step: "prepare_document" | "at
   const now = new Date().toISOString();
   if (step === "prepare_document") {
     adapter.update(packetId, { demoSealWorkflow: { ...workflow, signedDocumentPreparedAt: now } });
-  } else if (step === "attest" && workflow.signedDocumentPreparedAt) {
+  } else if (step === "upload_scan" && workflow.signedDocumentPreparedAt && scan) {
+    if (
+      !scan.fileName.toLowerCase().endsWith(".pdf") ||
+      !Number.isInteger(scan.fileSizeBytes) || scan.fileSizeBytes <= 0 ||
+      !Number.isInteger(scan.pageCount) || scan.pageCount < 1 || scan.pageCount > 500 ||
+      !Number.isInteger(scan.additionalCertificationPages) ||
+      scan.additionalCertificationPages < 0 || scan.additionalCertificationPages > 20 ||
+      !/^[a-f0-9]{64}$/.test(scan.sha256)
+    ) throw new Error("El escaneo PDF no es válido para la simulación");
+    adapter.update(packetId, {
+      demoSealWorkflow: { ...workflow, scanUploadedAt: now, notarialScan: scan },
+      documentHashes: [...packet.documentHashes, {
+        hash: scan.sha256,
+        stage: "notarial_scan",
+        algorithm: "SHA-256",
+        timestamp: now,
+        actorId: getNotaryActor().id,
+      }],
+    });
+  } else if (step === "attest" && workflow.scanUploadedAt && workflow.notarialScan) {
     adapter.update(packetId, { demoSealWorkflow: { ...workflow, attestedAt: now } });
   } else if (step === "prepare_report" && workflow.attestedAt) {
     adapter.update(packetId, { demoSealWorkflow: { ...workflow, reportPreparedAt: now } });

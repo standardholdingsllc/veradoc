@@ -91,6 +91,14 @@ export interface LeasePacket {
   };
   demoSealWorkflow?: {
     signedDocumentPreparedAt?: string;
+    scanUploadedAt?: string;
+    notarialScan?: {
+      fileName: string;
+      fileSizeBytes: number;
+      pageCount: number;
+      sha256: string;
+      additionalCertificationPages: number;
+    };
     attestedAt?: string;
     reportPreparedAt?: string;
     publishedAt?: string;

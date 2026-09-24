@@ -34,6 +34,15 @@ describe("demo notary certification", () => {
     expect(useVeraDocStore.getState().getPacketById(packetId)!.status).toBe("awaiting_notary_seal");
     expect(() => advanceDemoSeal(packetId, "publish")).toThrow("paso anterior");
     advanceDemoSeal(packetId, "prepare_document");
+    const scan = {
+      fileName: "escaneo-notarial-demo.pdf",
+      fileSizeBytes: 2048,
+      pageCount: 3,
+      sha256: "a".repeat(64),
+      additionalCertificationPages: 0,
+    };
+    expect(() => advanceDemoSeal(packetId, "attest")).toThrow("paso anterior");
+    advanceDemoSeal(packetId, "upload_scan", scan);
     advanceDemoSeal(packetId, "attest");
     advanceDemoSeal(packetId, "prepare_report");
     advanceDemoSeal(packetId, "publish");
@@ -41,6 +50,8 @@ describe("demo notary certification", () => {
     expect(published.status).toBe("certified");
     expect(published.certifiedDocument?.fileName).toContain("certificado-demo");
     expect(published.demoSealWorkflow?.publishedAt).toBeTruthy();
+    expect(published.demoSealWorkflow?.notarialScan?.sha256).toBe(scan.sha256);
+    expect(published.documentHashes.some((entry) => entry.stage === "notarial_scan" && entry.hash === scan.sha256)).toBe(true);
     expect(useVeraDocStore.getState().registry.some((entry) => entry.packetId === packetId)).toBe(true);
   });
 
