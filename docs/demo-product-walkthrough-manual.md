@@ -317,7 +317,7 @@ Click the continue arrow.
 
 #### Step 5: `Pago`
 
-1. Point out `Tarifa VeraDoc` and the demo amount of `S/ 89.00` or the equivalent localized currency display.
+1. Point out `Tarifa VeraDoc` and the demo amount of `S/ 199.00` or the equivalent localized currency display.
 2. Explain that the amount is a UI value and the payment confirmation is simulated.
 3. Click `Pagar y crear paquete`.
 4. Wait for the success toast `Pago confirmado`.

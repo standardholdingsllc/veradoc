@@ -56,7 +56,7 @@ const DISTRICTS = [
   "La Molina",
 ] as const;
 
-const FEE_AMOUNT = 89;
+const FEE_AMOUNT = 199;
 const DEMO_FILE_NAME = "contrato-arrendamiento-2024.pdf";
 const DEMO_HASH =
   "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";

@@ -27,7 +27,7 @@ export function formatRelative(iso: string): string {
   return formatDistanceToNow(parseISO(iso), { addSuffix: true, locale: es });
 }
 
-/** Format amount as Peruvian soles, e.g. "S/ 89.00" */
+/** Format amount as Peruvian soles, e.g. "S/ 199.00" */
 export function formatCurrency(
   amount: number,
   currency: "PEN" = "PEN",
