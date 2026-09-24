@@ -261,6 +261,7 @@ export const CHECKLIST = {
 // Notary queue tabs
 // ---------------------------------------------------------------------------
 export const NOTARY_QUEUE = {
+  enPreparacion: "En preparación",
   pendientes: "Pendientes de revisión",
   enRevision: "En revisión",
   pendienteSello: "Pendiente de sello notarial",
@@ -268,6 +269,14 @@ export const NOTARY_QUEUE = {
   certificados: "Certificados",
   certificadosConObservaciones: "Certificados con observaciones",
   rechazados: "Rechazados",
+} as const;
+
+export const PACKET_PREPARATION = {
+  notaryQueueExplanation:
+    "Estos paquetes todavía avanzan con los firmantes. Pasarán a Pendientes de revisión cuando el agente envíe al notario el expediente con las firmas y la evidencia completas.",
+  realtorCreatedTitle: "Paquete creado",
+  realtorCreatedDescription:
+    "El paquete ya está guardado. Envíe los enlaces para iniciar las firmas; aparecerá en la cola de revisión notarial después de completar las firmas y enviar el expediente.",
 } as const;
 
 export const NOTARY_ACCOUNT = {

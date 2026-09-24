@@ -11,6 +11,7 @@ import {
   DASHBOARD,
   EMPTY,
   NOTARY_ACCOUNT,
+  PACKET_PREPARATION,
   NOTARY_QUEUE,
   PAGE_TITLES,
   REGISTRY,
@@ -22,6 +23,7 @@ import { usePackets, useUsers } from "@/lib/services/hooks";
 import { cn } from "@/lib/utils";
 
 type QueueTab =
+  | "en_preparacion"
   | "pendientes"
   | "en_revision"
   | "pendiente_sello"
@@ -34,6 +36,17 @@ const TAB_CONFIG: {
   label: string;
   statuses: PacketStatus[];
 }[] = [
+  {
+    id: "en_preparacion",
+    label: NOTARY_QUEUE.enPreparacion,
+    statuses: [
+      "ready_to_send",
+      "sent_to_signers",
+      "partially_signed",
+      "all_signers_complete",
+      "evidence_report_generated",
+    ],
+  },
   {
     id: "pendientes",
     label: NOTARY_QUEUE.pendientes,
@@ -161,6 +174,7 @@ export default function NotarioDashboardPage() {
   const [activeTab, setActiveTab] = useState<QueueTab>("pendientes");
 
   const currentConfig = TAB_CONFIG.find((tab) => tab.id === activeTab)!;
+  const isPreparationTab = activeTab === "en_preparacion";
   const certifiedPackets = packets.filter(isCertified);
   const certifiedThisMonth = certifiedPackets.filter((packet) =>
     isSameMonth(packet.notaryReview?.certifiedAt ?? packet.updatedAt),
@@ -270,6 +284,11 @@ export default function NotarioDashboardPage() {
       <Card>
         <CardHeader className="border-b border-border pb-4">
           <CardTitle className="text-base">{currentConfig.label}</CardTitle>
+          {isPreparationTab ? (
+            <p className="mt-2 max-w-3xl text-sm text-muted">
+              {PACKET_PREPARATION.notaryQueueExplanation}
+            </p>
+          ) : null}
         </CardHeader>
         <CardContent className="overflow-x-auto p-0">
           {filteredPackets.length === 0 ? (
@@ -299,9 +318,11 @@ export default function NotarioDashboardPage() {
                     {DASHBOARD.indicadorRegistro}
                   </th>
                   <th className="px-4 py-3 font-semibold">
-                    {DASHBOARD.fechaEnvio}
+                    {isPreparationTab ? "Actualizado" : DASHBOARD.fechaEnvio}
                   </th>
-                  <th className="px-4 py-3 font-semibold">Prioridad</th>
+                  {!isPreparationTab ? (
+                    <th className="px-4 py-3 font-semibold">Prioridad</th>
+                  ) : null}
                   <th className="px-4 py-3 font-semibold">{UI.estado}</th>
                 </tr>
               </thead>
@@ -315,12 +336,18 @@ export default function NotarioDashboardPage() {
                       className="border-b border-border last:border-b-0 hover:bg-surface/50"
                     >
                       <td className="px-4 py-3">
-                        <Link
-                          href={packet.status === "awaiting_notary_seal" ? `/notario/paquetes/${packet.id}/certificar` : `/notario/paquetes/${packet.id}`}
-                          className="font-mono text-sm font-semibold text-secondary hover:underline"
-                        >
-                          {packet.packetCode}
-                        </Link>
+                        {isPreparationTab ? (
+                          <span className="font-mono text-sm font-semibold text-primary">
+                            {packet.packetCode}
+                          </span>
+                        ) : (
+                          <Link
+                            href={packet.status === "awaiting_notary_seal" ? `/notario/paquetes/${packet.id}/certificar` : `/notario/paquetes/${packet.id}`}
+                            className="font-mono text-sm font-semibold text-secondary hover:underline"
+                          >
+                            {packet.packetCode}
+                          </Link>
+                        )}
                       </td>
                       <td className="max-w-[220px] truncate px-4 py-3">
                         {getPropertyLabel(packet)}
@@ -348,17 +375,19 @@ export default function NotarioDashboardPage() {
                         )}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-muted">
-                        {submitDate ? formatDateTime(submitDate) : "—"}
+                        {formatDateTime(isPreparationTab ? packet.updatedAt : submitDate ?? packet.updatedAt)}
                       </td>
-                      <td className="px-4 py-3">
-                        <label className="sr-only" htmlFor={`priority-${packet.id}`}>Prioridad de {packet.packetCode}</label>
-                        <select id={`priority-${packet.id}`} value={packet.demoNotaryPriority ?? "normal"}
-                          disabled={["certified", "certified_with_observations", "rejected"].includes(packet.status)}
-                          onChange={(event) => setDemoNotaryPriority(packet.id, event.target.value as NonNullable<LeasePacket["demoNotaryPriority"]>)}
-                          className="rounded border border-border bg-background px-2 py-1 text-xs">
-                          <option value="urgent">Urgente</option><option value="high">Alta</option><option value="normal">Normal</option><option value="low">Baja</option>
-                        </select>
-                      </td>
+                      {!isPreparationTab ? (
+                        <td className="px-4 py-3">
+                          <label className="sr-only" htmlFor={`priority-${packet.id}`}>Prioridad de {packet.packetCode}</label>
+                          <select id={`priority-${packet.id}`} value={packet.demoNotaryPriority ?? "normal"}
+                            disabled={["certified", "certified_with_observations", "rejected"].includes(packet.status)}
+                            onChange={(event) => setDemoNotaryPriority(packet.id, event.target.value as NonNullable<LeasePacket["demoNotaryPriority"]>)}
+                            className="rounded border border-border bg-background px-2 py-1 text-xs">
+                            <option value="urgent">Urgente</option><option value="high">Alta</option><option value="normal">Normal</option><option value="low">Baja</option>
+                          </select>
+                        </td>
+                      ) : null}
                       <td className="px-4 py-3">
                         <StatusBadge status={packet.status} />
                       </td>

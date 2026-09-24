@@ -30,6 +30,7 @@ import {
   DOCUMENT,
   FORMS,
   PAGE_TITLES,
+  PACKET_PREPARATION,
   ROLES,
   TOAST,
   UI,
@@ -171,6 +172,7 @@ export default function NuevoPaquetePage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [documentUploaded, setDocumentUploaded] = useState(false);
   const [createdPacketId, setCreatedPacketId] = useState<string | null>(null);
+  const [createdPacketCode, setCreatedPacketCode] = useState<string | null>(null);
   const [signingLinks, setSigningLinks] = useState<
     { name: string; role: string; url: string }[]
   >([]);
@@ -324,6 +326,7 @@ export default function NuevoPaquetePage() {
 
       confirmPayment(packet.id);
       setCreatedPacketId(packet.id);
+      setCreatedPacketCode(packet.packetCode);
       const shared = await saveNow();
       setSigningLinks(
         packet.signers.map((signer) => ({
@@ -912,6 +915,16 @@ export default function NuevoPaquetePage() {
             <CardTitle className="text-base">{WIZARD.enviarEnlaces}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {createdPacketId ? (
+              <div className="rounded-md border border-secondary/30 bg-secondary/5 p-4">
+                <p className="font-medium text-primary">
+                  {PACKET_PREPARATION.realtorCreatedTitle}: {createdPacketCode}
+                </p>
+                <p className="mt-1 text-sm text-muted">
+                  {PACKET_PREPARATION.realtorCreatedDescription}
+                </p>
+              </div>
+            ) : null}
             {signingLinks.map((link) => (
               <div
                 key={link.url}
