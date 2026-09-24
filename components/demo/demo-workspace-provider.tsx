@@ -84,6 +84,7 @@ export function DemoWorkspaceProvider({ children }: Readonly<{ children: React.R
   const payloadRef = useRef<DemoWorkspacePayload | null>(null);
   const applyingRemote = useRef(false);
   const dirty = useRef(false);
+  const localMutationVersion = useRef(0);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveChain = useRef(Promise.resolve());
   const loadInFlight = useRef<Promise<void> | null>(null);
@@ -170,8 +171,9 @@ export function DemoWorkspaceProvider({ children }: Readonly<{ children: React.R
     return () => window.clearTimeout(timer);
   }, [load]);
 
-  const persist = useCallback(async (localSnapshot?: DemoSnapshot): Promise<DemoWorkspacePayload> => {
-    let snapshot = localSnapshot ?? snapshotFromStore();
+  const persist = useCallback(async (): Promise<DemoWorkspacePayload> => {
+    let snapshot = snapshotFromStore();
+    const mutationVersionAtStart = localMutationVersion.current;
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const current = payloadRef.current;
       if (!current || current.accessRole === "signer") throw new Error("DEMO_WRITE_NOT_ALLOWED");
@@ -185,12 +187,16 @@ export function DemoWorkspaceProvider({ children }: Readonly<{ children: React.R
           await fetch("/api/demo/workspace", { cache: "no-store" }),
         );
         payloadRef.current = remote;
-        snapshot = mergeSnapshots(snapshot, remote.snapshot);
+        snapshot = mergeSnapshots(snapshotFromStore(), remote.snapshot);
         continue;
       }
       const next = await jsonOrError<DemoWorkspacePayload>(response);
-      dirty.current = false;
-      applyPayload(next);
+      payloadRef.current = next;
+      setPayload(next);
+      if (localMutationVersion.current === mutationVersionAtStart) {
+        dirty.current = false;
+        applyPayload(next);
+      }
       return next;
     }
     throw new Error("DEMO_VERSION_CONFLICT");
@@ -206,13 +212,13 @@ export function DemoWorkspaceProvider({ children }: Readonly<{ children: React.R
         state.registry === previous.registry &&
         state.currentRole === previous.currentRole
       ) return;
+      localMutationVersion.current += 1;
       dirty.current = true;
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => {
         saveTimer.current = null;
-        const snapshot = snapshotFromStore();
         saveChain.current = saveChain.current
-          .then(() => persist(snapshot))
+          .then(() => persist())
           .then(() => undefined)
           .catch((saveError) => setError(saveError instanceof Error ? saveError.message : "DEMO_SAVE_FAILED"));
       }, 250);
