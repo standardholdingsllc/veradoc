@@ -38,6 +38,7 @@ import {
 } from "@/lib/i18n/labels";
 import { cn } from "@/lib/utils";
 import { useDemoWorkspace } from "@/components/demo/demo-workspace-provider";
+import { getDemoEmailErrorMessage } from "@/lib/demo/email-error-message";
 
 const WIZARD_STEPS = [
   { number: 1, label: WIZARD.cargarContrato },
@@ -368,8 +369,8 @@ export default function NuevoPaquetePage() {
       );
       await sendSigningEmails(createdPacketId);
       toast.success(TOAST.enlacesEnviados);
-    } catch {
-      toast.error(TOAST.errorGenerico);
+    } catch (error) {
+      toast.error(getDemoEmailErrorMessage(error));
     } finally {
       setProcessing(false);
     }

@@ -22,6 +22,11 @@ export async function POST(request: NextRequest) {
     const body = schema.parse(await readDemoJson(request));
     return noStoreJson(await sendDemoSigningEmails({ presenterToken, ...body }));
   } catch (error) {
+    const code =
+      error instanceof Error && /^DEMO_[A-Z0-9_]+$/.test(error.message)
+        ? error.message
+        : "DEMO_SIGNING_EMAIL_REQUEST_FAILED";
+    console.error("[demo-signing-email] request failed", { code });
     return demoErrorResponse(error);
   }
 }

@@ -45,6 +45,7 @@ import {
 } from "@/lib/i18n/labels";
 import { usePacketById } from "@/lib/services/hooks";
 import { useDemoWorkspace } from "@/components/demo/demo-workspace-provider";
+import { getDemoEmailErrorMessage } from "@/lib/demo/email-error-message";
 
 export default function PaqueteDetallePage() {
   const params = useParams<{ packetId: string }>();
@@ -101,9 +102,22 @@ export default function PaqueteDetallePage() {
     }
   }, [packetId, processing, refresh, saveNow]);
 
-  const handleSendReminder = useCallback(() => {
-    toast.success(TOAST.recordatorioEnviado);
-  }, []);
+  const handleSendReminder = useCallback(async () => {
+    if (!packet || processing) {
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      await sendSigningEmails(packet.id);
+      toast.success(TOAST.recordatorioEnviado);
+    } catch (error) {
+      await refresh().catch(() => undefined);
+      toast.error(getDemoEmailErrorMessage(error));
+    } finally {
+      setProcessing(false);
+    }
+  }, [packet, processing, refresh, sendSigningEmails]);
 
   const handleSendSigningLinks = useCallback(async () => {
     if (!packet || packet.status !== "ready_to_send" || processing) {
@@ -122,9 +136,9 @@ export default function PaqueteDetallePage() {
       }
       await sendSigningEmails(packet.id);
       toast.success(TOAST.enlacesEnviados);
-    } catch {
+    } catch (error) {
       await refresh().catch(() => undefined);
-      toast.error(TOAST.errorGenerico);
+      toast.error(getDemoEmailErrorMessage(error));
     } finally {
       setProcessing(false);
     }

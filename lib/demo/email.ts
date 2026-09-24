@@ -72,13 +72,17 @@ export async function sendDemoSigningEmails(params: {
       });
       sent.push(recipient);
     } catch (error) {
+      const errorCode =
+        error instanceof Error && error.message === "DEMO_EMAIL_PROVIDER_REJECTED"
+          ? "DEMO_EMAIL_PROVIDER_REJECTED"
+          : "DEMO_EMAIL_PROVIDER_FAILED";
       await finishDemoEmailDelivery({
         workspaceId: payload.workspaceId,
         idempotencyKey: deliveryKey,
         status: "failed",
-        errorCode: error instanceof Error ? error.message : "DEMO_EMAIL_FAILED",
+        errorCode,
       });
-      throw error;
+      throw new Error(errorCode);
     }
   }
   return { sent, duplicate };
